@@ -1,0 +1,130 @@
+@font-face {
+    font-family: 'newFont';
+    src: url('../fonts/CooperHewitt-Book.otf');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Base Styles */
+body {
+    font-family: 'newFont';
+    line-height: 1.6;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: url('../images/backg3.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #b43030;
+    padding-bottom: 10px;
+}
+
+/* Invitation Styling */
+.invitation {
+    background-color: #ffffffc9;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: 0.4s;
+}
+
+.invitation:hover {
+  transform: translateY(-10px);
+}
+
+
+
+.invitation p {
+    margin: 8px 0;
+}
+
+.invitation strong {
+    color: #b43030;
+    display: inline-block;
+    width: 130px;
+}
+
+/* Form and Button Styling */
+form {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+
+button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition:0.4s;
+}
+
+button[value="accept"] {
+    background-color: #2ecc71;
+    color: white;
+}
+
+button[value="accept"]:hover {
+    transform: translateY(-10px);
+}
+
+button[value="decline"] {
+    background-color: #e74c3c;
+    color: white;
+}
+
+button[value="decline"]:hover {
+    transform: translateY(-10px);
+}
+
+/* Divider */
+hr {
+    border: 0;
+    height: 1px;
+    background-color: transparent;
+    margin: 25px 0;
+}
+
+/* Back Link */
+a {
+    display: inline-block;
+    color: #e74c3c;
+    text-decoration: none;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+a:hover {
+    color: #690f05;
+ 
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    body {
+        padding: 15px;
+    }
+    
+    .invitation strong {
+        width: 100%;
+        margin-bottom: 2px;
+    }
+    
+    form {
+        flex-direction: column;
+    }
+    
+    button {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}

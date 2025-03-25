@@ -1,0 +1,370 @@
+/*----------------------------------------
+    Global Styles & Fonts
+----------------------------------------*/
+
+/* Font */
+@font-face {
+  font-family: 'newFont';
+  src: url('../fonts/CooperHewitt-Book.otf');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Base styles */
+body {
+  font-family: 'newFont';
+  background-image: url('../images/backg3.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  margin: 0;
+  padding: 0;
+  color: #000;
+}
+
+/*----------------------------------------
+    Header & Navigation
+----------------------------------------*/
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: transparent;
+  color: #000;
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+.nav-group {
+  display: flex;
+  align-items: center;
+}
+
+.menu-toggle {
+  font-size: 1.8em;
+  cursor: pointer;
+  display: block;
+}
+
+.menu-toggle:hover {
+  transition: 0.4s;
+  transform: translateX(2px);
+}
+
+/* Navigation Menu */
+.nav-links {
+  display: none;
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  background: transparent;
+  border-radius: 5px;
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+}
+
+.nav-links.show {
+  display: block;
+}
+
+.nav-links ul {
+  display: flex;
+  flex-direction: row;
+  list-style: none;
+  padding: 10px;
+  margin: 0;
+}
+
+.nav-links ul li {
+  margin: 2px;
+  padding: 10px;
+  text-align: center;
+}
+
+.nav-links ul li a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.2em;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+/*----------------------------------------
+    Links & Headings
+----------------------------------------*/
+
+a {
+  display: inline-block;
+  padding: 8px 14px;
+  background-color: #fd2b2b;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+a:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+  font-size: 2em;
+  color: #000;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/*----------------------------------------
+    Forms & Containers
+----------------------------------------*/
+.container {
+  margin: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.form-container {
+  width: 50%;
+  box-shadow: #000000 0px 0px 5px 0px;
+  background-color: #ffffffb2;
+  margin: 30px 0;
+  line-height: 28px;
+  padding: 40px 60px;
+  border-radius: 20px;
+  transition: 0.4s;
+}
+
+.form-container:hover {
+  transform: translateY(-10px);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  margin-top: 20px;
+  text-align: left;
+}
+
+form input {
+  padding: 10px;
+  margin: 10px 0;
+  width: 100%;
+  border: 1px solid #7e7e7e;
+  border-radius: 5px;
+}
+
+
+
+/*----------------------------------------
+    Button Styles
+----------------------------------------*/
+
+button {
+  padding: 10px 16px;
+  background-color: #fd2b2b;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+/*----------------------------------------
+    Notification Styles
+----------------------------------------*/
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 5px;
+  z-index: 10000;
+  max-width: 300px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+
+
+.notification-warning {
+  background-color: #ffdddd;
+  color: #900;
+  border: 1px solid #f5c2c2;
+}
+
+.notification-success {
+  background-color: #ddffdd;
+  color: #090;
+  border: 1px solid #c2f5c2;
+}
+
+/* Notification dropdown */
+.notification-container {
+  position: relative;
+  display: inline-block;
+  margin-right: 15px;
+}
+
+.notification-icon {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.notification-icon:hover {
+  transition: 0.4s;
+  transform: scale(1.2);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+
+.notification-dropdown {
+  display: none;
+  position: absolute;
+  top: 30px;
+  right: 0;
+  background-color: #fff;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+.notification-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item p {
+  margin: 0;
+}
+
+
+.close-btn {
+  float: right;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 10px;
+}
+
+.shit-invt{
+  display: flex;
+  padding: 14px;
+  background-color: black;
+  color: #ffffff;  
+  text-decoration: none;
+ 
+  font-size: 16px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+
+}
+
+
+/*----------------------------------------
+    Animations
+----------------------------------------*/
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*----------------------------------------
+    Media Queries
+----------------------------------------*/
+
+/* Max-width: 768px */
+@media (max-width: 768px) {
+  header {
+    align-items: flex-start;
+    padding: 10px;
+   
+    
+  }
+  .menu-toggle {
+    font-size: 1.5em;
+  }
+  .nav-links {
+    left: 0;
+    right: 0;
+    top: 50px;
+    margin-top: 18px;
+    overflow: auto;
+  }
+  .nav-links ul {
+    padding: 2px;
+    flex-direction: row;
+  }
+  ul li {
+    display: block;
+    margin-bottom: 10px;
+  }
+  .nav-links ul li a {
+    font-size: 14px;
+  }
+
+  .notification-dropdown{
+    width: 200px;
+}
+
+.shit-invt{
+    font-size: 12px;
+}
+
+}
+
+/* Max-width: 576px */
+@media (max-width: 576px) {
+  header {
+    align-items: flex-start;
+  }
+  ul li a {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+
+/* Max-width: 480px */
+@media (max-width: 480px) {
+  .nav-links ul {
+    flex-direction: row;
+  }
+}

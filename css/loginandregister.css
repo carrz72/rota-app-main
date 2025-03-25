@@ -1,0 +1,269 @@
+/* ========== GENERAL STYLES ========== */
+body {
+    font-family: Arial, sans-serif;
+    background: url('../images/backg3.jpg') no-repeat center center fixed;
+    background-size: cover;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #333;
+}
+
+/* ========== CONTAINER STYLES ========== */
+.register-container,
+.login-container {
+    background-color: rgba(245, 245, 245, 0.274);
+    border-radius: 18px;
+    box-shadow: 0 0px 10px rgba(0, 0, 0, 0.945);
+    max-width: 400px;
+    text-align: center;
+    transition: 0.4s;
+}
+
+.register-container {
+    padding: 30px 80px;
+}
+
+.login-container {
+    padding: 30px 40px;
+}
+
+.register-container:hover,
+.login-container:hover {
+    transform: translate(0, -10px);
+}
+
+/* ========== TYPOGRAPHY ========== */
+h2 {
+    margin-bottom: 20px;
+    color: #000000;
+}
+
+p {
+    color: #000000;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+/* ========== FORM STYLES ========== */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    font-size: 16px;
+    outline: none;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+    border-color: #000000;
+}
+
+#email-status {
+    font-size: 14px;
+    margin-top: -10px;
+    margin-bottom: 10px;
+}
+
+.form .btn {
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    margin-top: 2.5em;
+}
+
+/* ========== BUTTON STYLES ========== */
+button {
+    padding: 10px 16px;
+    background-color: #ff0808;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {    
+    background-color: black;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.button1,
+.button2,
+.button3 {
+    border: none;
+    outline: none;
+    transition: .4s ease-in-out;
+    background-color: #ff0808;
+    color: white;
+    border-radius: 10px;
+}
+
+.button1,
+.button2 {
+    padding: 10px 40px;
+}
+
+.button1 {
+    margin-right: 0.5em;
+}
+
+.button3 {
+    padding: 0.5em;
+}
+
+.button1:hover,
+.button2:hover,
+.button3:hover {
+    background-color: black;
+    color: white;
+}
+
+/* ========== LINK STYLES ========== */
+a {
+    display: inline-block;
+    color: #eb0b0b;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+a:hover {
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* ========== UTILITY CLASSES ========== */
+.error {
+    color: red;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+/* ========== MEDIA QUERIES ========== */
+@media (max-width: 768px) {
+    .login-container {
+        width: 85%;
+        padding: 20px 40px;
+        margin: 10px 20px;
+    }
+    
+    h2 {
+        font-size: 22px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+        padding: 8px;
+        font-size: 14px;
+    }
+    
+    button, a {
+        font-size: 14px;
+        padding: 8px 14px;
+    }
+    
+    p {
+        font-size: 12px;
+    }
+
+    .notification-dropdown{
+        width: 200px;
+   }
+
+   .shit-invt{
+        font-size: 12px;
+   }
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        width: 90%;
+        padding: 15px 30px;
+        margin: 10px 20px;
+    }
+    
+    h2 {
+        font-size: 20px;
+        margin-bottom: 15px;
+    }
+    
+    form {
+        gap: 10px;
+    }
+    
+    .error, #email-status {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .login-container {
+        width: 90%;
+        padding: 15px 30px;
+        margin: 10px 20px;
+    }
+    
+    h2 {
+        font-size: 18px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+        padding: 6px;
+        font-size: 12px;
+    }
+    .button3{
+        margin: 0 60px;
+        padding: 8px 12px;
+    }
+    button, a {
+        margin: 10px;
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+    
+    p {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 320px) {
+    h2 {
+        font-size: 16px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+        padding: 5px;
+        font-size: 10px;
+    }
+    
+    button, a {
+        font-size: 10px;
+        padding: 5px 10px;
+    }
+    
+    p {
+        font-size: 8px;
+    }
+}
