@@ -578,40 +578,38 @@ select {
      
 }
 
-@media(min-width: 769px) {
+
+
+/* Tablet View */
+@media (min-width: 768px) and (max-width: 1023px) {
+     .all-content {
+          padding: 0 40px;
+     }
+     
      .front-view {
-          display: flex
-      ;
           flex-direction: row;
-          background-image: url(../images/backg3.jpg);
-          background-size: cover;
-          background-repeat: no-repeat;
-          padding: 10px 7px;
-          margin: 20px;
-          border-radius: 15px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          justify-content: space-between;
-          gap: 20px;
-      }
-
-      .next-shift {
-          background-color: #ffffffb2;
-          box-shadow: #000000 0px 1px 5px 1px;
-          margin: 10px 10px;
-          padding: 10px 10px;
-          border-radius: 20px;
-          transition: 0.4s;
-      }
-
-      .earnings {
-          box-shadow: #000000 0px 0px 5px 0px;
-          background-color: #ffffffb2;
-          margin: 30px 10px;
-          line-height: 28px;
-          padding: 40px 60px;
-          border-radius: 20px;
-          transition: 0.4s;
-      }
+          padding: 15px;
+          margin: 15px;
+          gap: 15px;
+     }
+     
+     .next-shift {
+          margin: 15px 5px;
+          padding: 15px;
+     }
+     
+     .earnings {
+          margin: 20px 5px;
+          padding: 25px 30px;
+     }
+     
+     table {
+          font-size: 0.9em;
+     }
+     
+     .nav-links ul li a {
+          font-size: 1em;
+     }
 }
 
 @media (max-width: 768px) {
