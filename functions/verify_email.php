@@ -94,6 +94,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verification_code']))
     // Setup and send the verification email.
     $mail = new PHPMailer(true);
     try {
+        $mail->SMTPDebug = \PHPMailer\PHPMailer\SMTP::DEBUG_SERVER;
+        
         $mail->SMTPOptions = [
             'socket' => [
                 'bindto' => '0.0.0.0:0'
