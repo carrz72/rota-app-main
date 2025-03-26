@@ -1,5 +1,5 @@
 <?php
 session_start();
 session_destroy();
-header("Location:  /rota-app/users/dashboard.php");
+header("Location: ../users/dashboard.php");
 exit;
