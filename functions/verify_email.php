@@ -100,8 +100,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verification_code']))
         $mail->SMTPAuth   = true;
         $mail->Username   = 'openrotamail@gmail.com';
         $mail->Password   = 'rtgd dbwl kkwn unjf';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+        $mail->Port       = 465;
     
         // Recipients.
         $mail->setFrom('openrotamail@gmail.com', 'openrota..');
