@@ -578,7 +578,7 @@ select {
      
 }
 
-@media(max-width: 770px) {
+@media(min-width: 769px) {
      .front-view {
           display: flex
       ;
