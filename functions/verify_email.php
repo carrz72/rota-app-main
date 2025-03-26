@@ -109,6 +109,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verification_code']))
         $mail->Password   = 'rtgd dbwl kkwn unjf';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
+        $timeout = 10;
+$fp = fsockopen($host, $port, $errno, $errstr, $timeout);
+if (!$fp) {
+    echo "Error ($errno): $errstr";
+} else {
+    echo "Connected to $host on port $port";
+    fclose($fp);
+}
     
         // Recipients.
         $mail->setFrom('openrotamail@gmail.com', 'openrota..');
