@@ -94,6 +94,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verification_code']))
     // Setup and send the verification email.
     $mail = new PHPMailer(true);
     try {
+        $mail->SMTPOptions = [
+            'socket' => [
+                'bindto' => '0.0.0.0:0'
+            ]
+        ];
         // Server settings.
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
