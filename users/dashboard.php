@@ -120,7 +120,7 @@ $conn = null;
             <h1>Welcome, <?php echo !empty($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'Guest'; ?></h1>
             <p><?php echo date("l, F j, Y"); ?></p>
             <p>You are logged in as <strong><?php echo !empty($_SESSION['role']) ? htmlspecialchars($_SESSION['role']) : 'Undefined'; ?></strong>.</p>
-            <a href="../functions/logout.php">Logout</a>
+            <a href="logout.php">Logout</a>
         </div>
 
         <section class="dashboard">

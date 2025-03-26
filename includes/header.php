@@ -55,11 +55,11 @@ if ($user_id) {
 </div>
 <nav class="nav-links" id="nav-links">
     <ul>
-        <li><a href="/rota-app/users/dashboard.php">Dashboard</a></li>
+         <li><a href="../users/dashboard.php">Dashboard</a></li>
         <li><a href="shifts.php">Shifts</a></li>
         <li><a href="roles.php">Roles</a></li>
-        <li><a href="/rota-app/users/settings.php">Settings</a></li>
-        <li><a href="/rota-app/functions/logout.php">Logout</a></li>
+        <li><a href="../users/settings.php">Settings</a></li>
+        <li><a href="../functions/logout.php">Logout</a></li>
     </ul>
 </nav>
     </nav>
