@@ -570,12 +570,30 @@ select {
     9. MEDIA QUERIES
     ======================================= */
 
-    @media (min-width: 1024px) {
+@media (min-width: 1024px) {
      .all-content {
           padding: 0 300px;
      }
      
+     .front-view {
+          flex-direction: row;
+          padding: 20px 80px;
+          margin: 20px;
+          gap: 30px;
+     }
      
+     .next-shift, .earnings {
+          margin: 30px 0;
+          padding: 25px 40px;
+     }
+     
+     table {
+          font-size: 1em;
+     }
+     
+     .nav-links ul li a {
+          font-size: 1.2em;
+     }
 }
 
 
