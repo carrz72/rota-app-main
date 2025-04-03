@@ -17,13 +17,17 @@ $stmtUsers = $conn->prepare("SELECT id, username, email FROM users WHERE id <> ?
 $stmtUsers->execute([$_SESSION['user_id']]);
 $users = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch all roles for the dropdown.
+$stmtRoles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC");
+$roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Retrieve form input.
     $invited_user_id_input = trim($_POST['invited_user_id'] ?? '');
     $shift_date      = trim($_POST['shift_date'] ?? '');
     $start_time      = trim($_POST['start_time'] ?? '');
     $end_time        = trim($_POST['end_time'] ?? '');
-    $role_id         = trim($_POST['role_id'] ?? '');
+    $role_id         = trim($_POST['role_id'] ?? ''); // now coming from dropdown
     $location        = trim($_POST['location'] ?? '');
     
     // Use NULL to represent "broadcast to everyone" if "all" is chosen.
@@ -62,7 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!-- HTML remains the same -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -105,8 +108,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="time" name="end_time" id="end_time" required>
         </p>
         <p>
-            <label for="role_id">Role ID:</label>
-            <input type="text" name="role_id" id="role_id" required>
+            <label for="role_id">Role:</label>
+            <select name="role_id" id="role_id" required>
+                <option value="">Select a role</option>
+                <?php foreach ($roles as $role): ?>
+                    <option value="<?php echo $role['id']; ?>">
+                        <?php echo htmlspecialchars($role['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
         </p>
         <p>
             <label for="location">Location:</label>

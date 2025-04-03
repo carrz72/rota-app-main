@@ -3,22 +3,16 @@ session_start();
 require_once '../includes/db.php';
 
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(403);
-    exit('Unauthorized');
+    die("Unauthorized access");
 }
 
-if (isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-    // Mark notification as read for current user
-    $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?");
-    if ($stmt->execute([$id, $_SESSION['user_id']])) {
-        echo "success";
-    } else {
-        http_response_code(500);
-        echo "failed";
-    }
+$notifId = intval($_GET['id']);
+
+// Delete the notification from the database
+$stmt = $conn->prepare("DELETE FROM notifications WHERE id = ? AND user_id = ?");
+if ($stmt->execute([$notifId, $_SESSION['user_id']])) {
+    echo "success";
 } else {
-    http_response_code(400);
-    echo "id required";
+    echo "error";
 }
 ?>

@@ -1,13 +1,16 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../functions/login.php");
-    exit;
-}
 require_once '../includes/db.php';
 require_once '../functions/calculate_pay.php';
 
 $user_id = $_SESSION['user_id'];
+
+// Build an associative array of role IDs to role names.
+$stmtRoles = $conn->query("SELECT id, name FROM roles");
+$roleList = [];
+while ($r = $stmtRoles->fetch(PDO::FETCH_ASSOC)) {
+    $roleList[$r['id']] = $r['name'];
+}
 
 // Exclude broadcast invitations the user has declined.
 $query = "SELECT * FROM shift_invitations 
@@ -20,6 +23,12 @@ $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
 $stmt->bindParam(':user_id2', $user_id, PDO::PARAM_INT);
 $stmt->execute();
 $invitations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// If no pending invitations, clear shift-invite notifications for the user.
+if (empty($invitations)) {
+    $stmtClear = $conn->prepare("DELETE FROM notifications WHERE user_id = ? AND type = 'shift-invite'");
+    $stmtClear->execute([$user_id]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -42,12 +51,14 @@ $invitations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 $formattedEnd = date("g:i A", strtotime($invitation['end_time']));
                 // Calculate the estimated pay for this invitation.
                 $estimatedPay = calculateInvitationPay($conn, $invitation);
+                // Get the role name using our lookup array.
+                $roleName = isset($roleList[$invitation['role_id']]) ? $roleList[$invitation['role_id']] : 'Unknown Role';
             ?>
             <div class="invitation">
                 <p><strong>Shift Date:</strong> <?php echo htmlspecialchars($formattedDate); ?></p>
                 <p><strong>Time:</strong> <?php echo htmlspecialchars($formattedStart); ?> to <?php echo htmlspecialchars($formattedEnd); ?></p>
                 <p><strong>Location:</strong> <?php echo htmlspecialchars($invitation['location']); ?></p>
-                <p><strong>Role ID:</strong> <?php echo htmlspecialchars($invitation['role_id']); ?></p>
+                <p><strong>Role:</strong> <?php echo htmlspecialchars($roleName); ?></p>
                 <p><strong>Estimated Pay:</strong> £<?php echo number_format($estimatedPay, 2); ?></p>
                 <form method="POST" action="../functions/shift_invitation.php">
                     <input type="hidden" name="invitation_id" value="<?php echo $invitation['id']; ?>">

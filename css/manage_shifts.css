@@ -1,0 +1,247 @@
+/* manage_shifts.css */
+
+/* =======================================
+    1. GLOBAL STYLES
+    ======================================= */
+* {
+     margin: 0;
+     padding: 0;
+     box-sizing: border-box;
+     font-family: 'Arial', sans-serif;
+}
+
+body {
+    background: url('../images/backg3.jpg') no-repeat center center fixed;
+    background-size: cover;
+     color: #333;
+     line-height: 1.6;
+}
+
+.container {
+     max-width: 1200px;
+     margin: 0 auto;
+     padding: 20px;
+}
+
+h1 {
+     color: #fd2b2b;
+     margin-bottom: 20px;
+     font-size: 2rem;
+     text-align: center;
+}
+
+h2 {
+     color: #333;
+     margin: 30px 0 15px;
+     font-size: 1.5rem;
+}
+
+a {
+     text-decoration: none;
+     color: #fd2b2b;
+}
+
+a:hover {
+     color: #c82333;
+}
+
+/* =======================================
+    2. BUTTONS AND LINKS
+    ======================================= */
+.action-button {
+     display: inline-block;
+     background-color: #fd2b2b;
+     color: white;
+     padding: 10px 15px;
+     border-radius: 4px;
+     margin-bottom: 20px;
+     transition: background-color 0.3s, transform 0.2s;
+}
+
+.action-button:hover {
+     background-color: #c82333;
+     color: white;
+     transform: translateY(-2px);
+}
+
+button {
+     background-color: #fd2b2b;
+     color: white;
+     border: none;
+     padding: 8px 12px;
+     border-radius: 4px;
+     cursor: pointer;
+     transition: background-color 0.3s;
+     margin: 3px;
+}
+
+button:hover {
+     background-color: #c82333;
+}
+
+form button[type="submit"] {
+     font-weight: bold;
+}
+
+/* =======================================
+    3. FILTER CONTROLS
+    ======================================= */
+form[action="manage_shifts.php"] {
+     background-color: #fff;
+     padding: 15px;
+     border-radius: 5px;
+     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+     margin-bottom: 20px;
+}
+
+select, input[type="date"], input[type="number"] {
+     padding: 8px;
+     border: 1px solid #ddd;
+     border-radius: 4px;
+     margin: 0 5px;
+}
+
+/* =======================================
+    4. SHIFTS TABLE
+    ======================================= */
+  
+
+table {
+     width: 100%;
+     border-collapse: collapse;
+     background-color: #fff;
+     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+     margin-bottom: 30px;
+     border-radius: 5px;
+     overflow: hidden;
+}
+
+th, td {
+    margin: 8px;
+     padding: 8px 10px;
+     text-align: left;
+     border-bottom: 1px solid #ddd;
+}
+
+th {
+     background-color: #f8f8f8;
+     font-weight: bold;
+     color: #333;
+}
+
+tr:hover {
+     background-color: #f9f9f9;
+}
+
+tr:last-child td {
+     border-bottom: none;
+}
+
+/* Form elements inside table cells */
+td input[type="date"],
+td input[type="time"],
+td input[type="text"],
+td select {
+     padding: 5px;
+     border: 1px solid #ddd;
+     border-radius: 3px;
+     width: auto;
+     min-width: 80px;
+}
+
+/* =======================================
+    5. ADD NEW SHIFT FORM
+    ======================================= */
+    .add_shift_form[method="POST"] {
+     background-color: #fff;
+     color: #fd2b2b;
+     margin: 2px;
+     padding: 20px;
+     border-radius: 5px;
+     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+h2{ color: #fd2b2b;}
+
+form p {
+     margin-bottom: 15px;
+}
+
+label {
+     display: inline-block;
+     margin-bottom: 5px;
+     font-weight: bold;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="time"],
+input[type="number"],
+select {
+     width: 100%;
+     padding: 10px;
+     border: 1px solid #ddd;
+     border-radius: 4px;
+     font-size: 14px;
+}
+
+form p:last-child {
+     margin-top: 20px;
+     text-align: center;
+}
+
+form p:last-child button {
+     padding: 10px 20px;
+     font-size: 16px;
+}
+
+.shifts_display td {
+    background-color: none;
+    margin: px;
+    padding: 6px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+    overflow-x: auto;
+   }
+
+/* =======================================
+    6. RESPONSIVE DESIGN
+    ======================================= */
+@media (max-width: 768px) {
+     table {
+          display: block;
+          overflow-x: auto;
+     }
+     
+     td, th {
+          min-width: 100px;
+     }
+     
+     td input, td select {
+          width: 100%;
+          min-width: 60px;
+     }
+     
+     .container {
+          padding: 10px;
+     }
+     
+     h1 {
+          font-size: 1.5rem;
+     }
+}
+
+@media (max-width: 480px) {
+     form[action="manage_shifts.php"] {
+          display: flex;
+          flex-direction: column;
+     }
+     
+     select, input[type="date"], input[type="number"] {
+          margin: 5px 0;
+     }
+     
+     form p {
+          margin-bottom: 10px;
+     }
+}

@@ -510,6 +510,28 @@ header {
      border-radius: 6px;
      box-shadow: -5px 8px 8px rgba(0, 0, 0, 0.1);
 }
+.overlap-info {
+     display: flex;
+     flex-direction: column;
+     justify-content: space-between;
+     align-items: center;
+     padding: 10px;
+     margin: 10px;
+     background-color: #000000;
+}
+
+.colleague-time {
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+     font-size: 0.6em; /* adjust as needed */
+ }
+
+ .overlap-info ul {
+     display: flex;
+     list-style-type: disc;
+     margin: 0px;
+ }
 
 /* Upcoming Shifts */
 .upcoming-shifts {

@@ -16,18 +16,19 @@ if (empty($_POST['name']) || !is_numeric($_POST['base_pay']) || $_POST['base_pay
     exit;
 }
 
-// Assign input data
 $user_id = $_SESSION['user_id'];
-$name = $_POST['name'];
+$name = trim($_POST['name']);
 $base_pay = $_POST['base_pay'];
 $has_night_pay = isset($_POST['has_night_pay']) ? 1 : 0;
 $night_shift_pay = $_POST['night_shift_pay'] ?? NULL;
 $night_start_time = $_POST['night_start_time'] ?? NULL;
 $night_end_time = $_POST['night_end_time'] ?? NULL;
 
-// Check database connection
-if (!$conn) {
-    $_SESSION['error'] = "Database connection failed.";
+// Check if role with the same name already exists (case insensitive)
+$stmt = $conn->prepare("SELECT COUNT(*) FROM roles WHERE user_id = ? AND LOWER(name) = LOWER(?)");
+$stmt->execute([$user_id, $name]);
+if ($stmt->fetchColumn() > 0) {
+    $_SESSION['error'] = "Role already exists. Please choose a different name.";
     header("Location: ../users/roles.php");
     exit;
 }
@@ -38,14 +39,10 @@ if ($stmt->execute([$user_id, $name, $base_pay, $has_night_pay, $night_shift_pay
     $_SESSION['success'] = "Role successfully created.";
 } else {
     $errorInfo = $stmt->errorInfo();
-    error_log("Database error: " . $errorInfo[2]);
     $_SESSION['error'] = "An error occurred. Please try again later.";
 }
 
-// Close the database connection
 $conn = null;
-
-// Redirect to roles page
 header("Location: ../users/roles.php");
 exit;
 ?>

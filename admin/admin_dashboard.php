@@ -105,17 +105,19 @@ if ($viewType === 'week') {
         <?php endif; ?>
         
         <div class="stats">
-            <div class="stat-box">
-                <h3>Total Users</h3>
-                <p><?php echo $totalUsers; ?></p>
-            </div>
-            <div class="stat-box">
-                <h3>Total Shifts</h3>
-                <p><?php echo $totalShifts; ?></p>
-            </div>
-            <div class="stat-box">
-                <h3>Admins</h3>
-                <p><?php 
+    <div class="stat-box">
+        <h3><a href="manage_users.php">Total Users</a></h3>
+        <p><a href="manage_users.php"><?php echo $totalUsers; ?></a></p>
+    </div>
+    <div class="stat-box">
+        <h3><a href="manage_shifts.php">Edit Shifts</a></h3>
+        <p><a href="manage_shifts.php"><?php echo $totalShifts; ?></a></p>
+    </div>
+    <div class="stat-box">
+        <h3><a href="manage_admins.php">Admins</a></h3>
+        <p>
+            <a href="manage_admins.php">
+                <?php 
                     $adminCount = 0;
                     foreach ($roles as $role) {
                         if ($role['role'] === 'admin') {
@@ -124,9 +126,11 @@ if ($viewType === 'week') {
                         }
                     }
                     echo $adminCount;
-                ?></p>
-            </div>
-        </div>
+                ?>
+            </a>
+        </p>
+    </div>
+</div>
         
        
         
@@ -139,6 +143,7 @@ if ($viewType === 'week') {
                     <th>Email</th>
                     <th>Role</th>
                     <th>Actions</th>
+                    <th>Manage Shifts</th>
                 </tr>
             </thead>
             <tbody>
@@ -158,6 +163,11 @@ if ($viewType === 'week') {
                             <button type="submit" name="update_role" class="action-button">Update</button>
                         </form>
                     </td>
+                    <td>
+    
+    <!-- New manage shifts button -->
+    <a class="manage_shift" href="manage_shifts.php?user_id=<?php echo $user['id']; ?>" class="action-button">Manage Shifts</a>
+</td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -225,44 +235,6 @@ if ($viewType === 'week') {
         </table>
     </div>
     
-    <script>
-        // Create shifts chart
-        var ctx = document.getElementById('shiftsChart').getContext('2d');
-        var shiftsChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: [
-                    <?php 
-                        foreach(array_reverse($shiftsPerDay) as $day) {
-                            echo "'" . date('M d', strtotime($day['shift_date'])) . "', ";
-                        }
-                    ?>
-                ],
-                datasets: [{
-                    label: 'Number of Shifts',
-                    data: [
-                        <?php 
-                            foreach(array_reverse($shiftsPerDay) as $day) {
-                                echo $day['count'] . ", ";
-                            }
-                        ?>
-                    ],
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        }
-                    }
-                }
-            }
-        });
-    </script>
+    
 </body>
 </html>

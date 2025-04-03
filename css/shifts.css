@@ -67,7 +67,8 @@ select:focus {
 /* Buttons & Anchors */
 button,
 a {
-    padding: 10px 16px;
+    margin: 2px;
+    padding: 8px 12px;
     background-color: #fd2b2b;
     color: #fff;
     font-size: 16px;
@@ -117,9 +118,8 @@ table th {
     text-align: center;
     font-size: 16px;
     margin: 10px 0;
-    color: #020202;
-    font-weight: bold;
-    text-shadow: #868686 1px 1px 1px;
+    color: #020202;  
+    font-weight: bolder;
 }
 
 /*----------------------------------------
@@ -331,18 +331,23 @@ a {
 
 
 @media (min-width: 1024px) {
+    header {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
    
     .container{
-         margin: 0 300px;
+         margin: 0 200px;
     }
 }
-@media (max-width: 576px) {
+@media (max-width: 767px) {
     a {
         margin: 10px;
       }
     header {
         flex-direction: row;
-        align-items: flex-start;
+        align-items: flex-end;
     }
 
     .nav-links ul {
@@ -368,9 +373,13 @@ a {
         padding: 8px 10px;
         font-size: 14px;
     }
+    button, a{
+        margin: 3px;
+        padding: 5px 8px;
+    }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px)  {
     .notification-dropdown{
         width: 200px;
    }
@@ -388,14 +397,13 @@ a {
     
     header {
         flex-direction: row;
-        align-items: flex-start;
+        align-items: flex-end;
         padding: 10px;
     }
     
     .nav-links {
         top: 50px;
         right: 0;
-        left: 0;
         margin-top: 18px;
     }
     
@@ -407,4 +415,9 @@ a {
     .nav-links ul li a {
         font-size: 14px;
     }
+    button, a{
+        margin: 3px;
+        padding: 5px 8px;
+    }
+   
 }

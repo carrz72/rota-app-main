@@ -12,7 +12,12 @@ require_once '../functions/calculate_pay.php';
 $user_id = $_SESSION['user_id'];
 
 // Determine period
+// Determine period
 $period = $_GET['period'] ?? 'week';
+
+// Order shifts by date (closest to today first)
+// Add this to your SQL query below
+$orderBy = "ORDER BY ABS(DATEDIFF(shift_date, CURDATE()))";
 
 // Change default to Saturday this week (week period is Saturday to Friday)
 if (isset($_GET['weekStart'])) {
@@ -46,8 +51,7 @@ if ($period == 'week') {
 }
 
 // Fetch roles for dropdown
-$stmtRoles = $conn->prepare("SELECT id, name FROM roles WHERE user_id = ?");
-$stmtRoles->execute([$user_id]);
+$stmtRoles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC");
 $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
 
 // Query shifts
@@ -55,7 +59,8 @@ $stmtShifts = $conn->prepare(
     $query = "SELECT s.*, r.name as role, s.location, r.base_pay, r.has_night_pay, r.night_shift_pay, r.night_start_time, r.night_end_time 
     FROM shifts s 
     JOIN roles r ON s.role_id = r.id 
-    WHERE s.user_id = :user_id AND $periodSql"
+    WHERE s.user_id = :user_id AND $periodSql 
+    ORDER BY shift_date ASC, start_time ASC"
 );
 $stmtShifts->execute(['user_id' => $user_id]);
 $shifts = $stmtShifts->fetchAll(PDO::FETCH_ASSOC);
