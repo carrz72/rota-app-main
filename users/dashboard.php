@@ -225,6 +225,34 @@ unset($shift);
                 echo "<div class='overlap-info'><p>No shifts with colleagues for your next shift.</p></div>";
             }
         ?>
+        </section>
+
+<!-- Upcoming Shifts Section -->
+<section class="upcoming-shifts">
+    <h3>Upcoming Shifts</h3>
+    <?php if (!empty($next_shifts)): ?>
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Role</th>
+                <th>Location</th>
+                <th>Estimated Pay</th>
+            </tr>
+            <?php foreach ($next_shifts as $shift): ?>
+                <tr>
+                    <td><?php echo date("D, M j, Y", strtotime($shift['shift_date'])); ?></td>
+                    <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?> - <?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
+                    <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
+                    <td><?php echo htmlspecialchars($shift['location']); ?></td>
+                    <td>£<?php echo number_format($shift['estimated_pay'], 2); ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php else: ?>
+        <p>No upcoming shifts scheduled.</p>
+    <?php endif; ?>
+</section>
     <?php else: ?>
         <p>No upcoming shift.</p>
     <?php endif; ?>
