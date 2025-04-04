@@ -586,7 +586,6 @@ select {
   border-radius: 5px;
   border: 1px solid #ccc;
 }
-
 /* =======================================
      9. MEDIA QUERIES
      ======================================= */
@@ -611,8 +610,12 @@ select {
     gap: 30px;
   }
 
+  /* Ensures 'upcoming-shifts' stacks below 'earnings' and 'next-shift' just like at 768px */
+  .earnings,
   .next-shift,
-  .earnings {
+  .upcoming-shifts {
+    display: block;
+    width: 100%;
     margin: 30px 0;
     padding: 25px 40px;
   }
