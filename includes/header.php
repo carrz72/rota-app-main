@@ -12,16 +12,15 @@ if ($user_id) {
     $notificationCount = count($notifications);
 }
 ?>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet">
 <header style="opacity: 0; transition: opacity 0.5s ease;">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Open Rota">
-<link rel="icon" type="image/png" href="../images/logo.png">
-<link rel="apple-touch-icon" href="../images/logo.png">
-<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="/rota-app-main/images/logo.png">
+<link rel="manifest" href="/rota-app-main/manifest.json">
+    <link rel="apple-touch-icon" href="/rota-app-main/images/logo.png">
     <div class="logo">Open Rota.</div>
-
 <div class="nav-group">
 
 

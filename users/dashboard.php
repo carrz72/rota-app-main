@@ -2,7 +2,7 @@
 require '../includes/auth.php';
 requireLogin(); // Only logged-in users can access
 
-include '../includes/header.php';
+include __DIR__ . '/../includes/header.php';
 
 // Include DB connection.
 require_once '../includes/db.php';
@@ -102,6 +102,7 @@ unset($shift);
     <link rel="icon" type="image/png" href="../images/logo.png">
     <!-- Other meta tags and styles -->
     <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="manifest" href="/rota-app-main/manifest.json">
     <title>Dashboard</title>
     <style>
         /* Basic extra styling for overlapping shift info */

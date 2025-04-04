@@ -15,6 +15,7 @@ if (isset($_SESSION['user_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="../images/logo.png">
     <link rel="apple-touch-icon" href="../images/logo.png">
+    <link rel="manifest" href="/rota-app-main/manifest.json">
     <title>Rota App - Manage Your Work Schedule</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -55,14 +56,14 @@ if (isset($_SESSION['user_id'])) {
 
 </body>
 <script>
-    if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/service-worker.js")
-            .then(registration => {
-                console.log("Service Worker registered with scope:", registration.scope);
-            })
-            .catch(error => {
-                console.log("Service Worker registration failed:", error);
-            });
-    }
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/rota-app-main/service-worker.js")
+        .then(registration => {
+            console.log("Service Worker registered with scope:", registration.scope);
+        })
+        .catch(error => {
+            console.log("Service Worker registration failed:", error);
+        });
+}
 </script>
 </html>
