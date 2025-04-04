@@ -190,6 +190,12 @@ header {
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
+.logo img {
+  width: 130px;
+  height: 130px;
+  margin-right: 10px;
+}
+
 /* =======================================
     5. NOTIFICATIONS
     ======================================= */
@@ -707,7 +713,6 @@ select {
 
   .nav-links {
     right: 0;
-    left: 0;
     top: 50px;
     margin-top: 18px;
     overflow: auto;
