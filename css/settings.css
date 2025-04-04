@@ -4,16 +4,16 @@
 
 /* Font */
 @font-face {
-  font-family: 'newFont';
-  src: url('../fonts/CooperHewitt-Book.otf');
+  font-family: "newFont";
+  src: url("../fonts/CooperHewitt-Book.otf");
   font-weight: normal;
   font-style: normal;
 }
 
 /* Base styles */
 body {
-  font-family: 'newFont';
-  background-image: url('../images/backg3.jpg');
+  font-family: "newFont";
+  background-image: url("../images/backg3.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   margin: 0;
@@ -163,8 +163,6 @@ form input {
   border-radius: 5px;
 }
 
-
-
 /*----------------------------------------
     Button Styles
 ----------------------------------------*/
@@ -200,8 +198,6 @@ button:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   animation: fadeIn 0.5s ease-in-out;
 }
-
-
 
 .notification-warning {
   background-color: #ffdddd;
@@ -243,7 +239,6 @@ button:hover {
   font-size: 12px;
 }
 
-
 .notification-dropdown {
   display: none;
   position: absolute;
@@ -271,7 +266,6 @@ button:hover {
   margin: 0;
 }
 
-
 .close-btn {
   float: right;
   cursor: pointer;
@@ -279,18 +273,16 @@ button:hover {
   margin-left: 10px;
 }
 
-.shit-invt{
+.shit-invt {
   display: flex;
   padding: 14px;
   background-color: black;
-  color: #ffffff;  
+  color: #ffffff;
   text-decoration: none;
- 
+
   font-size: 16px;
   transition: background-color 0.3s ease, transform 0.2s ease;
-
 }
-
 
 /*----------------------------------------
     Animations
@@ -316,17 +308,13 @@ button:hover {
   header {
     align-items: flex-start;
     padding: 10px;
-   
-    
   }
   .menu-toggle {
     font-size: 1.5em;
   }
   .nav-links {
-    left: 0;
     right: 0;
     top: 50px;
-    margin-top: 18px;
     overflow: auto;
   }
   .nav-links ul {
@@ -341,14 +329,13 @@ button:hover {
     font-size: 14px;
   }
 
-  .notification-dropdown{
+  .notification-dropdown {
     width: 200px;
-}
+  }
 
-.shit-invt{
+  .shit-invt {
     font-size: 12px;
-}
-
+  }
 }
 
 /* Max-width: 576px */

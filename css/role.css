@@ -2,405 +2,401 @@
     Fonts & Base Styles
 ----------------------------------------*/
 @font-face {
-    font-family: 'newFont';
-    src: url('../fonts/CooperHewitt-Book.otf');
-    font-weight: normal;
-    font-style: normal;
+  font-family: "newFont";
+  src: url("../fonts/CooperHewitt-Book.otf");
+  font-weight: normal;
+  font-style: normal;
 }
 
 body {
-    font-family: 'newFont';
-    background: url('../images/backg3.jpg') no-repeat center center fixed;
-    background-size: cover;
-    margin: 0;
-    padding: 0;
+  font-family: "newFont";
+  background: url("../images/backg3.jpg") no-repeat center center fixed;
+  background-size: cover;
+  margin: 0;
+  padding: 0;
 }
 
 /*----------------------------------------
     Layout & Containers
 ----------------------------------------*/
 .container {
-    display: flex;
-    flex-direction: column;
-    margin: 40px;
-    background: rgba(245, 245, 245, 0.541);
-    padding: 20px 40px;
-    border-radius: 12px;
-    box-shadow: 0 6px 12px rgb(0, 0, 0);
-    color: #000;
+  display: flex;
+  flex-direction: column;
+  margin: 40px;
+  background: rgba(245, 245, 245, 0.541);
+  padding: 20px 40px;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgb(0, 0, 0);
+  color: #000;
 }
 
 /*----------------------------------------
     Typography
 ----------------------------------------*/
-h1, h2 {
-    margin-bottom: 10px;
-    color: #b43030;
+h1,
+h2 {
+  margin-bottom: 10px;
+  color: #b43030;
 }
 
 /*----------------------------------------
     Forms
 ----------------------------------------*/
 form {
-    background-color: transparent;
-    padding: 15px;
-    margin: 20px 40px;
-    border-radius: 5px;
-    box-shadow: 0 0 80px rgba(0, 0, 0, 0.562);
+  background-color: transparent;
+  padding: 15px;
+  margin: 20px 40px;
+  border-radius: 5px;
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.562);
 }
 
 label {
-    display: block;
-    margin-top: 10px;
-    font-weight: bold;
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
 }
 
 input[type="text"],
 input[type="number"],
 input[type="time"] {
-    width: 50%;
-    padding: 6px;
-    margin-top: 5px;
-    margin-bottom: 10px;
+  width: 50%;
+  padding: 6px;
+  margin-top: 5px;
+  margin-bottom: 10px;
 }
 
 #has_night_pay {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 #night_pay_fields {
-    display: none;
-    margin-top: 10px;
+  display: none;
+  margin-top: 10px;
 }
 
 /*----------------------------------------
     Tables
 ----------------------------------------*/
 table {
-    width: 70%;
-    margin: 20px 40px;
-    border-collapse: collapse;
+  width: 70%;
+  margin: 20px 40px;
+  border-collapse: collapse;
 }
 
 table thead {
-    background-color: #fd2b2b;
-    color: #fff;
+  background-color: #fd2b2b;
+  color: #fff;
 }
 
 table td {
-    padding: 10px;
-    color: white;
-    background-color: #00000070;
+  padding: 10px;
+  color: white;
+  background-color: #00000070;
 }
 
 #base-pay {
-    text-align: center;
+  text-align: center;
 }
 
-#actions, #night-pay {
-    align-items: center;
-    text-align: center;
-    justify-content: center;
-    justify-items: center;
+#actions,
+#night-pay {
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  justify-items: center;
 }
 
 /*----------------------------------------
     Buttons & Links
 ----------------------------------------*/
 button {
-    padding: 10px 16px;
-    background-color: #fd2b2b;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+  padding: 10px 16px;
+  background-color: #fd2b2b;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 button:hover {
-    background-color: #c82333;
-    transform: translateY(-2px);
+  background-color: #c82333;
+  transform: translateY(-2px);
 }
 
 button[type="submit"] {
-    padding: 8px 16px;
-    background-color: #fd2b2b;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+  padding: 8px 16px;
+  background-color: #fd2b2b;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 button[type="submit"]:hover {
-    background-color: #c82333;
+  background-color: #c82333;
 }
 
 .action-btn {
-    border: none;
-    padding: 6px 10px;
-    margin-right: 5px;
-    background-color: #fd2b2b;
-    color: #fff;
-    border-radius: 5px;
-    cursor: pointer;
+  border: none;
+  padding: 6px 10px;
+  margin-right: 5px;
+  background-color: #fd2b2b;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 .action-btn:hover {
-    background-color: #c82333;
+  background-color: #c82333;
 }
 
 a {
-    display: inline-block;
-    padding: 8px 14px;
-    background-color: #fd2b2b;
-    color: #fff;
-    text-decoration: none;
-    border-radius: 6px;
-    font-size: 16px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+  display: inline-block;
+  padding: 8px 14px;
+  background-color: #fd2b2b;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 a:hover {
-    background-color: #c82333;
-    transform: translateY(-2px);
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  background-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
 /* ========================================================
     Header & Navigation
     ======================================================== */
-    header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        background-color: transparent;
-        color: #000;
-        position: relative;
-        top: 0;
-        left: 0;
-        width: 100%;
-        z-index: 1000;
-        box-sizing: border-box;
-    }
-
-    .nav-group {
-        display: flex;
-        align-items: center;
-    }
-
-    .menu-toggle {
-        font-size: 1.8em;
-        cursor: pointer;
-        display: block;
-    }
-
-    /* Navigation Menu */
-    .nav-links {
-        display: none;
-        position: absolute;
-        top: 60px;
-        right: 10px;
-        background: transparent;
-        border-radius: 5px;
-        max-width: calc(100% - 20px);
-        overflow: hidden;
-    }
-
-    .nav-links.show {
-        display: block;
-    }
-
-    .nav-links ul {
-        display: flex;
-        flex-direction: row;
-        list-style: none;
-        padding: 10px;
-        margin: 0;
-    }
-
-    .nav-links ul li {
-        margin: 2px;
-        padding: 10px;
-        text-align: center;
-    }
-
-    .nav-links ul li a {
-        color: #fff;
-        text-decoration: none;
-        font-size: 1.2em;
-        transition: background-color 0.3s ease, transform 0.2s ease;
-    }
-
-
-    /*----------------------------------------
-        Notification Styles
-    ----------------------------------------*/
-    .notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 5px;
-        z-index: 10000;
-        max-width: 300px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        animation: fadeIn 0.5s ease-in-out;
-    }
-
-    .notification-warning {
-        background-color: #ffdddd;
-        color: #900;
-        border: 1px solid #f5c2c2;
-    }
-
-    .notification-success {
-        background-color: #ddffdd;
-        color: #090;
-        border: 1px solid #c2f5c2;
-    }
-
-    .notification-container {
-        position: relative;
-        display: inline-block;
-        margin-right: 15px;
-    }
-
-    .notification-icon {
-        font-size: 24px;
-     cursor: pointer;
-    }
-
-    .notification-badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: red;
-        color: white;
-        border-radius: 50%;
-        padding: 2px 6px;
-        font-size: 12px;
-    }
-
-    
-.close-btn {
-    float: right;
-    cursor: pointer;
-    font-size: 16px;
-    margin-left: 10px;
-    cursor: pointer;
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: transparent;
+  color: #000;
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-sizing: border-box;
 }
 
+.nav-group {
+  display: flex;
+  align-items: center;
+}
 
-.shit-invt{
-    display: flex;
-    padding: 14px;
-    background-color: black;
-    color: #ffffff;  
-    text-decoration: none;
-   
-    font-size: 16px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-  
-  }
+.menu-toggle {
+  font-size: 1.8em;
+  cursor: pointer;
+  display: block;
+}
 
-    /* Dropdown styling */
-    .notification-dropdown {
-        display: none;
-        position: absolute;
-        top: 30px;
-        right: 0;
-        background-color: #fff;
-        width: 300px;
-        max-height: 400px;
-        overflow-y: auto;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        border-radius: 4px;
-        z-index: 1000;
-    }
+/* Navigation Menu */
+.nav-links {
+  display: none;
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  background: transparent;
+  border-radius: 5px;
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+}
 
-    .notification-item {
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-    }
+.nav-links.show {
+  display: block;
+}
 
-    .notification-item:last-child {
-        border-bottom: none;
-    }
+.nav-links ul {
+  display: flex;
+  flex-direction: row;
+  list-style: none;
+  padding: 10px;
+  margin: 0;
+}
 
-    .notification-item p {
-        margin: 0;
-    }
+.nav-links ul li {
+  margin: 2px;
+  padding: 10px;
+  text-align: center;
+}
 
+.nav-links ul li a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.2em;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+/*----------------------------------------
+        Notification Styles
+    ----------------------------------------*/
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 5px;
+  z-index: 10000;
+  max-width: 300px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.notification-warning {
+  background-color: #ffdddd;
+  color: #900;
+  border: 1px solid #f5c2c2;
+}
+
+.notification-success {
+  background-color: #ddffdd;
+  color: #090;
+  border: 1px solid #c2f5c2;
+}
+
+.notification-container {
+  position: relative;
+  display: inline-block;
+  margin-right: 15px;
+}
+
+.notification-icon {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.close-btn {
+  float: right;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.shit-invt {
+  display: flex;
+  padding: 14px;
+  background-color: black;
+  color: #ffffff;
+  text-decoration: none;
+
+  font-size: 16px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+/* Dropdown styling */
+.notification-dropdown {
+  display: none;
+  position: absolute;
+  top: 30px;
+  right: 0;
+  background-color: #fff;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+.notification-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item p {
+  margin: 0;
+}
 
 /*----------------------------------------
     Media Queries
 ----------------------------------------*/
 @media (min-width: 1024px) {
-    .container{
-        margin: 0 300px;
-    }
+  .container {
+    margin: 0 300px;
+  }
 }
 
 @media (max-width: 768px) {
-    ul li {
-        display: block;
-        margin-bottom: 10px;
-    }
-    
-    header {
-        align-items: flex-start;
-        padding: 10px;
-    }
-    
-    .nav-links {
-        right: 0;
-        left: 0;
-        top: 50px;
-        margin-top: 18px;
-        overflow: auto;
-    }
-    
-    .nav-links ul li a {
-        font-size: 14px;
-    }
-    
-    .nav-links ul {
-        padding: 2px;
-    }
+  ul li {
+    display: block;
+    margin-bottom: 10px;
+  }
 
-    .notification-dropdown{
-        width: 200px;
-   }
+  header {
+    align-items: flex-start;
+    padding: 10px;
+  }
 
-   .shit-invt{
-        font-size: 12px;
-   }
+  .nav-links {
+    right: 0;
+    top: 50px;
+    margin-top: 18px;
+    overflow: auto;
+  }
+
+  .nav-links ul li a {
+    font-size: 14px;
+  }
+
+  .nav-links ul {
+    padding: 2px;
+  }
+
+  .notification-dropdown {
+    width: 200px;
+  }
+
+  .shit-invt {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 658px) {
-    button {
-        margin: 2px;
-    }
+  button {
+    margin: 2px;
+  }
 }
 
 @media (max-width: 576px) {
-    .container {
-        margin: 80px 10px;
-        padding: 15px;
-    }
-    
-    button {
-        margin: 2px;
-    }
-    
-    header {
-        align-items: flex-start;
-    }
-    
-    ul li a {
-        padding: 8px 10px;
-        font-size: 14px;
-    }
+  .container {
+    margin: 80px 10px;
+    padding: 15px;
+  }
+
+  button {
+    margin: 2px;
+  }
+
+  header {
+    align-items: flex-start;
+  }
+
+  ul li a {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
 }
