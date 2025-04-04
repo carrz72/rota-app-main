@@ -137,6 +137,7 @@ unset($shift);
 
         <section class="front-view">
             <!-- Earnings and Hours Worked Section -->
+             <div>
             <section class="earnings">
                 <h3>Hours and Earnings <img src="../images/output-onlinepngtools.png" alt=""></h3>
                 <div class="earning-box">
@@ -226,6 +227,7 @@ unset($shift);
             }
         ?>
         </section>
+        </div>
 
 <!-- Upcoming Shifts Section -->
 <section class="upcoming-shifts">

@@ -95,12 +95,11 @@ ul li a:hover {
 }
 
 .front-view {
-  display: flex;
   flex-direction: row;
   background-image: url(../images/backg3.jpg);
   background-size: cover;
   background-repeat: no-repeat;
-  padding: 20px 80px;
+  padding: 20px 40px;
   margin: 20px;
   border-radius: 15px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -539,6 +538,14 @@ header {
   padding: 10px;
 }
 
+.upcoming-shifts h3 {
+  color: #fd2b2b;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.822);
+  border-radius: 4px;
+  text-align: center;
+  box-shadow: -5px 8px 8px rgba(0, 0, 0, 0.1);
+}
 /* =======================================
     7. TABLES
     ======================================= */
@@ -589,23 +596,16 @@ select {
 /* =======================================
      9. MEDIA QUERIES
      ======================================= */
-@media (max-width: 768px) {
-  .earnings,
-  .next-shift,
-  .upcoming-shifts {
-    display: block;
-    width: 100%;
-    margin: 15px auto;
-  }
-}
+
 .upcoming-shifts {
   overflow-x: auto;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1175px) {
   .front-view {
+    display: flex;
     flex-direction: row;
-    padding: 20px 80px;
+    padding: 20px 40px;
     margin: 20px;
     gap: 30px;
   }
@@ -615,7 +615,6 @@ select {
   .next-shift,
   .upcoming-shifts {
     display: block;
-    width: 100%;
     margin: 30px 0;
     padding: 25px 40px;
   }
@@ -629,35 +628,33 @@ select {
   }
 }
 
-/* Tablet View */
-@media (min-width: 768px) and (max-width: 1023px) {
+@media (min-width: 769px) {
   .all-content {
-    padding: 0 40px;
+    padding: 20px 20px;
   }
-
   .front-view {
+    display: flex;
     flex-direction: row;
-    padding: 15px;
-    margin: 15px;
-    gap: 15px;
+    padding: 20px 20px;
+    margin: 20px 20px 80px;
+    gap: 30px;
   }
 
-  .next-shift {
-    margin: 15px 5px;
-    padding: 15px;
-  }
-
-  .earnings {
-    margin: 20px 5px;
-    padding: 25px 30px;
+  /* Ensures 'upcoming-shifts' stacks below 'earnings' and 'next-shift' just like at 768px */
+  .earnings,
+  .next-shift,
+  .upcoming-shifts {
+    display: block;
+    margin: 30px 0;
+    padding: 25px 10px;
   }
 
   table {
-    font-size: 0.9em;
+    font-size: 1em;
   }
 
   .nav-links ul li a {
-    font-size: 1em;
+    font-size: 1.2em;
   }
 }
 
