@@ -742,10 +742,6 @@ select {
     font-size: 14px;
   }
 
-  .menu-toggle {
-    font-size: 1.5em;
-  }
-
   .upcoming-shifts {
     overflow-x: auto;
   }
