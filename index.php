@@ -14,6 +14,7 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="../images/logo.png">
+    <link rel="apple-touch-icon" href="../images/logo.png">
     <title>Rota App - Manage Your Work Schedule</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
