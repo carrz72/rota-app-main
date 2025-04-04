@@ -1,4 +1,3 @@
-// filepath: /var/www/rota-app/includes/db.php
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
 
