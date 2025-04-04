@@ -590,6 +590,15 @@ select {
 /* =======================================
      9. MEDIA QUERIES
      ======================================= */
+@media (max-width: 768px) {
+  .earnings,
+  .next-shift,
+  .upcoming-shifts {
+    display: block;
+    width: 100%;
+    margin: 15px auto;
+  }
+}
 .upcoming-shifts {
   overflow-x: auto;
 }
