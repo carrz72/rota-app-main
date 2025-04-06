@@ -655,7 +655,7 @@ select {
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 870px) {
   .front-view {
     display: flex;
     flex-direction: row;
@@ -682,7 +682,7 @@ select {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 869px) {
   .all-content,
   .front-view,
   .earnings,
