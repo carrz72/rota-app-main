@@ -406,6 +406,10 @@ a {
 }
 
 @media (max-width: 950px)  {
+
+    .hoursandearnings{
+        padding: 18px 10px;
+    }
     .notification-dropdown{
         width: 200px;
    }
