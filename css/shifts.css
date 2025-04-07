@@ -20,7 +20,9 @@ body {
     flex-direction: column;
     margin: 40px;
     padding: 20px 40px;
-    background: rgba(245, 245, 245, 0.541);
+    background-image: url(../images/backg3.jpg);
+  background-size: cover;
+  background-repeat: no-repeat;
     border-radius: 12px;
     box-shadow: 0 6px 12px rgb(0, 0, 0);
     color: #000;
@@ -105,7 +107,7 @@ table td {
 
 table td {
     border: 1px solid transparent;
-    background-color: #86868691;
+    background-color: #ffffff91;
 }
 
 table th {
@@ -119,7 +121,15 @@ table th {
     font-size: 16px;
     margin: 10px 0;
     color: #020202;  
-    font-weight: bolder;
+}
+
+.hoursandearnings{
+    background-color: #ffffffb2;
+    box-shadow: #000000 0px 1px 5px 1px;
+    margin: 30px 0;
+    padding: 18px 40px;
+    border-radius: 10px;
+    transition: 0.4s;
 }
 
 /*----------------------------------------
@@ -207,6 +217,23 @@ header {
   
   }
 
+  #toggleAddShiftBtn{
+    margin: 0 auto;
+    padding: 10px 30px;
+  }
+
+  .add-shift-form{
+display: flex;
+gap: 4px;
+overflow: auto;
+  }
+
+  .loctation-box{
+    padding: 10px;
+    border-radius: 10px;
+    border-color: transparent;
+  }
+
   
 /*----------------------------------------
     Links & Headings
@@ -230,10 +257,21 @@ a {
   }
   
   h1 {
-    font-size: 2em;
-    color: #000;
+    color: #fd2b2b;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.822);
+  border-radius: 4px;
+  text-align: center;
+  box-shadow: -5px 8px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  h3{
+    color: #fd2b2b;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.822);
+    border-radius: 4px;
     text-align: center;
-    margin-top: 20px;
+    box-shadow: -5px 8px 8px rgba(0, 0, 0, 0.1);
   }
 
     /*----------------------------------------
@@ -326,60 +364,48 @@ a {
         margin: 0;
     }
 
+    .save-shift-btn {
+        margin: 0 auto;
+        width: 60%;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        border-radius: 10px;
+    }
+    
+    ul li a {
+        font-size: 14px;
+        white-space: nowrap;
+      }
+    
 
 /* Responsive Adjustments */
+@media (min-width: 1111px) {
+ 
+    .container{
+       width: 60%;
+       margin: 40px auto;
+        padding: 20px;
+    }
+}
 
 
-@media (min-width: 1024px) {
+@media (max-width: 1110px) {
     header {
         flex-direction: row;
         align-items: flex-start;
     }
 
-   
     .container{
-         margin: 0 200px;
-    }
-}
-@media (max-width: 767px) {
-    a {
-        margin: 10px;
-      }
-    header {
-        flex-direction: row;
-        align-items: flex-end;
-    }
-
-    .nav-links ul {
-        overflow: auto;
-    }
-    
-    .container {
-        margin: 80px 10px;
-        padding: 15px;
-    }
-
-    table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-
-    table th, table td {
-        padding: 8px;
-    }
-
-    ul li a {
-        padding: 8px 10px;
-        font-size: 14px;
-    }
-    button, a{
-        margin: 3px;
-        padding: 5px 8px;
+       width: 70%;
+       margin: 40px auto;
+        padding: 20px;
     }
 }
 
-@media (max-width: 768px)  {
+@media (max-width: 950px)  {
     .notification-dropdown{
         width: 200px;
    }
@@ -387,8 +413,14 @@ a {
         margin: 10px;
       }
     .container {
+     width: 80%;
+     margin: 40px auto;
         padding: 20px;
     }
+
+    .nav-links ul li a {
+        font-size: 1.2em;
+      }
 
     ul li {
         display: block;
@@ -412,12 +444,54 @@ a {
         overflow: auto;
     }
     
-    .nav-links ul li a {
-        font-size: 14px;
-    }
     button, a{
         margin: 3px;
         padding: 5px 8px;
     }
    
 }
+
+@media (max-width: 767px) {
+    a {
+        margin: 10px;
+      }
+    header {
+        flex-direction: row;
+        align-items: flex-end;
+    }
+    .nav-links ul {
+        overflow: auto;
+    }
+
+    .nav-links ul li a {
+        font-size: 14px;
+    }
+    
+    .container {
+        width: 80%;
+           padding: 20px;
+        
+           margin: 40px auto;
+       }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    table th, table td {
+        padding: 8px;
+    }
+
+    ul li a {
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+    button, a{
+        margin: 3px;
+        padding: 5px 8px;
+    }
+}
+
+

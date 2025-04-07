@@ -39,6 +39,10 @@ h1 {
   transform: translateY(-10px);
 }
 
+ul li a {
+    font-size: 14px;
+    white-space: nowrap;
+  }
 
 
 .invitation p {

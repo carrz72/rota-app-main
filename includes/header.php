@@ -62,7 +62,8 @@ if ($user_id) {
 <nav class="nav-links" id="nav-links">
     <ul>
          <li><a href="../users/dashboard.php">Dashboard</a></li>
-        <li><a href="shifts.php">Shifts</a></li>
+        <li><a href="shifts.php">My Shifts</a></li>
+        <li><a href="rota.php">Rota</a></li>
         <li><a href="roles.php">Roles</a></li>
         <li><a href="../users/settings.php">Settings</a></li>
         <li><a href="../functions/logout.php">Logout</a></li>

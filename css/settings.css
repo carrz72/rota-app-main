@@ -284,6 +284,12 @@ button:hover {
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
+ul li a {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+
 /*----------------------------------------
     Animations
 ----------------------------------------*/

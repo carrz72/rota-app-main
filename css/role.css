@@ -331,6 +331,11 @@ header {
   margin: 0;
 }
 
+ul li a {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
 /*----------------------------------------
     Media Queries
 ----------------------------------------*/
@@ -400,3 +405,4 @@ header {
     font-size: 14px;
   }
 }
+

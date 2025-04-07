@@ -193,6 +193,11 @@ tr:hover {
     text-align: left;
     background-color: #e6e6e6;
 }
+ul li a {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
 
 /* Responsive Styles */
 @media (min-width: 1024px) {

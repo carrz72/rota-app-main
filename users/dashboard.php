@@ -122,8 +122,8 @@ unset($shift);
         <section class="dashboard">
             <h2>Dashboard</h2>
             <ul>
-                <li><a href="shifts.php">Shifts</a></li>
-                <li><a href="roles.php">Roles</a></li>
+                <li><a href="shifts.php">My Shifts</a></li>
+                <li><a href="rota.php">Rota</a></li>
                 <li><a href="settings.php">Settings</a></li>
             </ul>
         </section>
@@ -188,34 +188,36 @@ unset($shift);
             Estimated Pay: £<?php echo number_format($next_shift['estimated_pay'], 2); ?>
         </p>
         <?php
-            // Query overlapping shifts using datetime comparisons.
-            $overlappingShifts = [];
-            try {
-                $query = "
-                    SELECT s.*, u.username 
-                    FROM shifts s 
-                    JOIN users u ON s.user_id = u.id 
-                    WHERE s.user_id <> :user_id 
-                      AND (
-                       STR_TO_DATE(CONCAT(s.shift_date, ' ', s.start_time), '%Y-%m-%d %H:%i:%s') <= :next_end_dt
-                        AND IF(s.start_time < s.end_time,
-                            STR_TO_DATE(CONCAT(s.shift_date, ' ', s.end_time), '%Y-%m-%d %H:%i:%s'),
-                            STR_TO_DATE(CONCAT(DATE_ADD(s.shift_date, INTERVAL 1 DAY), ' ', s.end_time), '%Y-%m-%d %H:%i:%s')
-                        ) > :next_start_dt
-                      )
-                ";
-                $stmtOverlap = $conn->prepare($query);
-                $stmtOverlap->execute([
-                    ':user_id'       => $user_id,
-                    ':next_start_dt' => $next_start_dt,
-                    ':next_end_dt'   => $next_end_dt
-                ]);
-                $overlappingShifts = $stmtOverlap->fetchAll(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                $overlappingShifts = [];
-                // For debugging, uncomment the following:
-                // error_log("Overlap Query Error: " . $e->getMessage());
-            }
+           // Query overlapping shifts with matching location.
+$overlappingShifts = [];
+try {
+    $query = "
+        SELECT s.*, u.username 
+        FROM shifts s 
+        JOIN users u ON s.user_id = u.id 
+        WHERE s.user_id <> :user_id 
+          AND s.location = :location
+          AND (
+            STR_TO_DATE(CONCAT(s.shift_date, ' ', s.start_time), '%Y-%m-%d %H:%i:%s') <= :next_end_dt
+            AND IF(s.start_time < s.end_time,
+                STR_TO_DATE(CONCAT(s.shift_date, ' ', s.end_time), '%Y-%m-%d %H:%i:%s'),
+                STR_TO_DATE(CONCAT(DATE_ADD(s.shift_date, INTERVAL 1 DAY), ' ', s.end_time), '%Y-%m-%d %H:%i:%s')
+            ) > :next_start_dt
+          )
+    ";
+    $stmtOverlap = $conn->prepare($query);
+    $stmtOverlap->execute([
+        ':user_id'       => $user_id,
+        ':location'      => $next_shift['location'],
+        ':next_start_dt' => $next_start_dt,
+        ':next_end_dt'   => $next_end_dt
+    ]);
+    $overlappingShifts = $stmtOverlap->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $overlappingShifts = [];
+    // Uncomment for debugging:
+    // error_log("Overlap Query Error: " . $e->getMessage());
+}
             
             if (!empty($overlappingShifts)) {
                 echo "<div class='overlap-info'><p>You will be working with:</p><ul>";
@@ -230,6 +232,10 @@ unset($shift);
             }
         ?>
         </section>
+    <?php else: ?>
+        <p>No upcoming shift.</p>
+    </section>
+    <?php endif; ?>
         </div>
 
 <!-- Upcoming Shifts Section -->
@@ -256,10 +262,6 @@ unset($shift);
         </table>
     <?php else: ?>
         <p>No upcoming shifts scheduled.</p>
-    <?php endif; ?>
-</section>
-    <?php else: ?>
-        <p>No upcoming shift.</p>
     <?php endif; ?>
 </section>
 </body>

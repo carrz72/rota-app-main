@@ -101,6 +101,7 @@ $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
 <div class="container">
     <h1>Your Shifts</h1>
 
+    <div class="hoursandearnings">
     <h3>Hours and Earnings</h3>
     <section class="earnings">
         <form method="GET">
@@ -126,8 +127,8 @@ $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
 
         <p>
             <?php if ($period == 'week'): ?>
-                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>">← Previous Week</a> |
-                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>">Next Week →</a>
+                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>">Previous Week</a> |
+                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>">Next Week</a>
             <?php elseif ($period == 'month'): ?>
                 <?php
                   $prevMonth = $month - 1;
@@ -137,11 +138,11 @@ $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
                   $nextYear = $year;
                   if ($nextMonth > 12) { $nextMonth = 1; $nextYear += 1; }
                 ?>
-                <a href="?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>">← Previous Month</a> |
-                <a href="?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>">Next Month →</a>
+                <a href="?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>">Previous Month</a> |
+                <a href="?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>">Next Month</a>
             <?php else: ?>
-                <a href="?period=year&year=<?php echo $year - 1; ?>">← Previous Year</a> |
-                <a href="?period=year&year=<?php echo $year + 1; ?>">Next Year →</a>
+                <a href="?period=year&year=<?php echo $year - 1; ?>">Previous Year</a> |
+                <a href="?period=year&year=<?php echo $year + 1; ?>">Next Year</a>
             <?php endif; ?>
         </p>
 
@@ -151,10 +152,11 @@ $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
         </p>
     </section>
 
-    <h3>Shifts</h3>
+   
     <button id="toggleAddShiftBtn">Add Shift</button>
     <div id="addShiftSection" style="display:none;">
         <form id="addShiftForm" method="POST" action="../functions/add_shift.php">
+            <div class="add-shift-form">
             <p>
                 <label for="shift_date">Date:</label>
                 <input type="date" name="shift_date" required />
@@ -168,10 +170,6 @@ $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
                 <input type="time" name="end_time" required />
             </p>
             <p>
-    <label for="location">Location:</label>
-    <input type="text" name="location" required />
-</p>
-            <p>
                 <label for="role_id">Role:</label>
                 <select name="role_id" required>
                     <?php foreach ($roles as $role): ?>
@@ -181,10 +179,17 @@ $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
                     <?php endforeach; ?>
                 </select>
             </p>
-            <button type="submit">Save Shift</button>
+           
+            <p>
+    <label for="location">Location:</label>
+    <input class="loctation-box" type="text" name="location" required />
+</p>
+</div>
+            
+            <button class="save-shift-btn" type="submit">Save Shift</button>
         </form>
-    </div>
-
+        </div>
+        <h3>Shifts</h3>
     <!-- Edit Shift Modal (hidden by default) -->
     <div id="editShiftModal" style="display:none;">
         <form id="editShiftForm" method="POST" action="../functions/edit_shift.php">

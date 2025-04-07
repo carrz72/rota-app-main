@@ -107,6 +107,12 @@ p[style*="color:green"] {
     border-radius: 4px;
 }
 
+ul li a {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
     body {

@@ -148,7 +148,11 @@ td select {
      width: auto;
      min-width: 80px;
 }
-
+ul li a {
+     font-size: 14px;
+     white-space: nowrap;
+   }
+ 
 /* =======================================
     5. ADD NEW SHIFT FORM
     ======================================= */

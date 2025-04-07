@@ -110,6 +110,10 @@ footer {
     color: #fff;
     background-color: rgba(0, 0, 0, 0.7);
 }
+ul li a {
+    font-size: 14px;
+    white-space: nowrap;
+  }
 
 @media (max-width: 768px) {
     .landing-container {
