@@ -742,9 +742,7 @@ span{
     text-align: center;
   }
 
-  .dashboard ul {
-    font-size: 13px;
-  }
+ 
 
   .front-view {
     flex-direction: column;
