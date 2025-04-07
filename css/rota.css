@@ -449,7 +449,6 @@ header {
     }
 
     table {
-       
         overflow-x: auto;
         white-space: nowrap;
       }
@@ -487,8 +486,15 @@ header {
   }
     
   }
+
+  @media(max-width: 700px ){
+    table{
+    display: block;
+    overflow-x: auto;
+    }
+  }
   
-  @media (max-width: 684px) {
+  @media (max-width: 590px) {
 
     .container {
         width: 80%;
@@ -497,7 +503,6 @@ header {
       }
     header, form {
       padding: 10px;
-      margin: 15px;
     }
     .nav-links ul li a {
         white-space: nowrap;
@@ -515,6 +520,8 @@ header {
         display: block;
         overflow-x: auto;
         white-space: nowrap;
+        font-size: 13px;
+        border-radius: 20px;
       }
       
       table th,
@@ -527,6 +534,8 @@ header {
       padding: 8px 10px;
       font-size: 14px;
     }
+
+    
 
 
   header {
