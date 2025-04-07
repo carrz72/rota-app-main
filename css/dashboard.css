@@ -697,12 +697,12 @@ select {
   .next-shift,
   .upcoming-shifts {
     padding: 10px;
- 
     box-shadow: none;
   }
 
   .all-content {
     margin: 20px auto;
+    width: 90%;
   }
 
   ul li {
@@ -792,6 +792,10 @@ select {
 
 
 @media (max-width: 470px) {
+  .all-content {
+    margin: 20px auto;
+    width: 90%;
+  }
   body {
     font-size: 1em;
   }
@@ -813,6 +817,10 @@ select {
 }
 
 @media (max-width: 390px) {
+  .all-content {
+    margin: 20px auto;
+    width: 90%;
+  }
   body {
     font-size: 0.9em;
   }
