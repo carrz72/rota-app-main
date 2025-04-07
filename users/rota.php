@@ -89,7 +89,7 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php elseif ($period === 'year'): ?>
                 <input type="number" name="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100" onchange="this.form.submit()">
               
-                <span>Viewing <?php echo $year; ?></span>
+                <span class="viewing">Viewing <?php echo $year; ?></span>
             <?php endif; ?>
             <noscript><button type="submit">Filter</button></noscript>
           
@@ -158,7 +158,7 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </table>
     </section>
 <?php else: ?>
-    <p>No shifts scheduled for the selected period.</p>
+    <p class="no-shifts">No shifts scheduled for the selected period.</p>
 <?php endif; ?>
     </div>
 </body>

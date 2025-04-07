@@ -28,6 +28,8 @@ body {
 }
 
 .login-container {
+    width: 85%;
+    height: 50%;
     padding: 30px 40px;
 }
 
@@ -50,6 +52,7 @@ p {
 
 /* ========== FORM STYLES ========== */
 form {
+    margin-top: 100px;
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -115,7 +118,7 @@ button:hover {
 
 .button1,
 .button2 {
-    padding: 10px 40px;
+    padding:  10px 73px;
 }
 
 .button1 {
@@ -158,8 +161,10 @@ a:hover {
 
 /* ========== MEDIA QUERIES ========== */
 @media (max-width: 768px) {
+ 
     .login-container {
         width: 85%;
+        height: 50%;
         padding: 20px 40px;
         margin: 10px 20px;
     }
@@ -168,18 +173,12 @@ a:hover {
         font-size: 22px;
     }
     
-    input[type="text"],
-    input[type="email"],
-    input[type="password"] {
-        padding: 8px;
-        font-size: 14px;
-    }
-    
-    button, a {
-        font-size: 14px;
-        padding: 8px 14px;
-    }
-    
+ 
+   .button1, .button2{
+    padding:  10px 73px;
+   }
+   
+ 
     p {
         font-size: 12px;
     }
@@ -191,14 +190,36 @@ a:hover {
    .shit-invt{
         font-size: 12px;
    }
+
+   .button3 {
+    width: 100%;
+    margin: 0 auto;
+   }
+}
+
+@media(max-width:518px){
+    .button1, .button2{
+        padding:  10px 50px;
+       }
+
+       .button3 {
+        width: 80%;
+        margin: 0 auto;
+       }
 }
 
 @media (max-width: 480px) {
     .login-container {
-        width: 90%;
+        width: 85%;
         padding: 15px 30px;
         margin: 10px 20px;
     }
+
+    
+   .button3 {
+    width: 80%;
+    margin: 0 auto;
+   }
     
     h2 {
         font-size: 20px;
@@ -214,9 +235,9 @@ a:hover {
     }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 406px) {
     .login-container {
-        width: 90%;
+        width: 85%;
         padding: 15px 30px;
         margin: 10px 20px;
     }
@@ -225,15 +246,13 @@ a:hover {
         font-size: 18px;
     }
     
-    input[type="text"],
-    input[type="email"],
-    input[type="password"] {
-        padding: 6px;
-        font-size: 12px;
-    }
+    .button1, .button2{
+        padding:  10px 40px;
+       }
+
     .button3{
-        margin: 0 60px;
-        padding: 8px 12px;
+        width: 80%;
+        margin: 0 auto;
     }
     button, a {
         margin: 10px;
@@ -246,24 +265,23 @@ a:hover {
     }
 }
 
-@media (max-width: 320px) {
+@media (max-width: 370px) {
     h2 {
         font-size: 16px;
     }
     
-    input[type="text"],
-    input[type="email"],
-    input[type="password"] {
-        padding: 5px;
-        font-size: 10px;
+    .button1, .button2{
+        padding:  10px 30px;
+       }
+
+    .button3{
+        width: 80%;
+        margin: 0 auto;
     }
-    
+
     button, a {
         font-size: 10px;
         padding: 5px 10px;
     }
     
-    p {
-        font-size: 8px;
-    }
 }

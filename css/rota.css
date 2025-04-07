@@ -200,7 +200,7 @@ header {
     background-repeat: no-repeat;
     border-radius: 12px;
     box-shadow: 0 6px 12px rgb(0, 0, 0);
-    color: #000;
+    color: #da0707;
   }
   
   /* ---------- Headings ---------- */
@@ -343,6 +343,12 @@ header {
     white-space: nowrap;
   }
 
+  .no-shifts{
+    color: #fa1919;
+  }
+  .viewing{
+    color: #f12b2b;
+  }
   
   /* ---------- Responsive & Media Queries ---------- */
   @media (min-width: 1141px) {
@@ -511,6 +517,7 @@ header {
     .upcoming-shifts{
         padding: 10px;
     }
+
   
     table th, table td {
       padding: 8px;
@@ -531,8 +538,8 @@ header {
     
   
     button, a {
-      padding: 8px 10px;
-      font-size: 14px;
+      padding: 6px 9px;
+      font-size: 13px;
     }
 
     
@@ -557,4 +564,11 @@ header {
     margin-top: 18px;
     overflow: auto;
   }
+  }
+
+  @media (max-width:369px ){
+    button, a {
+        padding: 6px 6px;
+        font-size: 11px;
+      }
   }

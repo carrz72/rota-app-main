@@ -18,6 +18,7 @@ function sendResetCode($conn, $email, $numericCode) {
     $stmt->execute([$numericCode, $email]);
     
     $mail = new PHPMailer(true);
+    $mail->SMTPDebug = 2;
     try {
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';

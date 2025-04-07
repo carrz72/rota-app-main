@@ -374,7 +374,7 @@ a {
         cursor: pointer;
         border-radius: 10px;
     }
-    
+
     ul li a {
         font-size: 14px;
         white-space: nowrap;
@@ -470,14 +470,15 @@ a {
     .container {
         width: 80%;
            padding: 20px;
-        
            margin: 40px auto;
        }
+       
 
     table {
         display: block;
         overflow-x: auto;
         white-space: nowrap;
+        border-radius: 10px;
     }
 
     table th, table td {
