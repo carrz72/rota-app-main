@@ -79,6 +79,12 @@ if ($viewType === 'week') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Open Rota">
+<link rel="manifest" href="/rota-app-main/manifest.json">
+<link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>

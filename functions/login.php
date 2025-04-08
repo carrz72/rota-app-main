@@ -33,7 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="../images/logo.png">
-    <link rel="apple-touch-icon" href="../images/logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Open Rota">
+<link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
     <link rel="manifest" href="/rota-app-main/manifest.json">
     <title>Login - Rota App</title>
     <link rel="stylesheet" href="../css/loginandregister.css">
