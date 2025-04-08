@@ -14,6 +14,12 @@ if ($user_id) {
 ?>
 <link rel="stylesheet">
 <header style="opacity: 0; transition: opacity 0.5s ease;">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Open Rota">
+<link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
+<link rel="manifest" href="/rota-app-main/manifest.json">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="apple-touch-icon" href="/rota-app-main/images/logo.png">
     <div class="logo">Open Rota.</div>
 <div class="nav-group">

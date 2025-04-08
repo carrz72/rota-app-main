@@ -2,7 +2,7 @@
 require '../includes/auth.php';
 requireLogin(); // Only logged-in users can access
 
-include __DIR__ . '/../includes/header.php';
+
 
 // Include DB connection.
 require_once '../includes/db.php';
