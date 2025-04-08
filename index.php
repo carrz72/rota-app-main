@@ -32,7 +32,7 @@ if (isset($_SESSION['user_id'])) {
             <p>The easiest way to manage your work schedule and shifts</p>
             
             <div class="cta-buttons">
-            <a href="functions/login.php" onclick="window.location=this.href; return false;">Log In</a>               
+            <a href="functions/login.php" class="btn" onclick="window.location=this.href; return false;">Log In</a>               
                 <a href="functions/register.php" class="btn btn-secondary">Sign Up</a>
             </div>
         </section>
