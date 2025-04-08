@@ -13,10 +13,13 @@ if (isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Open Rota">
-<link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
-    <link rel="manifest" href="/rota-app-main/manifest.json">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Open Rota">
+  <link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
+  <link rel="manifest" href="/rota-app-main/manifest.json">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="apple-touch-icon" href="/rota-app-main/images/logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
     <title>Rota App - Manage Your Work Schedule</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
