@@ -42,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <title>Login - Rota App</title>
   <link rel="stylesheet" href="../css/loginandregister.css">
 </head>
-</head>
 <body>
     <div class="login-container">
         <h2>Login</h2>
