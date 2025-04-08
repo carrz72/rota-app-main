@@ -58,4 +58,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
     </div>
 </body>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/rota-app-main/service-worker.js")
+        .then(registration => {
+            console.log("Service Worker registered with scope:", registration.scope);
+        })
+        .catch(error => {
+            console.log("Service Worker registration failed:", error);
+        });
+}
+</script>
 </html>
