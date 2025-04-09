@@ -24,13 +24,17 @@ body {
     margin-bottom: 30px;
 }
 .stat-box {
-    background-color: #fff;
+    display: flex;
+    background-color: #ffffff88;
     border-radius: 5px;
     padding: 20px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     flex: 1;
     min-width: 200px;
    transition: 0.4s;
+   text-align: center;
+   align-items: center;
+   justify-content: center;
 }
 
 .stat-box:hover {
@@ -39,9 +43,21 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 .stat-box h3, a {
-    margin: 0 0 10px;
-    color: #ec2626;
+    text-align: center;
+    background-color: #f80d0d;
+    padding: 6px 18px;
+    border-radius: 8px;
+    width: fit-content;
+    margin: 0 auto;
+    color: #ffffff;
     text-decoration: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-box a{
+    align-items: center;
+    justify-content: center;
 }
 
 .stat-box h2, a:hover{
@@ -116,9 +132,11 @@ tr:hover {
     margin-bottom: 20px;
 }
 .nav-links a {
+    display: inline-block;
     margin-right: 15px;
+    margin: 4px;
     text-decoration: none;
-    color: #f44336;
+    color: #ffffff;
     transition:0.4s;
 }
 
@@ -238,11 +256,12 @@ ul li a {
     }
     
     .view-controls {
-        flex-direction: column;
+        flex-direction:row;
         align-items: flex-start;
     }
 
     .view-controls a {
+        display: inline-flex;
         padding: 4px 10px;
         margin-bottom: 8px;
     }
@@ -273,11 +292,7 @@ ul li a {
         padding: 10px;
     }
     
-    .container {
-        margin: 10px;
-        padding: 15px;
-    }
-    
+   
     table {
         display: block;
         overflow-x: auto;
