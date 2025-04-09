@@ -4,7 +4,11 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
+<<<<<<< HEAD
     "content-hash": "a9a44842b21cffc691fcf4101a0b811d",
+=======
+    "content-hash": "673795633aaf303e0d3c59ec076f22e4",
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
     "packages": [
         {
             "name": "composer/pcre",
@@ -86,6 +90,7 @@
             "time": "2024-11-12T16:29:46+00:00"
         },
         {
+<<<<<<< HEAD
             "name": "graham-campbell/result-type",
             "version": "v1.1.3",
             "source": {
@@ -159,21 +164,46 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/maennchen/ZipStream-PHP/zipball/6187e9cc4493da94b9b63eb2315821552015fca9",
                 "reference": "6187e9cc4493da94b9b63eb2315821552015fca9",
+=======
+            "name": "maennchen/zipstream-php",
+            "version": "3.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/maennchen/ZipStream-PHP.git",
+                "reference": "aeadcf5c412332eb426c0f9b4485f6accba2a99f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/maennchen/ZipStream-PHP/zipball/aeadcf5c412332eb426c0f9b4485f6accba2a99f",
+                "reference": "aeadcf5c412332eb426c0f9b4485f6accba2a99f",
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
                 "shasum": ""
             },
             "require": {
                 "ext-mbstring": "*",
                 "ext-zlib": "*",
+<<<<<<< HEAD
                 "php-64bit": "^8.1"
             },
             "require-dev": {
+=======
+                "php-64bit": "^8.2"
+            },
+            "require-dev": {
+                "brianium/paratest": "^7.7",
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
                 "ext-zip": "*",
                 "friendsofphp/php-cs-fixer": "^3.16",
                 "guzzlehttp/guzzle": "^7.5",
                 "mikey179/vfsstream": "^1.6",
                 "php-coveralls/php-coveralls": "^2.5",
+<<<<<<< HEAD
                 "phpunit/phpunit": "^10.0",
                 "vimeo/psalm": "^5.0"
+=======
+                "phpunit/phpunit": "^11.0",
+                "vimeo/psalm": "^6.0"
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
             },
             "suggest": {
                 "guzzlehttp/psr7": "^2.4",
@@ -214,7 +244,11 @@
             ],
             "support": {
                 "issues": "https://github.com/maennchen/ZipStream-PHP/issues",
+<<<<<<< HEAD
                 "source": "https://github.com/maennchen/ZipStream-PHP/tree/3.1.1"
+=======
+                "source": "https://github.com/maennchen/ZipStream-PHP/tree/3.1.2"
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
             },
             "funding": [
                 {
@@ -222,7 +256,11 @@
                     "type": "github"
                 }
             ],
+<<<<<<< HEAD
             "time": "2024-10-10T12:33:01+00:00"
+=======
+            "time": "2025-01-27T12:07:53+00:00"
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
         },
         {
             "name": "markbaker/complex",
@@ -332,6 +370,7 @@
             "time": "2022-12-02T22:17:43+00:00"
         },
         {
+<<<<<<< HEAD
             "name": "phpmailer/phpmailer",
             "version": "v6.9.3",
             "source": {
@@ -413,6 +452,8 @@
             "time": "2024-11-24T18:04:13+00:00"
         },
         {
+=======
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
             "name": "phpoffice/phpspreadsheet",
             "version": "4.1.0",
             "source": {
@@ -518,6 +559,7 @@
             "time": "2025-03-02T06:52:24+00:00"
         },
         {
+<<<<<<< HEAD
             "name": "phpoption/phpoption",
             "version": "1.9.3",
             "source": {
@@ -593,6 +635,8 @@
             "time": "2024-07-20T21:41:07+00:00"
         },
         {
+=======
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
             "name": "psr/http-client",
             "version": "1.0.3",
             "source": {
@@ -802,6 +846,7 @@
                 "source": "https://github.com/php-fig/simple-cache/tree/3.0.0"
             },
             "time": "2021-10-29T13:26:27+00:00"
+<<<<<<< HEAD
         },
         {
             "name": "symfony/polyfill-ctype",
@@ -1125,15 +1170,26 @@
                 }
             ],
             "time": "2024-07-20T21:52:34+00:00"
+=======
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
         }
     ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
+<<<<<<< HEAD
     "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],
     "platform-dev": [],
     "plugin-api-version": "2.2.0"
+=======
+    "stability-flags": {},
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {},
+    "platform-dev": {},
+    "plugin-api-version": "2.6.0"
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
 }

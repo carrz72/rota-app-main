@@ -1,7 +1,10 @@
 {
     "require": {
+<<<<<<< HEAD
         "vlucas/phpdotenv": "^5.6",
         "phpmailer/phpmailer": "^6.9",
+=======
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
         "phpoffice/phpspreadsheet": "^4.1"
     }
 }

@@ -780,10 +780,12 @@ span{
 
   .nav-links ul li a {
     font-size: 14px;
+    padding: 8px 10px;
   }
 
   .nav-links ul {
     padding: 2px;
+    font-size: 1em;
   }
 
   .admin-panel h3 {

@@ -218,12 +218,13 @@ form p:last-child button {
      }
      
      td, th {
-          min-width: 100px;
+          min-width: 10px;
+          font-size: 14px;
      }
      
      td input, td select {
-          width: 100%;
           min-width: 60px;
+          font-size: 14px;
      }
      
      .container {
@@ -233,6 +234,7 @@ form p:last-child button {
      h1 {
           font-size: 1.5rem;
      }
+
 }
 
 @media (max-width: 480px) {
@@ -242,10 +244,10 @@ form p:last-child button {
      }
      
      select, input[type="date"], input[type="number"] {
-          margin: 5px 0;
+          margin: 3px 0;
      }
      
      form p {
-          margin-bottom: 10px;
+          margin-bottom: 6px;
      }
 }

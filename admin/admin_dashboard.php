@@ -112,29 +112,10 @@ if ($viewType === 'week') {
         
         <div class="stats">
     <div class="stat-box">
-        <h3><a href="manage_users.php">Total Users</a></h3>
-        <p><a href="manage_users.php"><?php echo $totalUsers; ?></a></p>
-    </div>
-    <div class="stat-box">
         <h3><a href="manage_shifts.php">Edit Shifts</a></h3>
-        <p><a href="manage_shifts.php"><?php echo $totalShifts; ?></a></p>
     </div>
     <div class="stat-box">
-        <h3><a href="manage_admins.php">Admins</a></h3>
-        <p>
-            <a href="manage_admins.php">
-                <?php 
-                    $adminCount = 0;
-                    foreach ($roles as $role) {
-                        if ($role['role'] === 'admin') {
-                            $adminCount = $role['count'];
-                            break;
-                        }
-                    }
-                    echo $adminCount;
-                ?>
-            </a>
-        </p>
+        <h3><a href="upload_shifts.php">Upload shift</a></h3>
     </div>
 </div>
         

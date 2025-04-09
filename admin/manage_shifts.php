@@ -199,6 +199,7 @@ $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
                 <?php if (!$user_id): ?>
                         <th>User</th>
                     <?php endif; ?>
+                    <th>Username</th>
                     <th>Shift Date</th>
                     <th>Start Time</th>
                     <th>End Time</th>

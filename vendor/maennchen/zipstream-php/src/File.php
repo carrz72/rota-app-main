@@ -113,6 +113,11 @@ class File
             $this->isSimulation() &&
             $detectedSize !== null
         ) {
+<<<<<<< HEAD
+=======
+            $this->uncompressedSize = $detectedSize;
+            $this->compressedSize = $detectedSize;
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
             ($this->recordSentBytes)($detectedSize);
         } else {
             $this->readStream(send: true);
@@ -331,6 +336,13 @@ class File
 
             $data = fread($this->unpackStream(), $readLength);
 
+<<<<<<< HEAD
+=======
+            if ($data === false) {
+                throw new ResourceActionException('fread', $this->unpackStream());
+            }
+
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
             hash_update($hash, $data);
 
             $this->uncompressedSize += strlen($data);
@@ -341,6 +353,13 @@ class File
                     $data,
                     feof($this->unpackStream()) ? ZLIB_FINISH : ZLIB_NO_FLUSH
                 );
+<<<<<<< HEAD
+=======
+
+                if ($data === false) {
+                    throw new RuntimeException('deflate_add failed');
+                }
+>>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
             }
 
             $this->compressedSize += strlen($data);
