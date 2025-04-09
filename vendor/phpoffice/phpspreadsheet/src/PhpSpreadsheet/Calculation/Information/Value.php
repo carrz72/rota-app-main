@@ -20,10 +20,11 @@ class Value
      * @param mixed $value Value to check
      *                      Or can be an array of values
      *
-     * @return array|bool If an array of numbers is passed as an argument, then the returned result will also be an array
+     * @return array|bool
+     *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function isBlank(mixed $value = null): array|bool
+    public static function isBlank($value = null)
     {
         if (is_array($value)) {
             return self::evaluateSingleArgumentArray([self::class, __FUNCTION__], $value);
@@ -36,20 +37,22 @@ class Value
      * IS_REF.
      *
      * @param mixed $value Value to check
+     *
+     * @return bool
      */
-    public static function isRef(mixed $value, ?Cell $cell = null): bool
+    public static function isRef($value, ?Cell $cell = null)
     {
-        if ($cell === null) {
+        if ($cell === null || $value === $cell->getCoordinate()) {
             return false;
         }
 
         $cellValue = Functions::trimTrailingRange($value);
         if (preg_match('/^' . Calculation::CALCULATION_REGEXP_CELLREF . '$/ui', $cellValue) === 1) {
-            [$worksheet, $cellValue] = Worksheet::extractSheetTitle($cellValue, true, true);
+            [$worksheet, $cellValue] = Worksheet::extractSheetTitle($cellValue, true);
             if (!empty($worksheet) && $cell->getWorksheet()->getParentOrThrow()->getSheetByName($worksheet) === null) {
                 return false;
             }
-            [$column, $row] = Coordinate::indexesFromString($cellValue ?? '');
+            [$column, $row] = Coordinate::indexesFromString($cellValue);
             if ($column > 16384 || $row > 1048576) {
                 return false;
             }
@@ -68,10 +71,11 @@ class Value
      * @param mixed $value Value to check
      *                      Or can be an array of values
      *
-     * @return array|bool|string If an array of numbers is passed as an argument, then the returned result will also be an array
+     * @return array|bool|string
+     *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function isEven(mixed $value = null): array|string|bool
+    public static function isEven($value = null)
     {
         if (is_array($value)) {
             return self::evaluateSingleArgumentArray([self::class, __FUNCTION__], $value);
@@ -92,10 +96,11 @@ class Value
      * @param mixed $value Value to check
      *                      Or can be an array of values
      *
-     * @return array|bool|string If an array of numbers is passed as an argument, then the returned result will also be an array
+     * @return array|bool|string
+     *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function isOdd(mixed $value = null): array|string|bool
+    public static function isOdd($value = null)
     {
         if (is_array($value)) {
             return self::evaluateSingleArgumentArray([self::class, __FUNCTION__], $value);
@@ -116,10 +121,11 @@ class Value
      * @param mixed $value Value to check
      *                      Or can be an array of values
      *
-     * @return array|bool If an array of numbers is passed as an argument, then the returned result will also be an array
+     * @return array|bool
+     *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function isNumber(mixed $value = null): array|bool
+    public static function isNumber($value = null)
     {
         if (is_array($value)) {
             return self::evaluateSingleArgumentArray([self::class, __FUNCTION__], $value);
@@ -138,10 +144,11 @@ class Value
      * @param mixed $value Value to check
      *                      Or can be an array of values
      *
-     * @return array|bool If an array of numbers is passed as an argument, then the returned result will also be an array
+     * @return array|bool
+     *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function isLogical(mixed $value = null): array|bool
+    public static function isLogical($value = null)
     {
         if (is_array($value)) {
             return self::evaluateSingleArgumentArray([self::class, __FUNCTION__], $value);
@@ -156,10 +163,11 @@ class Value
      * @param mixed $value Value to check
      *                      Or can be an array of values
      *
-     * @return array|bool If an array of numbers is passed as an argument, then the returned result will also be an array
+     * @return array|bool
+     *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function isText(mixed $value = null): array|bool
+    public static function isText($value = null)
     {
         if (is_array($value)) {
             return self::evaluateSingleArgumentArray([self::class, __FUNCTION__], $value);
@@ -174,10 +182,11 @@ class Value
      * @param mixed $value Value to check
      *                      Or can be an array of values
      *
-     * @return array|bool If an array of numbers is passed as an argument, then the returned result will also be an array
+     * @return array|bool
+     *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function isNonText(mixed $value = null): array|bool
+    public static function isNonText($value = null)
     {
         if (is_array($value)) {
             return self::evaluateSingleArgumentArray([self::class, __FUNCTION__], $value);
@@ -191,8 +200,10 @@ class Value
      *
      * @param mixed $cellReference The cell to check
      * @param ?Cell $cell The current cell (containing this formula)
+     *
+     * @return array|bool|string
      */
-    public static function isFormula(mixed $cellReference = '', ?Cell $cell = null): array|bool|string
+    public static function isFormula($cellReference = '', ?Cell $cell = null)
     {
         if ($cell === null) {
             return ExcelError::REF();
@@ -200,7 +211,7 @@ class Value
 
         $fullCellReference = Functions::expandDefinedName((string) $cellReference, $cell);
 
-        if (str_contains($cellReference, '!')) {
+        if (strpos($cellReference, '!') !== false) {
             $cellReference = Functions::trimSheetFromCellReference($cellReference);
             $cellReferences = Coordinate::extractAllCellReferencesInRange($cellReference);
             if (count($cellReferences) > 1) {
@@ -210,11 +221,10 @@ class Value
 
         $fullCellReference = Functions::trimTrailingRange($fullCellReference);
 
-        $worksheetName = '';
-        if (1 == preg_match('/^' . Calculation::CALCULATION_REGEXP_CELLREF . '$/i', $fullCellReference, $matches)) {
-            $fullCellReference = $matches[6] . $matches[7];
-            $worksheetName = str_replace("''", "'", trim($matches[2], "'"));
-        }
+        preg_match('/^' . Calculation::CALCULATION_REGEXP_CELLREF . '$/i', $fullCellReference, $matches);
+
+        $fullCellReference = $matches[6] . $matches[7];
+        $worksheetName = str_replace("''", "'", trim($matches[2], "'"));
 
         $worksheet = (!empty($worksheetName))
             ? $cell->getWorksheet()->getParentOrThrow()->getSheetByName($worksheetName)
@@ -254,7 +264,7 @@ class Value
                 return (int) $value;
             case 'string':
                 //    Errors
-                if (($value !== '') && ($value[0] == '#')) {
+                if ((strlen($value) > 0) && ($value[0] == '#')) {
                     return $value;
                 }
 
@@ -271,7 +281,7 @@ class Value
      *
      * @param null|mixed $value The value you want tested
      *
-     * @return int N converts values listed in the following table
+     * @return number N converts values listed in the following table
      *        If value is or refers to N returns
      *        A number            1
      *        Text                2
@@ -279,10 +289,10 @@ class Value
      *        An error value      16
      *        Array or Matrix     64
      */
-    public static function type($value = null): int
+    public static function type($value = null)
     {
         $value = Functions::flattenArrayIndexed($value);
-        if (count($value) > 1) {
+        if (is_array($value) && (count($value) > 1)) {
             end($value);
             $a = key($value);
             //    Range of cells is an error
@@ -306,7 +316,7 @@ class Value
             return 64;
         } elseif (is_string($value)) {
             //    Errors
-            if (($value !== '') && ($value[0] == '#')) {
+            if ((strlen($value) > 0) && ($value[0] == '#')) {
                 return 16;
             }
 

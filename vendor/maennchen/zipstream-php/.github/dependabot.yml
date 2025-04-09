@@ -10,10 +10,6 @@ updates:
       interval: "weekly"
     groups:
       github-actions:
-<<<<<<< HEAD
-        applies-to: version-updates
-=======
         applies-to: version-updates
         patterns:
           - "*"
->>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d

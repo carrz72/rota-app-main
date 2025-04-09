@@ -9,9 +9,11 @@ use SimpleXMLElement;
 
 class Hyperlinks
 {
-    private Worksheet $worksheet;
+    /** @var Worksheet */
+    private $worksheet;
 
-    private array $hyperlinks = [];
+    /** @var array */
+    private $hyperlinks = [];
 
     public function __construct(Worksheet $workSheet)
     {
@@ -31,7 +33,9 @@ class Hyperlinks
     public function setHyperlinks(SimpleXMLElement $worksheetXml): void
     {
         foreach ($worksheetXml->children(Namespaces::MAIN)->hyperlink as $hyperlink) {
-            $this->setHyperlink($hyperlink, $this->worksheet);
+            if ($hyperlink !== null) {
+                $this->setHyperlink($hyperlink, $this->worksheet);
+            }
         }
     }
 

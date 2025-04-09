@@ -24,7 +24,9 @@ class AutoFit
             /** @var Table $table */
             if ($table->getShowHeaderRow() === true && $table->getAllowFilter() === true) {
                 $autoFilter = $table->getAutoFilter();
-                $autoFilterIndentRanges[] = $this->getAutoFilterIndentRange($autoFilter);
+                if ($autoFilter !== null) {
+                    $autoFilterIndentRanges[] = $this->getAutoFilterIndentRange($autoFilter);
+                }
             }
         }
 

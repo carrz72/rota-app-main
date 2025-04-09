@@ -13,10 +13,7 @@ declare(strict_types=1);
 
 use PhpCsFixer\Config;
 use PhpCsFixer\Finder;
-<<<<<<< HEAD
-=======
 use PhpCsFixer\Runner;
->>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
 
 $finder = Finder::create()
     ->exclude('.github')
@@ -30,12 +27,8 @@ $config = new Config();
 return $config->setRules([
         '@PER' => true,
         '@PER:risky' => true,
-<<<<<<< HEAD
-        '@PHP82Migration' => true,
-=======
         '@PHP83Migration' => true,
         '@PHP84Migration' => true,
->>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
         '@PHPUnit84Migration:risky' => true,
         'array_syntax' => ['syntax' => 'short'],
         'class_attributes_separation' => true,
@@ -76,9 +69,5 @@ return $config->setRules([
         ],
     ])
     ->setFinder($finder)
-<<<<<<< HEAD
-    ->setRiskyAllowed(true);
-=======
     ->setRiskyAllowed(true)
     ->setParallelConfig(Runner\Parallel\ParallelConfigFactory::detect());
->>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d

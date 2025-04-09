@@ -19,18 +19,25 @@ class Styles extends BaseParserClass
 {
     /**
      * Theme instance.
+     *
+     * @var ?Theme
      */
-    private ?Theme $theme = null;
+    private $theme;
 
-    private array $workbookPalette = [];
+    /** @var array */
+    private $workbookPalette = [];
 
-    private array $styles = [];
+    /** @var array */
+    private $styles = [];
 
-    private array $cellStyles = [];
+    /** @var array */
+    private $cellStyles = [];
 
-    private SimpleXMLElement $styleXml;
+    /** @var SimpleXMLElement */
+    private $styleXml;
 
-    private string $namespace = '';
+    /** @var string */
+    private $namespace = '';
 
     public function setNamespace(string $namespace): void
     {
@@ -42,17 +49,30 @@ class Styles extends BaseParserClass
         $this->workbookPalette = $palette;
     }
 
+    /**
+     * Cast SimpleXMLElement to bool to overcome Scrutinizer problem.
+     *
+     * @param mixed $value
+     */
+    private static function castBool($value): bool
+    {
+        return (bool) $value;
+    }
+
     private function getStyleAttributes(SimpleXMLElement $value): SimpleXMLElement
     {
-        $attr = $value->attributes('');
-        if ($attr === null || count($attr) === 0) {
-            $attr = $value->attributes($this->namespace);
+        $attr = null;
+        if (self::castBool($value)) {
+            $attr = $value->attributes('');
+            if ($attr === null || count($attr) === 0) {
+                $attr = $value->attributes($this->namespace);
+            }
         }
 
         return Xlsx::testSimpleXml($attr);
     }
 
-    public function setStyleXml(SimpleXMLElement $styleXml): void
+    public function setStyleXml(SimpleXmlElement $styleXml): void
     {
         $this->styleXml = $styleXml;
     }
@@ -146,25 +166,17 @@ class Styles extends BaseParserClass
             }
             $fillStyle->setRotation((float) ($attr['degree']));
             $gradientFill->registerXPathNamespace('sml', Namespaces::MAIN);
-            $fillStyle->getStartColor()->setARGB($this->readColor(self::getArrayItem($gradientFill->xpath('sml:stop[@position=0]'))->color)); //* @phpstan-ignore-line
-            $fillStyle->getEndColor()->setARGB($this->readColor(self::getArrayItem($gradientFill->xpath('sml:stop[@position=1]'))->color)); //* @phpstan-ignore-line
+            $fillStyle->getStartColor()->setARGB($this->readColor(self::getArrayItem($gradientFill->xpath('sml:stop[@position=0]'))->color));
+            $fillStyle->getEndColor()->setARGB($this->readColor(self::getArrayItem($gradientFill->xpath('sml:stop[@position=1]'))->color));
         } elseif ($fillStyleXml->patternFill) {
-            $defaultFillStyle = ($fillStyle->getFillType() !== null) ? Fill::FILL_NONE : '';
-            $fgFound = false;
-            $bgFound = false;
+            $defaultFillStyle = Fill::FILL_NONE;
             if ($fillStyleXml->patternFill->fgColor) {
                 $fillStyle->getStartColor()->setARGB($this->readColor($fillStyleXml->patternFill->fgColor, true));
-                if ($fillStyle->getFillType() !== null) {
-                    $defaultFillStyle = Fill::FILL_SOLID;
-                }
-                $fgFound = true;
+                $defaultFillStyle = Fill::FILL_SOLID;
             }
             if ($fillStyleXml->patternFill->bgColor) {
                 $fillStyle->getEndColor()->setARGB($this->readColor($fillStyleXml->patternFill->bgColor, true));
-                if ($fillStyle->getFillType() !== null) {
-                    $defaultFillStyle = Fill::FILL_SOLID;
-                }
-                $bgFound = true;
+                $defaultFillStyle = Fill::FILL_SOLID;
             }
 
             $type = '';
@@ -177,22 +189,6 @@ class Styles extends BaseParserClass
             $patternType = ($type === '') ? $defaultFillStyle : $type;
 
             $fillStyle->setFillType($patternType);
-            if (
-                !$fgFound // no foreground color specified
-                && !in_array($patternType, [Fill::FILL_NONE, Fill::FILL_SOLID], true) // these patterns aren't relevant
-                && $fillStyle->getStartColor()->getARGB() // not conditional
-            ) {
-                $fillStyle->getStartColor()
-                    ->setARGB('', true);
-            }
-            if (
-                !$bgFound // no background color specified
-                && !in_array($patternType, [Fill::FILL_NONE, Fill::FILL_SOLID], true) // these patterns aren't relevant
-                && $fillStyle->getEndColor()->getARGB() // not conditional
-            ) {
-                $fillStyle->getEndColor()
-                    ->setARGB('', true);
-            }
         }
     }
 
@@ -265,12 +261,6 @@ class Styles extends BaseParserClass
         if ($horizontal !== '') {
             $alignment->setHorizontal($horizontal);
         }
-        $justifyLastLine = (string) $this->getAttribute($alignmentXml, 'justifyLastLine');
-        if ($justifyLastLine !== '') {
-            $alignment->setJustifyLastLine(
-                self::boolean($justifyLastLine)
-            );
-        }
         $vertical = (string) $this->getAttribute($alignmentXml, 'vertical');
         if ($vertical !== '') {
             $alignment->setVertical($vertical);
@@ -303,8 +293,10 @@ class Styles extends BaseParserClass
 
     /**
      * Read style.
+     *
+     * @param SimpleXMLElement|stdClass $style
      */
-    public function readStyle(Style $docStyle, SimpleXMLElement|stdClass $style): void
+    public function readStyle(Style $docStyle, $style): void
     {
         if ($style instanceof SimpleXMLElement) {
             $this->readNumberFormat($docStyle->getNumberFormat(), $style->numFmt);
@@ -456,9 +448,11 @@ class Styles extends BaseParserClass
      * Get array item.
      *
      * @param mixed $array (usually array, in theory can be false)
+     *
+     * @return stdClass
      */
-    private static function getArrayItem(mixed $array): ?SimpleXMLElement
+    private static function getArrayItem($array, int $key = 0)
     {
-        return is_array($array) ? ($array[0] ?? null) : null;
+        return is_array($array) ? ($array[$key] ?? null) : null;
     }
 }

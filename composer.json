@@ -1,10 +1,12 @@
 {
     "require": {
-<<<<<<< HEAD
-        "vlucas/phpdotenv": "^5.6",
+        "phpoffice/phpspreadsheet": "^1.25",
         "phpmailer/phpmailer": "^6.9",
-=======
->>>>>>> 5819736b41976ea88dfd8fae2e111bbec8aff54d
-        "phpoffice/phpspreadsheet": "^4.1"
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
     }
 }
