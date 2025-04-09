@@ -659,7 +659,7 @@ span{
   }
 }
 
-@media (min-width: 870px) {
+@media (min-width: 929px) {
   .front-view {
     display: flex;
     flex-direction: row;
@@ -693,7 +693,7 @@ span{
   }
 }
 
-@media (max-width: 869px) {
+@media (max-width: 930px) {
   .all-content,
   .front-view,
   .earnings,
