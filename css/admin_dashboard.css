@@ -89,6 +89,14 @@ body {
 h1, h2 {
     color: #f44336;
 }
+h2{
+    color: #fd2b2b;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.822);
+    border-radius: 4px;
+    text-align: center;
+    box-shadow: -5px 8px 8px rgba(0, 0, 0, 0.1);
+}
 
 .period-header{
     color: #f44336;
@@ -257,13 +265,15 @@ ul li a {
     
     .view-controls {
         flex-direction:row;
-        align-items: flex-start;
+        align-items: center;
     }
 
     .view-controls a {
         display: inline-flex;
         padding: 4px 10px;
         margin-bottom: 8px;
+        padding: 2px 8px;
+        font-size: 16px;
     }
     .view-toggle {
         margin-left: 0;

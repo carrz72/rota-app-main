@@ -164,9 +164,9 @@ if ($viewType === 'week') {
         
         <div class="view-controls">
             <?php if ($viewType === 'week'): ?>
-                <a href="?view=week&week_start=<?php echo $prevWeekStart; ?>">&lt; Previous Week</a>
+                <a href="?view=week&week_start=<?php echo $prevWeekStart; ?>"> Previous Week </a>
                 <a href="?view=week&week_start=<?php echo date('Y-m-d', strtotime('monday this week')); ?>">Current Week</a>
-                <a href="?view=week&week_start=<?php echo $nextWeekStart; ?>">Next Week &gt;</a>
+                <a href="?view=week&week_start=<?php echo $nextWeekStart; ?>">Next Week </a>
             <?php else: ?>
                 <a href="?view=day&day=<?php echo $prevDay; ?>">&lt; Previous Day</a>
                 <a href="?view=day&day=<?php echo date('Y-m-d'); ?>">Today</a>
