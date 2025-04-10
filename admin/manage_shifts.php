@@ -5,19 +5,17 @@ require_once '../functions/addNotification.php';
 requireAdmin();
 
 // Check if a user_id filter is being applied:
-    $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
-    $user = ['username' => 'All Users']; // Default value for when no user_id is provided
-
-    if ($user_id) {
-        $stmtUser = $conn->prepare("SELECT username FROM users WHERE id = ?");
-        $stmtUser->execute([$user_id]);
-        $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
-        
-        // If no user found with this ID, set default username
-        if (!$user) {
-            $user = ['username' => 'Unknown User'];
-        }
+$user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
+$user = ['username' => 'All Users']; // Default value for when no user_id is provided
+if ($user_id) {
+    $stmtUser = $conn->prepare("SELECT username FROM users WHERE id = ?");
+    $stmtUser->execute([$user_id]);
+    $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
+    if (!$user) {
+        $user = ['username' => 'Unknown User'];
     }
+}
+
 // --- Filtering Setup ---
 $period = $_GET['period'] ?? 'week';
 $bindings = [];
@@ -38,43 +36,37 @@ if ($period === 'day') {
 } else {
     $filterCondition = "1=1";
 }
+
 // Fetch all users for displaying usernames in the shifts table
 $stmtUsers = $conn->query("SELECT id, username FROM users");
 $users = [];
 while ($userData = $stmtUsers->fetch(PDO::FETCH_ASSOC)) {
     $users[$userData['id']] = $userData['username'];
 }
-// If no specific user is provided, manage all shifts
 if ($user_id) {
     $userFilter = "AND user_id = :user_id";
     $bindings[':user_id'] = $user_id;
 } else {
     $userFilter = "";
 }
-// Process form submissions for add/edit/delete only if the form was actually submitted.
+
+// Process form submissions for add/edit/delete actions.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // DELETE ACTION
     if ($_POST['action'] == 'delete' && isset($_POST['shift_id'])) {
-        // Fetch the full shift details...
         $stmtShift = $conn->prepare("SELECT user_id, shift_date, start_time, end_time FROM shifts WHERE id = ?");
         $stmtShift->execute([$_POST['shift_id']]);
         $shiftData = $stmtShift->fetch(PDO::FETCH_ASSOC);
         $targetUser = $shiftData['user_id'] ?? $_SESSION['user_id'];
-
-        // Format the shift details.
         $formattedDate = date("D, M j, Y", strtotime($shiftData['shift_date']));
         $formattedStart = date("g:i A", strtotime($shiftData['start_time']));
         $formattedEnd = date("g:i A", strtotime($shiftData['end_time']));
-
-        // Perform deletion.
         $stmtDel = $conn->prepare("DELETE FROM shifts WHERE id = ?" . ($user_id ? " AND user_id = ?" : ""));
         $params = [$_POST['shift_id']];
-        if ($user_id) { 
-            $params[] = $user_id; 
+        if ($user_id) {
+            $params[] = $user_id;
         }
         $stmtDel->execute($params);
-
-        // Notify the affected user.
         $notifMessage = "Your shift on {$formattedDate} from {$formattedStart} to {$formattedEnd} has been deleted by management.";
         addNotification($conn, $targetUser, $notifMessage, "info");
     }
@@ -89,21 +81,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $_POST['location'],
             $_POST['shift_id']
         ];
-        if ($user_id) { 
-            $params[] = $user_id; 
+        if ($user_id) {
+            $params[] = $user_id;
         }
         $stmtEdit->execute($params);
         
-        // Fetch updated shift details.
         $stmtShift = $conn->prepare("SELECT user_id, shift_date, start_time, end_time FROM shifts WHERE id = ?");
         $stmtShift->execute([$_POST['shift_id']]);
         $shiftData = $stmtShift->fetch(PDO::FETCH_ASSOC);
         $targetUser = $shiftData['user_id'] ?? $_SESSION['user_id'];
-        
         $formattedDate = date("D, M j, Y", strtotime($shiftData['shift_date']));
         $formattedStart = date("g:i A", strtotime($shiftData['start_time']));
         $formattedEnd = date("g:i A", strtotime($shiftData['end_time']));
-        
         $notifMessage = "Your shift on {$formattedDate} from {$formattedStart} to {$formattedEnd} has been updated by management.";
         addNotification($conn, $targetUser, $notifMessage, "info");
     }
@@ -119,28 +108,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $_POST['role_id'],
             $_POST['location']
         ]);
-        
         $formattedDate = date("D, M j, Y", strtotime($_POST['shift_date']));
         $formattedStart = date("g:i A", strtotime($_POST['start_time']));
         $formattedEnd = date("g:i A", strtotime($_POST['end_time']));
-        
         $notifMessage = "A new shift on {$formattedDate} from {$formattedStart} to {$formattedEnd} has been added to your schedule by management.";
         addNotification($conn, $targetUser, $notifMessage, "info");
     }
 }
 
-// Retrieve shifts (all if no user filter applied)
 $query = "SELECT * FROM shifts WHERE 1=1 AND $filterCondition $userFilter ORDER BY shift_date ASC, start_time ASC";
 $params = array_merge([], $bindings);
 $stmtShifts = $conn->prepare($query);
 $stmtShifts->execute($params);
 $shifts = $stmtShifts->fetchAll(PDO::FETCH_ASSOC);
 
-// Retrieve roles for dropdown
 $stmtRoles = $conn->query("SELECT id, name FROM roles");
 $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
-
-// Optionally, if managing all shifts, you might want to display a user filter control.
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -152,16 +135,12 @@ $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
 <link rel="manifest" href="/rota-app-main/manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
-    <title>
-        <?php echo $user_id ? "Manage " . htmlspecialchars($user['username']) . "'s Shifts" : "Manage All Shifts"; ?>
-    </title>
+    <title><?php echo $user_id ? "Manage " . htmlspecialchars($user['username']) . "'s Shifts" : "Manage All Shifts"; ?></title>
     <link rel="stylesheet" href="../css/manage_shifts.css">
 </head>
 <body>
     <div class="container">
-        <h1>
-            <?php echo $user_id ? "Manage " . htmlspecialchars($user['username']) . "'s Shifts" : "Manage All Shifts"; ?>
-        </h1>
+        <h1><?php echo $user_id ? "Manage " . htmlspecialchars($user['username']) . "'s Shifts" : "Manage All Shifts"; ?></h1>
         <a href="admin_dashboard.php" class="action-button">Back to Dashboard</a>
         
         <!-- Filter Controls -->
@@ -191,6 +170,68 @@ $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
             <?php endif; ?>
             <noscript><button type="submit">Filter</button></noscript>
         </form>
+
+        <?php
+// Navigation for "day" filter:
+if ($period === 'day'):
+    // Get the current date (from GET or today's date)
+    $currentDay = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
+    $currentDate = DateTime::createFromFormat('Y-m-d', $currentDay);
+    $prevDay = clone $currentDate;
+    $prevDay->modify('-1 day');
+    $nextDay = clone $currentDate;
+    $nextDay->modify('+1 day');
+?>
+<div class="day-navigation" style="margin:20px 0; text-align:center;">
+    <a href="manage_shifts.php?period=day&date=<?php echo $prevDay->format('Y-m-d'); ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Previous Day</a>
+    <a href="manage_shifts.php?period=day&date=<?php echo date('Y-m-d'); ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Current Day</a>
+    <a href="manage_shifts.php?period=day&date=<?php echo $nextDay->format('Y-m-d'); ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Next Day</a>
+</div>
+<?php endif; ?>
+
+
+<?php
+// Navigation for "week" filter:
+if ($period === 'week'):
+    $currentDate = new DateTime($weekStart);
+    $prevWeek = clone $currentDate;
+    $prevWeek->modify('-7 days');
+    $nextWeek = clone $currentDate;
+    $nextWeek->modify('+7 days');
+    // For "current week" we might use today's date adjusted to the desired start day (for example, last Saturday)
+    $currentWeekStart = date('Y-m-d', strtotime('last Saturday'));
+?>
+<div class="week-navigation" style="margin:20px 0; text-align:center;">
+    <a href="manage_shifts.php?period=week&weekStart=<?php echo $prevWeek->format('Y-m-d'); ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Previous Week</a>
+    <a href="manage_shifts.php?period=week&weekStart=<?php echo $currentWeekStart; ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Current Week</a>
+    <a href="manage_shifts.php?period=week&weekStart=<?php echo $nextWeek->format('Y-m-d'); ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Next Week</a>
+</div>
+<?php endif; ?>
+
+<?php
+// Navigation for "month" filter:
+if ($period === 'month'):
+    $currentMonth = isset($_GET['month']) ? intval($_GET['month']) : intval(date('n'));
+    $currentYear = isset($_GET['year']) ? intval($_GET['year']) : intval(date('Y'));
+    $currentDate = DateTime::createFromFormat('Y-n-d', "{$currentYear}-{$currentMonth}-1");
+    $prevMonthDate = clone $currentDate;
+    $prevMonthDate->modify('-1 month');
+    $nextMonthDate = clone $currentDate;
+    $nextMonthDate->modify('+1 month');
+    $prevMonth = $prevMonthDate->format('n');
+    $prevYear = $prevMonthDate->format('Y');
+    $nextMonth = $nextMonthDate->format('n');
+    $nextYear = $nextMonthDate->format('Y');
+    $curMonth = date('n');
+    $curYear = date('Y');
+?>
+<div class="month-navigation" style="margin:20px 0; text-align:center;">
+    <a href="manage_shifts.php?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Previous Month</a>
+    <a href="manage_shifts.php?period=month&month=<?php echo $curMonth; ?>&year=<?php echo $curYear; ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Current Month</a>
+    <a href="manage_shifts.php?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?><?php echo $user_id ? '&user_id=' . $user_id : ''; ?>" class="nav-button">Next Month</a>
+</div>
+
+<?php endif; ?>
         
         <!-- Table of Shifts -->
         <table>
@@ -208,12 +249,35 @@ $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
                 </tr>
             </thead>
             <tbody class="shifts_display">
-                <?php if (!$shifts): ?>
-                    <tr><td colspan="<?php echo $user_id ? 7 : 8; ?>">No shifts found for the selected period.</td></tr>
-                <?php else: ?>
-                    <?php foreach ($shifts as $shift): ?>
+                <?php 
+                $colspan = $user_id ? 7 : 8;
+                $currentGroup = ""; // Initialize current grouping key
+                if (!$shifts) {
+                    echo "<tr><td colspan='{$colspan}'>No shifts found for the selected period.</td></tr>";
+                } else {
+                    foreach ($shifts as $shift):
+                        // Determine the group key and label based on $period:
+                        if ($period === 'day' || $period === 'week') {
+                            $groupKey = date("Y-m-d", strtotime($shift['shift_date']));
+                            $groupLabel = date("l, F j, Y", strtotime($shift['shift_date']));
+                        } elseif ($period === 'month') {
+                            $groupKey = date("W-Y", strtotime($shift['shift_date']));
+                            $groupLabel = "Week " . date("W", strtotime($shift['shift_date'])) . " of " . date("Y", strtotime($shift['shift_date']));
+                        } else {
+                            $groupKey = "";
+                            $groupLabel = "";
+                        }
+                        
+                        // Output a group header row if this shift starts a new group.
+                        if ($groupKey !== $currentGroup) {
+                            $currentGroup = $groupKey;
+                            echo "<tr class='group-header'><td colspan='{$colspan}' style='background:#eee; font-weight:bold; text-align:center;'>{$groupLabel}</td></tr>";
+                        }
+                ?>
                     <tr>
-                    <td><?php echo isset($users[$shift['user_id']]) ? htmlspecialchars($users[$shift['user_id']]) : 'Unknown User'; ?></td>
+                        <?php if (!$user_id): ?>
+                            <td><?php echo isset($users[$shift['user_id']]) ? htmlspecialchars($users[$shift['user_id']]) : 'Unknown User'; ?></td>
+                        <?php endif; ?>
                         <td><?php echo date("D, M j, Y", strtotime($shift['shift_date'])); ?></td>
                         <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?></td>
                         <td><?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
@@ -228,9 +292,6 @@ $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
                             ?>
                         </td>
                         <td><?php echo htmlspecialchars($shift['location']); ?></td>
-                        <?php if (!$user_id): ?>
-                        
-                        <?php endif; ?>
                         <td>
                             <!-- Edit Shift form -->
                             <form method="POST" style="display:inline;">
@@ -257,54 +318,55 @@ $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
                             </form>
                         </td>
                     </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                    <?php endforeach; 
+                } 
+                ?>
             </tbody>
         </table>
         
-      <!-- Add New Shift Form -->
-<h2>Add New Shift</h2>
-<form method="POST" class="add_shift_form">
-    <input type="hidden" name="action" value="add">
-    <?php if (!$user_id): ?>
-        <p>
-            <label for="user_id">User:</label>
-            <select name="user_id" id="user_id" required>
-                <option value="">Select a user</option>
-                <?php foreach ($users as $id => $username): ?>
-                    <option value="<?php echo $id; ?>"><?php echo htmlspecialchars($username); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </p>
-    <?php endif; ?>
-    <p>
-        <label for="new_shift_date">Date:</label>
-        <input type="date" id="new_shift_date" name="shift_date" required>
-    </p>
-    <p>
-        <label for="new_start_time">Start Time:</label>
-        <input type="time" id="new_start_time" name="start_time" required>
-    </p>
-    <p>
-        <label for="new_end_time">End Time:</label>
-        <input type="time" id="new_end_time" name="end_time" required>
-    </p>
-    <p>
-        <label for="new_role_id">Role:</label>
-        <select id="new_role_id" name="role_id" required>
-            <?php foreach ($roles as $role): ?>
-                <option value="<?php echo $role['id']; ?>"><?php echo htmlspecialchars($role['name']); ?></option>
-            <?php endforeach; ?>
-        </select>
-    </p>
-    <p>
-        <label for="new_location">Location:</label>
-        <input type="text" id="new_location" name="location" required>
-    </p>
-    <p>
-        <button type="submit">Add Shift</button>
-    </p>
-</form>
+        <!-- Add New Shift Form -->
+        <h2>Add New Shift</h2>
+        <form method="POST" class="add_shift_form">
+            <input type="hidden" name="action" value="add">
+            <?php if (!$user_id): ?>
+                <p>
+                    <label for="user_id">User:</label>
+                    <select name="user_id" id="user_id" required>
+                        <option value="">Select a user</option>
+                        <?php foreach ($users as $id => $username): ?>
+                            <option value="<?php echo $id; ?>"><?php echo htmlspecialchars($username); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </p>
+            <?php endif; ?>
+            <p>
+                <label for="new_shift_date">Date:</label>
+                <input type="date" id="new_shift_date" name="shift_date" required>
+            </p>
+            <p>
+                <label for="new_start_time">Start Time:</label>
+                <input type="time" id="new_start_time" name="start_time" required>
+            </p>
+            <p>
+                <label for="new_end_time">End Time:</label>
+                <input type="time" id="new_end_time" name="end_time" required>
+            </p>
+            <p>
+                <label for="new_role_id">Role:</label>
+                <select id="new_role_id" name="role_id" required>
+                    <?php foreach ($roles as $role): ?>
+                        <option value="<?php echo $role['id']; ?>"><?php echo htmlspecialchars($role['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </p>
+            <p>
+                <label for="new_location">Location:</label>
+                <input type="text" id="new_location" name="location" required>
+            </p>
+            <p>
+                <button type="submit">Add Shift</button>
+            </p>
+        </form>
     </div>
 </body>
 </html>

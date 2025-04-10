@@ -83,6 +83,13 @@ form button[type="submit"] {
      font-weight: bold;
 }
 
+.week-navigation a,.day-navigation a ,.month-navigation a  {
+     color: #ffffff;
+   padding: 10px;
+   border-radius: 18px;
+     background-color: #e93333;
+}
+
 /* =======================================
     3. FILTER CONTROLS
     ======================================= */
@@ -238,6 +245,23 @@ form p:last-child button {
 }
 
 @media (max-width: 480px) {
+
+     .week-navigation,.day-navigation ,.month-navigation  {
+        gap: 10px;
+        display: flex;
+            flex-direction: column;
+     }
+     
+.week-navigation a,.day-navigation a ,.month-navigation a  {
+     font-size: 13px;
+     white-space: nowrap;
+     color: #ffffff;
+     gap: 5px;
+   padding: 8px;
+   margin: 4px;
+   border-radius: 18px;
+     background-color: #e93333;
+}
      form[action="manage_shifts.php"] {
           display: flex;
           flex-direction: column;
