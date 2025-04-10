@@ -22,16 +22,16 @@ $orderBy = "ORDER BY ABS(DATEDIFF(shift_date, CURDATE()))";
 // Change default to Saturday this week (week period is Saturday to Friday)
 if (isset($_GET['weekStart'])) {
     $tempDate = $_GET['weekStart'];
-    // Adjust to the Saturday of that week if not already Saturday
-    if (date('l', strtotime($tempDate)) !== 'Saturday') {
-        $tempDate = date('Y-m-d', strtotime('last Saturday', strtotime($tempDate)));
+    // Adjust to the Sunday of that week if not already Sunday
+    if (date('l', strtotime($tempDate)) !== 'Sunday') {
+        $tempDate = date('Y-m-d', strtotime('last Sunday', strtotime($tempDate)));
     }
     $weekStart = $tempDate;
 } else {
-    if (date('l') === 'Saturday') {
+    if (date('l') === 'Sunday') {
         $weekStart = date('Y-m-d');
     } else {
-        $weekStart = date('Y-m-d', strtotime('last Saturday'));
+        $weekStart = date('Y-m-d', strtotime('last Sunday'));
     }
 }
 
