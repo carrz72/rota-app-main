@@ -68,6 +68,21 @@ if (isset($_SESSION['user_id'])) {
         .catch(error => {
             console.log("Service Worker registration failed:", error);
         });
+        function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (isStandalone()) {
+            const links = document.querySelectorAll('a');
+            links.forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    window.open(link.href, '_blank');
+                });
+            });
+        }
+    });
 }
 </script>
 </html>

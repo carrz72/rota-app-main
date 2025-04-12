@@ -143,5 +143,22 @@ function markAsRead(notificationElem) {
         .catch(error => console.error('Error:', error));
 }
 </script>
+<script>
+    function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (isStandalone()) {
+            const links = document.querySelectorAll('a');
+            links.forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    window.open(link.href, '_blank');
+                });
+            });
+        }
+    });
+</script>
 </body>
 </html>
