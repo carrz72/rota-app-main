@@ -268,56 +268,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                 
                                 // Check if the cell value itself contains role information
                                 if (!$currentRoleId && !empty($shiftCell)) {
-                                    // Check for standalone role name (more flexible matching)
-                                    foreach ($roleMapping as $partial => $full) {
-                                        // Case-insensitive exact match
-                                        if (strcasecmp(trim($shiftCell), $partial) === 0) {
-                                            $debug[] = "Found exact role name '$partial' (case-insensitive) in shift cell: '$shiftCell'";
-                                            
-                                            $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
-                                            $stmt->execute(["%$full%"]);
-                                            $role = $stmt->fetch(PDO::FETCH_ASSOC);
-                                            
-                                            if ($role) {
-                                                $currentRoleId = $role['id'];
-                                                $roleName = $full;
-                                                $debug[] = "Exact role match: $currentRoleId ($full)";
-                                                break;
-                                            }
-                                        }
+                                    // Add debug to see exactly what we're dealing with
+                                    $cellCharCodes = '';
+                                    for ($i = 0; $i < strlen($shiftCell); $i++) {
+                                        $cellCharCodes .= ord($shiftCell[$i]) . ' ';
+                                    }
+                                    $debug[] = "Cell content character codes: $cellCharCodes";
+                                    
+                                    // Special direct check for CSA - this is a common role that needs special handling
+                                    if (trim($shiftCell) === 'CSA' || trim($shiftCell) === 'csa' || preg_match('/^CSA$/i', trim($shiftCell))) {
+                                        $debug[] = "DIRECT MATCH: Found CSA role in cell: '$shiftCell'";
                                         
-                                        // Check if the cell starts with the role name
-                                        elseif (stripos(trim($shiftCell), $partial) === 0) {
-                                            $debug[] = "Cell starts with role '$partial': '$shiftCell'";
-                                            
-                                            $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
-                                            $stmt->execute(["%$full%"]);
-                                            $role = $stmt->fetch(PDO::FETCH_ASSOC);
-                                            
-                                            if ($role) {
-                                                $currentRoleId = $role['id'];
-                                                $roleName = $full;
-                                                $debug[] = "Role prefix match: $currentRoleId ($full)";
-                                                break;
-                                            }
+                                        // Query the database for the existing CSA role
+                                        $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE '%Customer Service Associate%'");
+                                        $stmt->execute();
+                                        $role = $stmt->fetch(PDO::FETCH_ASSOC);
+                                        
+                                        if ($role) {
+                                            $currentRoleId = $role['id'];
+                                            $roleName = 'Customer Service Associate';
+                                            $debug[] = "Direct CSA match: $currentRoleId (Customer Service Associate)";
                                         }
                                     }
                                     
-                                    // If still no role, check if the role appears anywhere in the cell
+                                    // If we still don't have a role, try more flexible checks
                                     if (!$currentRoleId) {
-                                        foreach ($roleMapping as $partial => $full) {
-                                            if (stripos($shiftCell, $partial) !== false) {
-                                                $debug[] = "Found role marker '$partial' in shift cell: '$shiftCell'";
-                                                
-                                                $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
-                                                $stmt->execute(["%$full%"]);
-                                                $role = $stmt->fetch(PDO::FETCH_ASSOC);
-                                                
-                                                if ($role) {
-                                                    $currentRoleId = $role['id'];
-                                                    $roleName = $full;
-                                                    $debug[] = "Mapped cell content to role ID: $currentRoleId ($full)";
-                                                    break;
+                                        // Get all roles from the database for more flexible matching
+                                        $stmt = $conn->prepare("SELECT id, name FROM roles");
+                                        $stmt->execute();
+                                        $allRoles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                        
+                                        // Extended role mapping with more variants
+                                        $expandedMapping = $roleMapping;
+                                        $expandedMapping['csa'] = 'Customer Service Associate';  // Lowercase variant
+                                        $expandedMapping['C.S.A'] = 'Customer Service Associate'; // Variant with periods
+                                        $expandedMapping['C.S.A.'] = 'Customer Service Associate'; // Another variant
+                                        
+                                        $normalizedCell = trim(strtolower(str_replace(array("\r", "\n"), '', $shiftCell)));
+                                        $debug[] = "Normalized cell content: '$normalizedCell'";
+                                        
+                                        // Check for exact matches with any role in the database
+                                        foreach ($allRoles as $dbRole) {
+                                            $roleName = $dbRole['name'];
+                                            $normalizedRoleName = trim(strtolower($roleName));
+                                            
+                                            // Check for exact match or acronym match
+                                            if ($normalizedCell === $normalizedRoleName || 
+                                                $normalizedCell === substr($normalizedRoleName, 0, 3)) {
+                                                $currentRoleId = $dbRole['id'];
+                                                $debug[] = "Direct database role match: $currentRoleId ($roleName)";
+                                                break;
+                                            }
+                                            
+                                            // Check against our mapping
+                                            foreach ($expandedMapping as $partial => $full) {
+                                                if (strtolower($partial) === $normalizedCell && 
+                                                    stripos($roleName, $full) !== false) {
+                                                    $currentRoleId = $dbRole['id'];
+                                                    $debug[] = "Mapped role match in database: $currentRoleId ($roleName)";
+                                                    break 2; // Break both loops
                                                 }
                                             }
                                         }
