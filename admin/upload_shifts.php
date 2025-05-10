@@ -75,22 +75,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         continue;
                     }
 
-                    list($last_initial, $first_name) = array_map('trim', explode(',', $raw_name));
+                    $name_parts = array_map('trim', explode(',', $raw_name));
+                    if (count($name_parts) >= 2) {
+                        $last_initial = strtoupper($name_parts[0]);
+                        $first_name = ucfirst(strtolower($name_parts[1]));
+                    } else {
+                        $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: Invalid name format '$raw_name'.";
+                        continue;
+                    }
+                    
                     $last_initial = strtoupper($last_initial);
                     $first_name = ucfirst(strtolower($first_name));
 
                     $matched_user_id = null;
                     foreach ($users as $db_username => $user_id) {
-                        $parts = explode(' ', $db_username);
-                        if (count($parts) >= 2) {
-                            $db_first = strtolower($parts[0]);
-                            $db_last_initial = strtoupper(substr($parts[1], 0, 1));
-                            if ($db_first === strtolower($first_name) && $db_last_initial === $last_initial) {
-                                $matched_user_id = $user_id;
-                                break;
-                            }
+                        $normalized_db_name = strtolower(preg_replace('/[^a-z]/i', '', $db_username));
+                        $normalized_excel_name = strtolower(preg_replace('/[^a-z]/i', '', $first_name . $last_initial));
+                        if (strpos($normalized_db_name, $normalized_excel_name) !== false) {
+                            $matched_user_id = $user_id;
+                            break;
                         }
                     }
+                    
 
                     if (!$matched_user_id) {
                         $failed_shifts++;
