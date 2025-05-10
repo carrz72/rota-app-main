@@ -268,10 +268,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                 
                                 // Check if the cell value itself contains role information
                                 if (!$currentRoleId && !empty($shiftCell)) {
-                                    // First, check if the cell value is exactly a role name (like "CSA")
+                                    // Check for standalone role name (more flexible matching)
                                     foreach ($roleMapping as $partial => $full) {
-                                        if (trim($shiftCell) === $partial) {
-                                            $debug[] = "Found exact role name '$partial' in shift cell: '$shiftCell'";
+                                        // Case-insensitive exact match
+                                        if (strcasecmp(trim($shiftCell), $partial) === 0) {
+                                            $debug[] = "Found exact role name '$partial' (case-insensitive) in shift cell: '$shiftCell'";
                                             
                                             $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
                                             $stmt->execute(["%$full%"]);
@@ -284,12 +285,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                                 break;
                                             }
                                         }
+                                        
+                                        // Check if the cell starts with the role name
+                                        elseif (stripos(trim($shiftCell), $partial) === 0) {
+                                            $debug[] = "Cell starts with role '$partial': '$shiftCell'";
+                                            
+                                            $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
+                                            $stmt->execute(["%$full%"]);
+                                            $role = $stmt->fetch(PDO::FETCH_ASSOC);
+                                            
+                                            if ($role) {
+                                                $currentRoleId = $role['id'];
+                                                $roleName = $full;
+                                                $debug[] = "Role prefix match: $currentRoleId ($full)";
+                                                break;
+                                            }
+                                        }
                                     }
                                     
-                                    // If still no role, check if the role name appears within the cell
+                                    // If still no role, check if the role appears anywhere in the cell
                                     if (!$currentRoleId) {
                                         foreach ($roleMapping as $partial => $full) {
-                                            if (strpos($shiftCell, $partial) !== false) {
+                                            if (stripos($shiftCell, $partial) !== false) {
                                                 $debug[] = "Found role marker '$partial' in shift cell: '$shiftCell'";
                                                 
                                                 $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
