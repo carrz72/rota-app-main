@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         continue;
                     }
 
-                    $raw_name = trim($row[0]);
+                    $raw_name = trim(explode('-', $row[0])[0]);
                     $date = trim($row[1]);
                     $start_time = trim($row[2]);
                     $end_time = trim($row[3]);
