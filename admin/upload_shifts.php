@@ -275,23 +275,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                     }
                                     $debug[] = "Cell content character codes: $cellCharCodes";
                                     
+                                    // First, scan the entire row to find role information
+                                    $rowCells = [];
+                                    foreach (range('A', 'H') as $scanCol) {
+                                        $rowCells[$scanCol] = trim($worksheet->getCell($scanCol . $rowIndex)->getValue() ?? '');
+                                    }
+                                    $debug[] = "Scanning row for roles: " . implode(" | ", $rowCells);
+                                    
+                                    // Check if CSA appears anywhere in the row
+                                    $foundCSA = false;
+                                    foreach ($rowCells as $colLetter => $cellContent) {
+                                        if (stripos($cellContent, 'CSA') !== false) {
+                                            $foundCSA = true;
+                                            $debug[] = "Found CSA in row cell $colLetter: '$cellContent'";
+                                            break;
+                                        }
+                                    }
+                                    
                                     // Pre-load all roles from database for direct comparison
                                     $stmtRoles = $conn->query("SELECT id, name FROM roles");
                                     $allDbRoles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
                                     $debug[] = "Loaded " . count($allDbRoles) . " roles from database";
                                     
                                     // Special handling for CSA - prioritize this check first
-                                    if ($shiftCell == "CSA" || strcasecmp(trim($shiftCell), "CSA") == 0 || 
+                                    if ($foundCSA || $shiftCell == "CSA" || strcasecmp(trim($shiftCell), "CSA") == 0 || 
                                         preg_match('/^CSA$/i', trim($shiftCell))) {
-                                        $debug[] = "EXACT MATCH: Found CSA text in cell: '$shiftCell'";
+                                        $debug[] = $foundCSA ? 
+                                            "MATCH: Found CSA in row for cell: '$shiftCell'" : 
+                                            "EXACT MATCH: Found CSA text in cell: '$shiftCell'";
                                         
-                                        // Find exact CSA role in our pre-loaded roles
+                                        // Find CSA role in our pre-loaded roles - try exact CSA first
                                         foreach ($allDbRoles as $dbRole) {
                                             if ($dbRole['name'] === 'CSA' || strcasecmp($dbRole['name'], 'CSA') === 0) {
                                                 $currentRoleId = $dbRole['id'];
                                                 $roleName = $dbRole['name'];
                                                 $debug[] = "Direct CSA database match: $currentRoleId ($roleName)";
                                                 break;
+                                            }
+                                        }
+                                        
+                                        // If didn't find exact CSA, try Customer Service Associate
+                                        if (!$currentRoleId) {
+                                            foreach ($allDbRoles as $dbRole) {
+                                                if (stripos($dbRole['name'], 'customer service') !== false || 
+                                                    stripos($dbRole['name'], 'csa') !== false) {
+                                                    $currentRoleId = $dbRole['id'];
+                                                    $roleName = $dbRole['name'];
+                                                    $debug[] = "Expanded CSA match: $currentRoleId ($roleName)";
+                                                    break;
+                                                }
                                             }
                                         }
                                     } 
