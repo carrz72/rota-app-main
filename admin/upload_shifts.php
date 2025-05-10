@@ -174,12 +174,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
         <?php if (isset($installation_message)): ?>
             <div class="error-message"><?php echo $installation_message; ?></div>
         <?php else: ?>
-            <?php if (!empty($error)): ?>
-                <div class="error-message"><?php echo $error; ?></div>
+            <?php if (!empty($message)): ?>
+                <div class="success-message">
+                    <p><?php echo htmlspecialchars($message); ?></p>
+                </div>
             <?php endif; ?>
 
-            <?php if (!empty($message)): ?>
-                <div class="success-message"><?php echo $message; ?></div>
+            <?php if (!empty($error)): ?>
+                <div class="error-message">
+                    <p><?php echo htmlspecialchars($error); ?></p>
+                </div>
             <?php endif; ?>
 
             <?php if (!empty($debug)): ?>
