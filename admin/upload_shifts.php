@@ -2,8 +2,9 @@
 require_once '../includes/db.php';
 require '../includes/auth.php';
 require_once '../functions/addNotification.php';
-requireAdmin();
+requireAdmin(); // Only allow admin access
 
+// Check if composer autoload exists for PhpSpreadsheet
 if (!file_exists('../vendor/autoload.php')) {
     $installation_message = "PhpSpreadsheet not installed. Please run:<br>
         <code>composer require phpoffice/phpspreadsheet</code><br>
@@ -15,125 +16,139 @@ $error = '';
 $uploaded_shifts = 0;
 $failed_shifts = 0;
 
+// Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     try {
         if (isset($_FILES['shift_file']) && $_FILES['shift_file']['error'] == 0) {
-            $allowed = ['xls', 'xlsx'];
+            $allowed = ['xls', 'xlsx', 'csv'];
             $filename = $_FILES['shift_file']['name'];
             $ext = pathinfo($filename, PATHINFO_EXTENSION);
 
             if (!in_array(strtolower($ext), $allowed)) {
-                $error = "Please upload a valid Excel file (xls, xlsx).";
+                $error = "Please upload a valid Excel file (xls, xlsx) or CSV file.";
             } else {
                 require '../vendor/autoload.php';
 
-                $reader = $ext == 'xlsx' ? new \PhpOffice\PhpSpreadsheet\Reader\Xlsx() : new \PhpOffice\PhpSpreadsheet\Reader\Xls();
+                if ($ext == 'csv') {
+                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
+                } elseif ($ext == 'xlsx') {
+                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+                } else {
+                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
+                }
+
                 $spreadsheet = $reader->load($_FILES['shift_file']['tmp_name']);
                 $worksheet = $spreadsheet->getActiveSheet();
-                $rows = $worksheet->toArray(null, true, true, true);
+                $rows = $worksheet->toArray();
 
-                $date_columns = [];
-                foreach ($rows[1] as $col => $val) {
-                    if (preg_match('/\\d{1,2}\\w{2}/', $val)) {
-                        $date_columns[$col] = trim(explode("\\n", $val)[0]);
+                $header_row = $rows[1];
+                $first_cell = $rows[0][0];
+                preg_match('/W\/C\s*(\d{2}\/\d{2}\/\d{4})/', $first_cell, $date_match);
+                $week_start = isset($date_match[1]) ? date('Y-m-d', strtotime(str_replace('/', '-', $date_match[1]))) : null;
+
+                if (!$week_start) {
+                    $error = "Unable to determine week start date from file.";
+                } else {
+                    $data_rows = array_slice($rows, 3);
+
+                    $stmt = $conn->query("SELECT id, username FROM users");
+                    $users = [];
+                    while ($user = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        $users[$user['username']] = $user['id'];
                     }
-                }
 
-                $stmt = $conn->query("SELECT id, username FROM users");
-                $users = [];
-                while ($user = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $users[$user['username']] = $user['id'];
-                }
+                    $stmt = $conn->query("SELECT id, name FROM roles");
+                    $roles = [];
+                    while ($role = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        $roles[$role['name']] = $role['id'];
+                    }
 
-                $stmt = $conn->query("SELECT id, name FROM roles");
-                $roles = [];
-                while ($role = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $roles[$role['name']] = $role['id'];
-                }
+                    $insert = $conn->prepare("INSERT INTO shifts (user_id, shift_date, start_time, end_time, role_id, location) VALUES (?, ?, ?, ?, ?, ?)");
 
-                $insert = $conn->prepare("INSERT INTO shifts (user_id, shift_date, start_time, end_time, role_id, location) VALUES (?, ?, ?, ?, ?, ?)");
+                    for ($i = 0; $i < count($data_rows); $i += 2) {
+                        $name_row = $data_rows[$i];
+                        $shift_row = $data_rows[$i + 1] ?? [];
 
-                $current_user = null;
-                $current_role = null;
+                        $raw_name = trim($name_row[0]);
+                        if (empty($raw_name)) continue;
 
-                foreach ($rows as $row) {
-                    $first_cell = trim($row['A']);
+                        $parts = array_map('trim', explode(',', $raw_name));
+                        if (count($parts) != 2) {
+                            $failed_shifts++;
+                            continue;
+                        }
 
-                    if (preg_match('/^[A-Z],/', $first_cell)) {
-                        $parts = explode('-', $first_cell);
-                        $current_user = trim($parts[0]);
-                        $current_role = isset($parts[1]) ? trim($parts[1]) : null;
-                    } elseif ($current_user && $current_role) {
-                        foreach ($date_columns as $col => $date_str) {
-                            $cell_val = isset($row[$col]) ? trim($row[$col]) : '';
+                        $last_initial = strtoupper($parts[0]);
+                        $first_name = $parts[1];
+                        $matched_user_id = null;
 
-                            if (empty($cell_val) || stripos($cell_val, 'day off') !== false) {
-                                continue;
-                            }
+                        foreach ($users as $db_username => $user_id) {
+                            $name_parts = explode(' ', $db_username);
+                            if (count($name_parts) >= 2) {
+                                $db_first_name = $name_parts[0];
+                                $db_last_name = $name_parts[1];
+                                $db_last_initial = strtoupper(substr($db_last_name, 0, 1));
 
-                            // Extract time and location
-                            if (preg_match('/(\\d{1,2}:\\d{2}).*?-(\\d{1,2}:\\d{2})/', $cell_val, $time_matches)) {
-                                $start_time = $time_matches[1];
-                                $end_time = $time_matches[2];
-
-                                preg_match('/\\((.*?)\\)/', $cell_val, $location_matches);
-                                $location = isset($location_matches[1]) ? $location_matches[1] : '';
-
-                                // Match user
-                                $parts = array_map('trim', explode(',', $current_user));
-                                if (count($parts) != 2) {
-                                    $failed_shifts++;
-                                    continue;
-                                }
-
-                                $last_initial = strtoupper($parts[0]);
-                                $first_name = $parts[1];
-                                $matched_user_id = null;
-
-                                foreach ($users as $db_username => $user_id) {
-                                    $name_parts = explode(' ', $db_username);
-                                    if (count($name_parts) >= 2) {
-                                        $db_first_name = $name_parts[0];
-                                        $db_last_name = $name_parts[1];
-                                        $db_last_initial = strtoupper(substr($db_last_name, 0, 1));
-
-                                        if (strcasecmp($db_first_name, $first_name) === 0 && $last_initial === $db_last_initial) {
-                                            $matched_user_id = $user_id;
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                if (!$matched_user_id || !isset($roles[$current_role])) {
-                                    $failed_shifts++;
-                                    continue;
-                                }
-
-                                // Parse date (you might need to map week start + date_str here)
-                                $week_start = ''; // Extract from sheet title if needed
-                                $shift_date = ''; // TODO: calculate from week_start + date_str
-
-                                try {
-                                    $insert->execute([$matched_user_id, $shift_date, $start_time, $end_time, $roles[$current_role], $location]);
-                                    $uploaded_shifts++;
-
-                                    $notifMessage = "A new shift on {$shift_date} from {$start_time} to {$end_time} has been added to your schedule by management.";
-                                    addNotification($conn, $matched_user_id, $notifMessage, "info");
-                                } catch (PDOException $e) {
-                                    $failed_shifts++;
+                                if (strcasecmp($db_first_name, $first_name) === 0 && $last_initial === $db_last_initial) {
+                                    $matched_user_id = $user_id;
+                                    break;
                                 }
                             }
                         }
-                    }
-                }
 
-                if ($uploaded_shifts > 0) {
-                    $message = "Successfully uploaded $uploaded_shifts shifts.";
-                    if ($failed_shifts > 0) {
-                        $message .= " $failed_shifts shifts failed to upload.";
+                        if (!$matched_user_id) {
+                            $failed_shifts++;
+                            continue;
+                        }
+
+                        for ($col = 1; $col <= 7; $col++) {
+                            $date_cell = $header_row[$col] ?? null;
+                            $shift_cell = $shift_row[$col] ?? '';
+                            $role_cell = $name_row[$col] ?? '';
+
+                            if (empty($shift_cell) || stripos($shift_cell, 'Day Off') !== false || stripos($shift_cell, 'Holiday') !== false) continue;
+
+                            $shift_date = date('Y-m-d', strtotime("$week_start +" . ($col - 1) . " days"));
+
+                            if (!preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})(?:\s*\((.*?)\))?/', $shift_cell, $matches)) {
+                                $failed_shifts++;
+                                continue;
+                            }
+
+                            $start_time = $matches[1];
+                            $end_time = $matches[2];
+                            $location = $matches[3] ?? '';
+
+                            $role_name = trim(preg_replace('/\s*\(.*\)/', '', $role_cell));
+                            if (!isset($roles[$role_name])) {
+                                $failed_shifts++;
+                                continue;
+                            }
+                            $role_id = $roles[$role_name];
+
+                            try {
+                                $insert->execute([$matched_user_id, $shift_date, $start_time, $end_time, $role_id, $location]);
+                                $uploaded_shifts++;
+
+                                $formattedDate = date("D, M j, Y", strtotime($shift_date));
+                                $formattedStart = date("g:i A", strtotime($start_time));
+                                $formattedEnd = date("g:i A", strtotime($end_time));
+                                $notifMessage = "A new shift on {$formattedDate} from {$formattedStart} to {$formattedEnd} has been added to your schedule by management.";
+                                addNotification($conn, $matched_user_id, $notifMessage, "info");
+                            } catch (PDOException $e) {
+                                $failed_shifts++;
+                            }
+                        }
                     }
-                } else {
-                    $error = "No shifts were uploaded. Please check your file format.";
+
+                    if ($uploaded_shifts > 0) {
+                        $message = "Successfully uploaded $uploaded_shifts shifts.";
+                        if ($failed_shifts > 0) {
+                            $message .= " $failed_shifts shifts failed to upload.";
+                        }
+                    } else {
+                        $error = "No shifts were uploaded. Please check your file format.";
+                    }
                 }
             }
         } else {
@@ -176,15 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
 
             <div class="upload-form">
                 <h2>Upload Shifts Excel File</h2>
-                <p>Upload an Excel file (.xls, .xlsx) or CSV file with the following columns:</p>
-                <ul>
-                    <li>Username (must match existing user)</li>
-                    <li>Date (YYYY-MM-DD or any recognizable date format)</li>
-                    <li>Start Time (HH:MM:SS or HH:MM)</li>
-                    <li>End Time (HH:MM:SS or HH:MM)</li>
-                    <li>Role (must match existing role name)</li>
-                    <li>Location</li>
-                </ul>
+                <p>Upload an Excel file (.xls, .xlsx) or CSV file with the Shopworks format.</p>
 
                 <form method="POST" enctype="multipart/form-data">
                     <p>
@@ -195,11 +202,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         <button type="submit">Upload Shifts</button>
                     </p>
                 </form>
-
-                <div class="template-download">
-                    <h3>Need a template?</h3>
-                    <p>Download a <a href="">sample template</a> to get started.</p>
-                </div>
             </div>
         <?php endif; ?>
     </div>
