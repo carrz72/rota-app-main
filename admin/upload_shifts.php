@@ -148,6 +148,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                             // Get role from column B with more flexible matching
                             $roleName = trim($worksheet->getCell('B' . $rowIndex)->getValue() ?? '');
                             if (!empty($roleName)) {
+                                // Special handling for truncated role names
+                                $roleMapping = [
+                                    'Relief Supe' => 'Relief Supervisor',
+                                    'Assistant M' => 'Assistant Manager',
+                                    'Venue Man' => 'Venue Manager',
+                                    'Kwik Tan S' => 'Kwik Tan Supervisor'
+                                ];
+                                
+                                // Check if this is a known non-role entry
+                                $nonRoles = ['Day Off', 'Holiday', 'Available', 'Sick'];
+                                if (in_array($roleName, $nonRoles) || 
+                                    in_array(strtolower($roleName), array_map('strtolower', $nonRoles))) {
+                                    $debug[] = "Skipping non-role entry: $roleName";
+                                    $currentRoleId = null;
+                                    continue;
+                                }
+                                
+                                // Apply role mapping for truncated names
+                                foreach ($roleMapping as $partial => $full) {
+                                    if (strpos($roleName, $partial) === 0) {
+                                        $debug[] = "Mapped truncated role '$roleName' to '$full'";
+                                        $roleName = $full;
+                                        break;
+                                    }
+                                }
+                                
                                 $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
                                 $stmt->execute(["%$roleName%"]);
                                 $role = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -159,11 +185,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                     $debug[] = "Role not found: $roleName";
                                 }
                             }
-
-                            if (!$currentUserId || !$currentRoleId) {
+                            
+                            // Only check for user existence, as requested by user
+                            if (!$currentUserId) {
                                 $debug[] = "Row $rowIndex skipped:";
-                                if (!$currentUserId) $debug[] = "- User not found: $firstName $lastInitial";
-                                if (!$currentRoleId) $debug[] = "- Role not found: $roleName";
+                                $debug[] = "- User not found: $firstName $lastInitial";
                                 $currentUserId = null;
                                 $currentRoleId = null;
                             }
