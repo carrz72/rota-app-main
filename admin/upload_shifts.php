@@ -63,50 +63,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         $debug[] = "Row $row_num skipped: Missing or incomplete data.";
                         continue;
                     }
-
+                
                     $raw_name = trim(explode('-', $row[0])[0]);
                     $date = trim($row[1]);
                     $start_time = trim($row[2]);
                     $end_time = trim($row[3]);
                     $raw_role = trim($row[4]);
                     $location = trim($row[5]);
-
-                    // Extract first name and last initial from 'B, Christine'
+                
+                    // Special case roles like 'Day Off', 'Holiday', etc.
+                    $non_roles = ['day off', 'holiday', 'sick', 'available', 'off', 'vacation'];
+                    if (in_array(strtolower($raw_role), $non_roles)) {
+                        $debug[] = "Row $row_num skipped: Special case '$raw_role' ignored.";
+                        $failed_shifts++;
+                        continue;
+                    }
+                
                     if (strpos($raw_name, ',') === false) {
                         $failed_shifts++;
                         $debug[] = "Row $row_num skipped: Invalid name format '$raw_name'.";
                         continue;
                     }
-
+                
                     list($last_initial, $first_name) = array_map('trim', explode(',', $raw_name));
                     $last_initial = strtoupper($last_initial);
                     $first_name = ucfirst(strtolower($first_name));
-
+                
+                    // Match user by username "Firstname Lastname", ignoring case
                     $matched_user_id = null;
                     foreach ($users as $db_username => $user_id) {
-                        $db_parts = explode(' ', $db_username);
-                        if (count($db_parts) >= 2) {
-                            $db_first = strtolower($db_parts[0]);
-                            $db_last_initial = strtoupper(substr($db_parts[1], 0, 1));
+                        $parts = explode(' ', $db_username);
+                        if (count($parts) >= 2) {
+                            $db_first = strtolower($parts[0]);
+                            $db_last_initial = strtoupper(substr($parts[1], 0, 1));
                             if ($db_first === strtolower($first_name) && $db_last_initial === $last_initial) {
                                 $matched_user_id = $user_id;
                                 break;
                             }
                         }
                     }
-
+                
                     if (!$matched_user_id) {
                         $failed_shifts++;
                         $debug[] = "Row $row_num skipped: User '$raw_name' not found.";
                         continue;
                     }
-
-                    $special_cases = ['day off', 'holiday', 'sick', 'available', '']; // Extend as needed
-                    if (in_array(strtolower($raw_role), $special_cases)) {
-                        $debug[] = "Row $row_num skipped: Special case '$raw_role' ignored.";
-                        continue;
-                    }
-
+                
+                    // Role match (partial match)
                     $matched_role = null;
                     foreach ($roles as $known_role => $id) {
                         if (stripos($known_role, $raw_role) !== false || stripos($raw_role, $known_role) !== false) {
@@ -114,13 +117,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                             break;
                         }
                     }
-
+                
                     if (!$matched_role) {
                         $failed_shifts++;
                         $debug[] = "Row $row_num skipped: Role '$raw_role' not found.";
                         continue;
                     }
-
+                
+                    // Format date
                     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
                         try {
                             $date = date('Y-m-d', strtotime($date));
@@ -130,11 +134,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                             continue;
                         }
                     }
-
+                
                     try {
                         $insert->execute([$matched_user_id, $date, $start_time, $end_time, $matched_role, $location]);
                         $uploaded_shifts++;
-
+                
                         $formattedDate = date("D, M j, Y", strtotime($date));
                         $formattedStart = date("g:i A", strtotime($start_time));
                         $formattedEnd = date("g:i A", strtotime($end_time));
@@ -145,6 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         $debug[] = "Row $row_num skipped: DB error - " . $e->getMessage();
                     }
                 }
+            
 
                 if ($uploaded_shifts > 0) {
                     $message = "Successfully uploaded $uploaded_shifts shifts.";
