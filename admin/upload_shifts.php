@@ -276,45 +276,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
 
                                 // Special handling for truncated role names and common abbreviations
                                 $roleMapping = [
+                                    'Relief Sup' => 'Relief Supervisor', 
                                     'Relief Super' => 'Relief Supervisor',
+                                    'Relief Supervi' => 'Relief Supervisor',
+                                    'Assistant' => 'Assistant Manager',
                                     'Assistant M' => 'Assistant Manager',
+                                    'Venue' => 'Venue Manager',
                                     'Venue Man' => 'Venue Manager',
+                                    'Kwik' => 'Kwik Tan Supervisor',
+                                    'Kwik Tan' => 'Kwik Tan Supervisor',
                                     'Kwik Tan S' => 'Kwik Tan Supervisor',
                                     'CSA' => 'Customer Service Associate',
-                                    'Relief Super' => 'Relief Supervisor'
                                 ];
+                                
+                                // Helper function to check if a string is a truncated version of another string
+                                function isPartialMatch($partial, $full) {
+                                    $partial = strtolower(trim($partial));
+                                    $full = strtolower(trim($full));
+                                    return (strpos($full, $partial) === 0) && strlen($partial) >= 3;
+                                }
+                                
                                 // If we found a role in the cell
                                 if ($cellRole) {
-                                    // Apply role mapping for truncated names
+                                    // First, check direct mapping
+                                    $mapped = false;
                                     foreach ($roleMapping as $partial => $full) {
-                                        if (strpos($cellRole, $partial) === 0 || $cellRole === $partial) {
+                                        if (strcasecmp(trim($cellRole), $partial) === 0 || 
+                                            strpos(strtolower(trim($cellRole)), strtolower($partial)) === 0) {
                                             $debug[] = "Mapped role '$cellRole' to '$full'";
                                             $cellRole = $full;
+                                            $mapped = true;
                                             break;
                                         }
                                     }
-                                    // Look up the role ID
-                                    $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
-                                    $stmt->execute(["%$cellRole%"]);
-                                    $role = $stmt->fetch(PDO::FETCH_ASSOC);
-                                    $currentRoleId = $role['id'] ?? null;
-                                    if ($currentRoleId) {
-                                        $debug[] = "Found role ID: $currentRoleId for role: $cellRole";
-                                    } else {
-                                        $debug[] = "Role not found in database: $cellRole - trying direct insert";
-                                        // Try to insert this role if it doesn't exist
-                                        try {
-                                            $conn->beginTransaction();
-                                            $stmt = $conn->prepare("INSERT INTO roles (name) VALUES (?)");
-                                            $stmt->execute([$cellRole]);
-                                            $currentRoleId = $conn->lastInsertId();
-                                            $conn->commit();
-                                            $debug[] = "Created new role ID: $currentRoleId for: $cellRole";
-                                            $roleName = $cellRole;
-                                        } catch (PDOException $e) {
-                                            $conn->rollBack();
-                                            $debug[] = "Failed to create role: " . $e->getMessage();
+                                    
+                                    // If no direct mapping found, try to get all roles and check for partial matches
+                                    if (!$mapped) {
+                                        $allRoles = $conn->query("SELECT id, name FROM roles")->fetchAll(PDO::FETCH_ASSOC);
+                                        foreach ($allRoles as $role) {
+                                            if (isPartialMatch($cellRole, $role['name'])) {
+                                                $debug[] = "Partial match: '$cellRole' to '{$role['name']}'";
+                                                $currentRoleId = $role['id'];
+                                                $roleName = $role['name'];
+                                                $mapped = true;
+                                                break;
+                                            }
                                         }
+                                    }
+                                    
+                                    // Now lookup the role in the database if we haven't already found an ID
+                                    if (!$mapped || !$currentRoleId) {
+                                        // Look up the role ID
+                                        $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
+                                        $stmt->execute(["%$cellRole%"]);
+                                        $role = $stmt->fetch(PDO::FETCH_ASSOC);
+                                        $currentRoleId = $role['id'] ?? null;
                                     }
                                 }
 
