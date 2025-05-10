@@ -57,49 +57,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                 $insert = $conn->prepare("INSERT INTO shifts (user_id, shift_date, start_time, end_time, role_id, location) VALUES (?, ?, ?, ?, ?, ?)");
 
                 foreach ($rows as $index => $row) {
-                    $row_num = $index + 2; // considering header is row 1
-                    if (count($row) < 6 || empty($row[0])) {
+                    $row_num = $index + 2; // Excel row number
+                    if (count($row) < 6 || empty($row[0]) || empty($row[1])) {
                         $failed_shifts++;
                         $debug[] = "Row $row_num skipped: Missing or incomplete data.";
                         continue;
                     }
-
-                    $uploaded_username = trim($row[0]);
+                
+                    $raw_name = trim($row[0]);
                     $date = trim($row[1]);
                     $start_time = trim($row[2]);
                     $end_time = trim($row[3]);
-                    $role_name = trim($row[4]);
+                    $raw_role = trim($row[4]);
                     $location = trim($row[5]);
-
-                    // Extract name and role if in same field
-                    $cleaned_name = $uploaded_username;
-                    $extracted_role = null;
-
-                    if (strpos($uploaded_username, '-') !== false) {
-                        [$cleaned_name, $extracted_role] = array_map('trim', explode('-', $uploaded_username, 2));
-                        if (empty($role_name)) {
-                            $role_name = $extracted_role;
-                        }
+                
+                    // ✅ Step 1: Parse name from "A, Carrington - Relief Supervi…" → "Carrington A"
+                    if (strpos($raw_name, '-') !== false) {
+                        $name_part = explode('-', $raw_name)[0];
+                    } else {
+                        $name_part = $raw_name;
                     }
-
-                    $parts = array_map('trim', explode(',', $cleaned_name));
-                    if (count($parts) != 2) {
+                
+                    $name_parts = array_map('trim', explode(',', $name_part));
+                    if (count($name_parts) != 2) {
                         $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: Invalid username format '$uploaded_username'.";
+                        $debug[] = "Row $row_num skipped: Invalid username format '$raw_name'.";
                         continue;
                     }
-
-                    $last_initial = strtoupper($parts[0]);
-                    $first_name = $parts[1];
-
+                
+                    $last_initial = strtoupper($name_parts[0]);
+                    $first_name = $name_parts[1];
+                
                     $matched_user_id = null;
                     foreach ($users as $db_username => $user_id) {
-                        $name_parts = explode(' ', $db_username);
-                        if (count($name_parts) >= 2) {
-                            $db_first = $name_parts[0];
-                            $db_last = $name_parts[1];
-                            $db_last_initial = strtoupper(substr($db_last, 0, 1));
-
+                        $db_parts = explode(' ', $db_username);
+                        if (count($db_parts) >= 2) {
+                            $db_first = $db_parts[0];
+                            $db_last_initial = strtoupper(substr($db_parts[1], 0, 1));
                             if (
                                 strcasecmp($db_first, $first_name) === 0 &&
                                 $db_last_initial === $last_initial
@@ -109,29 +103,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                             }
                         }
                     }
-
+                
                     if (!$matched_user_id) {
                         $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: User '$uploaded_username' not found.";
+                        $debug[] = "Row $row_num skipped: User '$raw_name' not found.";
                         continue;
                     }
-
-                    // Fuzzy match role
-                    $matched_role_id = null;
-                    $lower_role_name = strtolower($role_name);
-                    foreach ($roles as $db_role_name => $db_role_id) {
-                        if (stripos($db_role_name, $lower_role_name) !== false || stripos($lower_role_name, $db_role_name) !== false) {
-                            $matched_role_id = $db_role_id;
+                
+                    // ✅ Step 2: Handle non-role entries
+                    $non_roles = ['day off', 'holiday', 'sick', 'available', ''];
+                    if (in_array(strtolower($raw_role), $non_roles)) {
+                        $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: Role '$raw_role' not matched.";
+                        continue;
+                    }
+                
+                    // ✅ Step 3: Try fuzzy role match
+                    $role_name = null;
+                    foreach ($roles as $known_name => $id) {
+                        if (stripos($known_name, $raw_role) !== false || stripos($raw_role, $known_name) !== false) {
+                            $role_name = $known_name;
                             break;
                         }
                     }
-
-                    if (!$matched_role_id) {
+                
+                    if (!$role_name) {
                         $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: Role '$role_name' not matched.";
+                        $debug[] = "Row $row_num skipped: Role '$raw_role' not matched.";
                         continue;
                     }
-
+                
                     try {
                         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
                             $date = date('Y-m-d', strtotime($date));
@@ -140,6 +141,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         $failed_shifts++;
                         $debug[] = "Row $row_num skipped: Invalid date '$date'.";
                         continue;
+                    }
+                
+                    try {
+                        $role_id = $roles[$role_name];
+                        $insert->execute([$matched_user_id, $date, $start_time, $end_time, $role_id, $location]);
+                        $uploaded_shifts++;
+                
+                        $formattedDate = date("D, M j, Y", strtotime($date));
+                        $formattedStart = date("g:i A", strtotime($start_time));
+                        $formattedEnd = date("g:i A", strtotime($end_time));
+                        $notifMessage = "A new shift on {$formattedDate} from {$formattedStart} to {$formattedEnd} has been added to your schedule by management.";
+                        addNotification($conn, $matched_user_id, $notifMessage, "info");
+                    } catch (PDOException $e) {
+                        $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: DB error - " . $e->getMessage();
                     }
 
                     try {
