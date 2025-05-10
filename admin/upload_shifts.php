@@ -147,7 +147,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
 
                             // Get role from column B with more flexible matching
                             $roleName = trim($worksheet->getCell('B' . $rowIndex)->getValue() ?? '');
-                            if (!empty($roleName)) {
+                            
+                            // We'll check for roles when processing individual cells instead
+                            // Just track if we found a user
+                            if (!$currentUserId) {
+                                $debug[] = "Row $rowIndex skipped:";
+                                $debug[] = "- User not found: $firstName $lastInitial";
+                            }
+                            continue;
+                        }
+
+                        // Process shifts for the current user
+                        if ($currentUserId) {
+                            foreach (range('B', 'H') as $col) {
+                                if (!isset($dateColumns[$col])) continue;
+                                
+                                $shiftCell = trim($worksheet->getCell($col . $rowIndex)->getValue() ?? '');
+                                $debug[] = "Row $rowIndex, Col $col: '$shiftCell'";
+
+                                // Skip empty cells
+                                if (empty($shiftCell)) {
+                                    continue;
+                                }
+                                
+                                // Skip known non-shift entries
+                                $nonShiftEntries = ['day off', 'holiday', 'sick', 'available'];
+                                if (in_array(strtolower($shiftCell), $nonShiftEntries)) {
+                                    continue;
+                                }
+
+                                // Check if this cell contains a role name or try to get it from row header
+                                $roleName = null;
+                                $cellRole = null;
+                                
+                                // First, check if the cell contains both role and time (format: "CSA \n 21:30 - 08:00")
+                                if (preg_match('/^(.*?)(?:\s*\n\s*|\s+)(\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2})/', $shiftCell, $roleMatches)) {
+                                    $cellRole = trim($roleMatches[1]);
+                                    $shiftCell = $roleMatches[2]; // Keep just the time part for later processing
+                                }
+                                
                                 // Special handling for truncated role names
                                 $roleMapping = [
                                     'Relief Supe' => 'Relief Supervisor',
@@ -156,56 +194,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                     'Kwik Tan S' => 'Kwik Tan Supervisor'
                                 ];
                                 
-                                // Check if this is a known non-role entry
-                                $nonRoles = ['Day Off', 'Holiday', 'Available', 'Sick'];
-                                if (in_array($roleName, $nonRoles) || 
-                                    in_array(strtolower($roleName), array_map('strtolower', $nonRoles))) {
-                                    $debug[] = "Skipping non-role entry: $roleName";
-                                    $currentRoleId = null;
-                                    continue;
-                                }
-                                
-                                // Apply role mapping for truncated names
-                                foreach ($roleMapping as $partial => $full) {
-                                    if (strpos($roleName, $partial) === 0) {
-                                        $debug[] = "Mapped truncated role '$roleName' to '$full'";
-                                        $roleName = $full;
-                                        break;
+                                // If we found a role in the cell
+                                if ($cellRole) {
+                                    // Apply role mapping for truncated names
+                                    foreach ($roleMapping as $partial => $full) {
+                                        if (strpos($cellRole, $partial) === 0) {
+                                            $debug[] = "Mapped truncated role '$cellRole' to '$full'";
+                                            $cellRole = $full;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // Look up the role ID
+                                    $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
+                                    $stmt->execute(["%$cellRole%"]);
+                                    $role = $stmt->fetch(PDO::FETCH_ASSOC);
+                                    $currentRoleId = $role['id'] ?? null;
+                                    
+                                    if ($currentRoleId) {
+                                        $debug[] = "Found role ID: $currentRoleId for role: $cellRole";
+                                        $roleName = $cellRole;
+                                    } else {
+                                        $debug[] = "Role not found in cell: $cellRole";
                                     }
                                 }
                                 
-                                $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
-                                $stmt->execute(["%$roleName%"]);
-                                $role = $stmt->fetch(PDO::FETCH_ASSOC);
-                                $currentRoleId = $role['id'] ?? null;
-                                
-                                if ($currentRoleId) {
-                                    $debug[] = "Found role ID: $currentRoleId for role: $roleName";
-                                } else {
-                                    $debug[] = "Role not found: $roleName";
+                                // If we still don't have a role, try from the user's info in column A
+                                if (!$currentRoleId) {
+                                    $userCellA = $worksheet->getCell('A' . $rowIndex)->getValue() ?? '';
+                                    if (preg_match('/-\s*(.+)$/', $userCellA, $roleMatches)) {
+                                        $extractedRole = trim($roleMatches[1]);
+                                        
+                                        // Apply role mapping
+                                        foreach ($roleMapping as $partial => $full) {
+                                            if (strpos($extractedRole, $partial) === 0) {
+                                                $extractedRole = $full;
+                                                break;
+                                            }
+                                        }
+                                        
+                                        $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
+                                        $stmt->execute(["%$extractedRole%"]);
+                                        $role = $stmt->fetch(PDO::FETCH_ASSOC);
+                                        $currentRoleId = $role['id'] ?? null;
+                                        
+                                        if ($currentRoleId) {
+                                            $roleName = $extractedRole;
+                                            $debug[] = "Found role ID: $currentRoleId from user info: $extractedRole";
+                                        }
+                                    }
                                 }
-                            }
-                            
-                            // Only check for user existence, as requested by user
-                            if (!$currentUserId) {
-                                $debug[] = "Row $rowIndex skipped:";
-                                $debug[] = "- User not found: $firstName $lastInitial";
-                                $currentUserId = null;
-                                $currentRoleId = null;
-                            }
-                            continue;
-                        }
-
-                        // Process shifts for the current user
-                        if ($currentUserId && $currentRoleId) {
-                            foreach (range('B', 'H') as $col) {
-                                if (!isset($dateColumns[$col])) continue;
                                 
-                                $shiftCell = trim($worksheet->getCell($col . $rowIndex)->getValue() ?? '');
-                                $debug[] = "Row $rowIndex, Col $col: '$shiftCell'";
-
-                                // Skip non-shift entries
-                                if (empty($shiftCell) || in_array(strtolower($shiftCell), ['day off', 'holiday', 'sick', 'available'])) {
+                                // If we still don't have a role, skip this shift
+                                if (!$currentRoleId) {
+                                    $debug[] = "No valid role found for shift in Row $rowIndex, Col $col - skipping";
                                     continue;
                                 }
 
