@@ -77,27 +77,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     $end_time = trim($row[3]);
                     $role_name = trim($row[4]);
                     $location = trim($row[5]);
-
-                    // Parse last name and first name/initial from the uploaded username
-                    $parts = explode(',', $uploaded_username);
-                    if (count($parts) < 2) {
+                    
+                    // Split on comma: [initial of last name], [first name]
+                    $parts = array_map('trim', explode(',', $uploaded_username));
+                    
+                    if (count($parts) != 2) {
                         $failed_shifts++;
                         continue; // Skip if the username format is invalid
                     }
-                    $initial = trim($parts[0]);      // e.g., "A" (for Attebila)
-                    $first_name = trim($parts[1]);   // e.g., "Carrington"
+                    
+                    $last_initial = strtoupper($parts[0]);
+                    $first_name = $parts[1];
                     
                     $matched_user_id = null;
                     foreach ($users as $db_username => $user_id) {
                         $name_parts = explode(' ', $db_username);
                         if (count($name_parts) >= 2) {
-                            $db_first_name = $name_parts[0]; // e.g., "Carrington"
-                            $db_last_name = $name_parts[1];  // e.g., "Attebila"
-                            $db_last_initial = substr($db_last_name, 0, 1); // e.g., "A"
+                            $db_first_name = $name_parts[0];
+                            $db_last_name = $name_parts[1];
+                            $db_last_initial = strtoupper(substr($db_last_name, 0, 1));
                     
                             if (
                                 strcasecmp($db_first_name, $first_name) === 0 &&
-                                strcasecmp($db_last_initial, $initial) === 0
+                                $last_initial === $db_last_initial
                             ) {
                                 $matched_user_id = $user_id;
                                 break;
