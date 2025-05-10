@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                 $worksheet = $spreadsheet->getActiveSheet();
                 $rows = $worksheet->toArray();
 
-                array_shift($rows); // Skip header
+                $date_row = $rows[1];
 
                 $stmt = $conn->query("SELECT id, username FROM users");
                 $users = [];
@@ -56,39 +56,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
 
                 $insert = $conn->prepare("INSERT INTO shifts (user_id, shift_date, start_time, end_time, role_id, location) VALUES (?, ?, ?, ?, ?, ?)");
 
-                foreach ($rows as $index => $row) {
-                    $row_num = $index + 2;
-                    
-                    if (count($row) < 6 || empty($row[0]) || empty($row[1]) || empty($row[2]) || empty($row[3]) || empty($row[4]) || empty($row[5])) {
+                for ($i = 3; $i < count($rows); $i += 2) {
+                    $name_row = $rows[$i];
+                    $details_row = $rows[$i + 1] ?? [];
+
+                    $raw_name = trim($name_row[0] ?? '');
+                    $raw_role = trim($name_row[1] ?? '');
+
+                    if (empty($raw_name) || empty($raw_role)) {
                         $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: Missing or incomplete data.";
+                        $debug[] = "Row $i skipped: Missing name or role.";
                         continue;
                     }
-                
-                    $raw_name = trim(explode('-', $row[0])[0]);
-                    $date = trim($row[1]);
-                    $start_time = trim($row[2]);
-                    $end_time = trim($row[3]);
-                    $raw_role = trim($row[4]);
-                    $location = trim($row[5]);
-                
-                    $special_cases = ['day off', 'holiday', 'sick', 'available', 'off', 'vacation'];
-                    if (in_array(strtolower($raw_role), $special_cases)) {
-                        $debug[] = "Row $row_num skipped: Special case '$raw_role' ignored.";
-                        $failed_shifts++;
-                        continue;
-                    }
-                
+
                     if (strpos($raw_name, ',') === false) {
                         $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: Invalid name format '$raw_name'.";
+                        $debug[] = "Row $i skipped: Invalid name format '$raw_name'.";
                         continue;
                     }
-                
+
                     list($last_initial, $first_name) = array_map('trim', explode(',', $raw_name));
                     $last_initial = strtoupper($last_initial);
                     $first_name = ucfirst(strtolower($first_name));
-                
+
                     $matched_user_id = null;
                     foreach ($users as $db_username => $user_id) {
                         $parts = explode(' ', $db_username);
@@ -101,52 +91,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                             }
                         }
                     }
-                
+
                     if (!$matched_user_id) {
                         $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: User '$raw_name' not found.";
+                        $debug[] = "Row $i skipped: User '$raw_name' not found.";
                         continue;
                     }
-                
-                    $matched_role = null;
-                    foreach ($roles as $known_role => $role_id) {
-                        if (stripos($known_role, $raw_role) !== false || stripos($raw_role, $known_role) !== false) {
-                            $matched_role = $role_id;
-                            break;
-                        }
-                    }
-                
-                    if (!$matched_role) {
-                        $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: Role '$raw_role' not found.";
-                        continue;
-                    }
-                
-                    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-                        try {
-                            $date = date('Y-m-d', strtotime($date));
-                        } catch (Exception $e) {
+
+                    for ($col = 2; $col < count($date_row); $col++) {
+                        $date_raw = $date_row[$col];
+                        $shift_label = trim($name_row[$col] ?? '');
+                        $shift_info = trim($details_row[$col] ?? '');
+
+                        $special_cases = ['day off', 'holiday', 'sick', 'available', 'off', 'vacation'];
+                        if (in_array(strtolower($shift_label), $special_cases)) {
+                            $debug[] = "Row $i Col $col skipped: Special case '$shift_label' ignored.";
                             $failed_shifts++;
-                            $debug[] = "Row $row_num skipped: Invalid date '$date'.";
                             continue;
                         }
-                    }
-                
-                    try {
-                        $insert->execute([$matched_user_id, $date, $start_time, $end_time, $matched_role, $location]);
-                        $uploaded_shifts++;
-                
-                        $formattedDate = date("D, M j, Y", strtotime($date));
-                        $formattedStart = date("g:i A", strtotime($start_time));
-                        $formattedEnd = date("g:i A", strtotime($end_time));
-                        $notifMessage = "A new shift on {$formattedDate} from {$formattedStart} to {$formattedEnd} has been added to your schedule by management.";
-                        addNotification($conn, $matched_user_id, $notifMessage, "info");
-                    } catch (PDOException $e) {
-                        $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: DB error - " . $e->getMessage();
+
+                        if (!$shift_label || !$shift_info || !$date_raw) {
+                            continue;
+                        }
+
+                        $matched_role = null;
+                        foreach ($roles as $known_role => $role_id) {
+                            if (stripos($known_role, $shift_label) !== false || stripos($shift_label, $known_role) !== false) {
+                                $matched_role = $role_id;
+                                break;
+                            }
+                        }
+
+                        if (!$matched_role) {
+                            $failed_shifts++;
+                            $debug[] = "Row $i Col $col skipped: Role '$shift_label' not found.";
+                            continue;
+                        }
+
+                        try {
+                            $date = date('Y-m-d', strtotime($date_raw));
+                        } catch (Exception $e) {
+                            $failed_shifts++;
+                            $debug[] = "Row $i Col $col skipped: Invalid date '$date_raw'.";
+                            continue;
+                        }
+
+                        if (!preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/', $shift_info, $matches)) {
+                            $failed_shifts++;
+                            $debug[] = "Row $i Col $col skipped: Invalid time format '$shift_info'.";
+                            continue;
+                        }
+
+                        $start_time = date('H:i:s', strtotime($matches[1]));
+                        $end_time = date('H:i:s', strtotime($matches[2]));
+
+                        $location = null; // Can enhance later if location is embedded
+
+                        try {
+                            $insert->execute([$matched_user_id, $date, $start_time, $end_time, $matched_role, $location]);
+                            $uploaded_shifts++;
+
+                            $formattedDate = date("D, M j, Y", strtotime($date));
+                            $formattedStart = date("g:i A", strtotime($start_time));
+                            $formattedEnd = date("g:i A", strtotime($end_time));
+                            $notifMessage = "A new shift on {$formattedDate} from {$formattedStart} to {$formattedEnd} has been added to your schedule by management.";
+                            addNotification($conn, $matched_user_id, $notifMessage, "info");
+                        } catch (PDOException $e) {
+                            $failed_shifts++;
+                            $debug[] = "Row $i Col $col skipped: DB error - " . $e->getMessage();
+                        }
                     }
                 }
-            
 
                 if ($uploaded_shifts > 0) {
                     $message = "Successfully uploaded $uploaded_shifts shifts.";
@@ -165,6 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
