@@ -71,7 +71,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     $role_name = trim($row[4]);
                     $location = trim($row[5]);
 
-                    $parts = array_map('trim', explode(',', $uploaded_username));
+                    // Extract name and role if in same field
+                    $cleaned_name = $uploaded_username;
+                    $extracted_role = null;
+
+                    if (strpos($uploaded_username, '-') !== false) {
+                        [$cleaned_name, $extracted_role] = array_map('trim', explode('-', $uploaded_username, 2));
+                        if (empty($role_name)) {
+                            $role_name = $extracted_role;
+                        }
+                    }
+
+                    $parts = array_map('trim', explode(',', $cleaned_name));
                     if (count($parts) != 2) {
                         $failed_shifts++;
                         $debug[] = "Row $row_num skipped: Invalid username format '$uploaded_username'.";
@@ -105,9 +116,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         continue;
                     }
 
-                    if (!isset($roles[$role_name])) {
+                    // Fuzzy match role
+                    $matched_role_id = null;
+                    $lower_role_name = strtolower($role_name);
+                    foreach ($roles as $db_role_name => $db_role_id) {
+                        if (stripos($db_role_name, $lower_role_name) !== false || stripos($lower_role_name, $db_role_name) !== false) {
+                            $matched_role_id = $db_role_id;
+                            break;
+                        }
+                    }
+
+                    if (!$matched_role_id) {
                         $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: Role '$role_name' not found.";
+                        $debug[] = "Row $row_num skipped: Role '$role_name' not matched.";
                         continue;
                     }
 
@@ -122,8 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     }
 
                     try {
-                        $role_id = $roles[$role_name];
-                        $insert->execute([$matched_user_id, $date, $start_time, $end_time, $role_id, $location]);
+                        $insert->execute([$matched_user_id, $date, $start_time, $end_time, $matched_role_id, $location]);
                         $uploaded_shifts++;
 
                         $formattedDate = date("D, M j, Y", strtotime($date));
@@ -154,52 +174,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     }
 }
 ?>
-
-<!-- HTML Output below -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Upload Shifts</title>
-    <link rel="stylesheet" href="../css/upload_shift.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Upload Shifts</h1>
-        <a href="admin_dashboard.php" class="action-button">Back to Dashboard</a>
-
-        <?php if (isset($installation_message)): ?>
-            <div class="error-message"><?php echo $installation_message; ?></div>
-        <?php else: ?>
-            <?php if (!empty($error)): ?>
-                <div class="error-message"><?php echo $error; ?></div>
-            <?php endif; ?>
-
-            <?php if (!empty($message)): ?>
-                <div class="success-message"><?php echo $message; ?></div>
-            <?php endif; ?>
-
-            <?php if (!empty($debug)): ?>
-                <div class="debug-output">
-                    <h3>Debug Output</h3>
-                    <ul>
-                        <?php foreach ($debug as $line): ?>
-                            <li><?php echo htmlspecialchars($line); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
-
-            <form method="POST" enctype="multipart/form-data">
-                <p>
-                    <label for="shift_file">Select Excel File:</label>
-                    <input type="file" name="shift_file" id="shift_file" accept=".xls,.xlsx,.csv" required>
-                </p>
-                <p>
-                    <button type="submit">Upload Shifts</button>
-                </p>
-            </form>
-        <?php endif; ?>
-    </div>
-</body>
-</html>
