@@ -4,6 +4,28 @@ require '../includes/auth.php';
 require_once '../functions/addNotification.php';
 requireAdmin();
 
+// Helper function to check if a string is a truncated version of another string
+function isPartialMatch($partial, $full) {
+    $partial = strtolower(trim($partial));
+    $full = strtolower(trim($full));
+    return (strpos($full, $partial) === 0) && strlen($partial) >= 3;
+}
+
+// Role mapping for truncated role names and common abbreviations
+$roleMapping = [
+    'Relief Sup' => 'Relief Supervisor', 
+    'Relief Super' => 'Relief Supervisor',
+    'Relief Supervi' => 'Relief Supervisor',
+    'Assistant' => 'Assistant Manager',
+    'Assistant M' => 'Assistant Manager',
+    'Venue' => 'Venue Manager',
+    'Venue Man' => 'Venue Manager',
+    'Kwik' => 'Kwik Tan Supervisor',
+    'Kwik Tan' => 'Kwik Tan Supervisor',
+    'Kwik Tan S' => 'Kwik Tan Supervisor',
+    'CSA' => 'Customer Service Associate',
+];
+
 // Check for PhpSpreadsheet installation
 if (!file_exists('../vendor/autoload.php')) {
     $installation_message = "PhpSpreadsheet not installed. Please run:<br>
@@ -275,19 +297,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                 }
 
                                 // Special handling for truncated role names and common abbreviations
-                                $roleMapping = [
-                                    'Relief Sup' => 'Relief Supervisor', 
-                                    'Relief Super' => 'Relief Supervisor',
-                                    'Relief Supervi' => 'Relief Supervisor',
-                                    'Assistant' => 'Assistant Manager',
-                                    'Assistant M' => 'Assistant Manager',
-                                    'Venue' => 'Venue Manager',
-                                    'Venue Man' => 'Venue Manager',
-                                    'Kwik' => 'Kwik Tan Supervisor',
-                                    'Kwik Tan' => 'Kwik Tan Supervisor',
-                                    'Kwik Tan S' => 'Kwik Tan Supervisor',
-                                    'CSA' => 'Customer Service Associate',
-                                ];
                                 
                                 // Helper function to check if a string is a truncated version of another string
                                 function isPartialMatch($partial, $full) {
