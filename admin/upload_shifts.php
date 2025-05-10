@@ -296,15 +296,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                     }
                                 }
 
-                                // Special handling for truncated role names and common abbreviations
-                                
-                                // Helper function to check if a string is a truncated version of another string
-                                function isPartialMatch($partial, $full) {
-                                    $partial = strtolower(trim($partial));
-                                    $full = strtolower(trim($full));
-                                    return (strpos($full, $partial) === 0) && strlen($partial) >= 3;
-                                }
-                                
                                 // If we found a role in the cell
                                 if ($cellRole) {
                                     // First, check direct mapping
