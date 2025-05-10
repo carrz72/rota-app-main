@@ -294,6 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                                 break;
                                             }
                                         }
+                                    } 
                                     
                                     // If we still don't have a role match, try exact cell value against all roles
                                     if (!$currentRoleId) {
