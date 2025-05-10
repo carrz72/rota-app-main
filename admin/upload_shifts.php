@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     $raw_role = trim($row[4]);
                     $location = trim($row[5]);
 
-                    // Extract first name and last initial from 'B, Christine' format
+                    // Extract first name and last initial from 'B, Christine'
                     if (strpos($raw_name, ',') === false) {
                         $failed_shifts++;
                         $debug[] = "Row $row_num skipped: Invalid name format '$raw_name'.";
@@ -101,10 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         continue;
                     }
 
-                    $non_roles = ['day off', 'holiday', 'sick', 'available', ''];
-                    if (in_array(strtolower($raw_role), $non_roles)) {
-                        $failed_shifts++;
-                        $debug[] = "Row $row_num skipped: Role '$raw_role' not matched.";
+                    $special_cases = ['day off', 'holiday', 'sick', 'available', '']; // Extend as needed
+                    if (in_array(strtolower($raw_role), $special_cases)) {
+                        $debug[] = "Row $row_num skipped: Special case '$raw_role' ignored.";
                         continue;
                     }
 
