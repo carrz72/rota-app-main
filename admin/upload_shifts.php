@@ -57,22 +57,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                 $insert = $conn->prepare("INSERT INTO shifts (user_id, shift_date, start_time, end_time, role_id, location) VALUES (?, ?, ?, ?, ?, ?)");
 
                 $last_username = null;
-                $default_role_name = null;
 
                 foreach ($rows as $row) {
                     if (count(array_filter($row)) === 0) continue;
                     $row = array_map('trim', $row);
 
-                    // Detect name + role row
+                    // Detect username row (e.g., "A, Carrington")
                     if (count(array_filter($row)) === 1 && strpos($row[0], ',') !== false) {
-                        $header_parts = explode('-', $row[0], 2);
-                        $last_username = trim($header_parts[0]);
-                        $default_role_name = isset($header_parts[1]) ? trim($header_parts[1]) : null;
+                        $last_username = $row[0];
                         continue;
                     }
 
-                    // Skip if we don't have a valid context
-                    if (!$last_username || count(array_filter($row)) < 4) {
+                    // Skip if no valid username context
+                    if (!$last_username || count(array_filter($row)) < 5) {
                         $failed_shifts++;
                         continue;
                     }
@@ -80,10 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     $date = $row[0];
                     $start_time = $row[1];
                     $end_time = $row[2];
-                    $role_name = !empty($row[3]) ? $row[3] : $default_role_name;
-                    $location = $row[4] ?? '';
+                    $role_name = $row[3];
+                    $location = $row[4];
 
-                    // Parse name: "A, Carrington"
+                    // Name logic (unchanged from your original code)
                     $parts = array_map('trim', explode(',', $last_username));
                     if (count($parts) != 2) {
                         $failed_shifts++;
@@ -93,7 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     $last_initial = strtoupper($parts[0]);
                     $first_name = $parts[1];
 
-                    // Match user
                     $matched_user_id = null;
                     foreach ($users as $db_username => $user_id) {
                         $name_parts = explode(' ', $db_username);
@@ -110,19 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         }
                     }
 
-                    // Fuzzy match role
-                    $matched_role_id = null;
-                    if ($role_name) {
-                        $role_name_lower = strtolower($role_name);
-                        foreach ($roles as $known_role => $role_id) {
-                            if (stripos($known_role, $role_name_lower) !== false || stripos($role_name_lower, $known_role) !== false) {
-                                $matched_role_id = $role_id;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!$matched_user_id || !$matched_role_id) {
+                    if (!$matched_user_id || !isset($roles[$role_name])) {
                         $failed_shifts++;
                         continue;
                     }
@@ -136,8 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         continue;
                     }
 
+                    $role_id = $roles[$role_name];
+
                     try {
-                        $insert->execute([$matched_user_id, $date, $start_time, $end_time, $matched_role_id, $location]);
+                        $insert->execute([$matched_user_id, $date, $start_time, $end_time, $role_id, $location]);
                         $uploaded_shifts++;
 
                         $formattedDate = date("D, M j, Y", strtotime($date));
