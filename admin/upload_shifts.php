@@ -268,12 +268,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                 
                                 // Try to find a default role for the user if no role was identified
                                 if (!$currentRoleId) {
-                                    $stmt = $conn->prepare("SELECT role_id FROM user_roles WHERE user_id = ? LIMIT 1");
+                                    // Try to get role_id directly from users table instead of user_roles
+                                    $stmt = $conn->prepare("SELECT role_id FROM users WHERE id = ? AND role_id IS NOT NULL LIMIT 1");
                                     $stmt->execute([$currentUserId]);
                                     $userRole = $stmt->fetch(PDO::FETCH_ASSOC);
-                                    if ($userRole) {
+                                    
+                                    if ($userRole && isset($userRole['role_id'])) {
                                         $currentRoleId = $userRole['role_id'];
-                                        $debug[] = "Using default role ID: $currentRoleId for user from user_roles table";
+                                        $debug[] = "Using default role ID: $currentRoleId from users table";
                                     } else {
                                         // Try to get any role as fallback
                                         $stmt = $conn->prepare("SELECT id FROM roles ORDER BY id LIMIT 1");
