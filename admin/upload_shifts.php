@@ -268,10 +268,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                 
                                 // Check if the cell value itself contains role information
                                 if (!$currentRoleId && !empty($shiftCell)) {
-                                    // Check if the cell contains a recognized role name
+                                    // First, check if the cell value is exactly a role name (like "CSA")
                                     foreach ($roleMapping as $partial => $full) {
-                                        if (strpos($shiftCell, $partial) !== false) {
-                                            $debug[] = "Found role marker '$partial' in shift cell: '$shiftCell'";
+                                        if (trim($shiftCell) === $partial) {
+                                            $debug[] = "Found exact role name '$partial' in shift cell: '$shiftCell'";
                                             
                                             $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
                                             $stmt->execute(["%$full%"]);
@@ -280,8 +280,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                             if ($role) {
                                                 $currentRoleId = $role['id'];
                                                 $roleName = $full;
-                                                $debug[] = "Mapped cell content to role ID: $currentRoleId ($full)";
+                                                $debug[] = "Exact role match: $currentRoleId ($full)";
                                                 break;
+                                            }
+                                        }
+                                    }
+                                    
+                                    // If still no role, check if the role name appears within the cell
+                                    if (!$currentRoleId) {
+                                        foreach ($roleMapping as $partial => $full) {
+                                            if (strpos($shiftCell, $partial) !== false) {
+                                                $debug[] = "Found role marker '$partial' in shift cell: '$shiftCell'";
+                                                
+                                                $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
+                                                $stmt->execute(["%$full%"]);
+                                                $role = $stmt->fetch(PDO::FETCH_ASSOC);
+                                                
+                                                if ($role) {
+                                                    $currentRoleId = $role['id'];
+                                                    $roleName = $full;
+                                                    $debug[] = "Mapped cell content to role ID: $currentRoleId ($full)";
+                                                    break;
+                                                }
                                             }
                                         }
                                     }
