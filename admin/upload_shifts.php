@@ -2,9 +2,8 @@
 require_once '../includes/db.php';
 require '../includes/auth.php';
 require_once '../functions/addNotification.php';
-requireAdmin(); // Only allow admin access
+requireAdmin();
 
-// Check if PhpSpreadsheet is installed
 if (!file_exists('../vendor/autoload.php')) {
     $installation_message = "PhpSpreadsheet not installed. Please run:<br>
         <code>composer require phpoffice/phpspreadsheet</code><br>
@@ -15,6 +14,7 @@ $message = '';
 $error = '';
 $uploaded_shifts = 0;
 $failed_shifts = 0;
+$debug = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     try {
@@ -28,9 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
             } else {
                 require '../vendor/autoload.php';
 
-                if ($ext == 'csv') {
+                if ($ext === 'csv') {
                     $reader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
-                } elseif ($ext == 'xlsx') {
+                } elseif ($ext === 'xlsx') {
                     $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
                 } else {
                     $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
@@ -40,14 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                 $worksheet = $spreadsheet->getActiveSheet();
                 $rows = $worksheet->toArray();
 
-                // Get all users
+                array_shift($rows); // Skip header
+
                 $stmt = $conn->query("SELECT id, username FROM users");
                 $users = [];
                 while ($user = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $users[$user['username']] = $user['id'];
                 }
 
-                // Get all roles
                 $stmt = $conn->query("SELECT id, name FROM roles");
                 $roles = [];
                 while ($role = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -56,34 +56,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
 
                 $insert = $conn->prepare("INSERT INTO shifts (user_id, shift_date, start_time, end_time, role_id, location) VALUES (?, ?, ?, ?, ?, ?)");
 
-                $last_username = null;
-
-                foreach ($rows as $row) {
-                    if (count(array_filter($row)) === 0) continue;
-                    $row = array_map('trim', $row);
-
-                    // Detect username row (e.g., "A, Carrington")
-                    if (count(array_filter($row)) === 1 && strpos($row[0], ',') !== false) {
-                        $last_username = $row[0];
-                        continue;
-                    }
-
-                    // Skip if no valid username context
-                    if (!$last_username || count(array_filter($row)) < 5) {
+                foreach ($rows as $index => $row) {
+                    $row_num = $index + 2; // considering header is row 1
+                    if (count($row) < 6 || empty($row[0])) {
                         $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: Missing or incomplete data.";
                         continue;
                     }
 
-                    $date = $row[0];
-                    $start_time = $row[1];
-                    $end_time = $row[2];
-                    $role_name = $row[3];
-                    $location = $row[4];
+                    $uploaded_username = trim($row[0]);
+                    $date = trim($row[1]);
+                    $start_time = trim($row[2]);
+                    $end_time = trim($row[3]);
+                    $role_name = trim($row[4]);
+                    $location = trim($row[5]);
 
-                    // Name logic (unchanged from your original code)
-                    $parts = array_map('trim', explode(',', $last_username));
+                    $parts = array_map('trim', explode(',', $uploaded_username));
                     if (count($parts) != 2) {
                         $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: Invalid username format '$uploaded_username'.";
                         continue;
                     }
 
@@ -94,11 +85,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     foreach ($users as $db_username => $user_id) {
                         $name_parts = explode(' ', $db_username);
                         if (count($name_parts) >= 2) {
-                            $db_first_name = $name_parts[0];
-                            $db_last_initial = strtoupper(substr($name_parts[1], 0, 1));
+                            $db_first = $name_parts[0];
+                            $db_last = $name_parts[1];
+                            $db_last_initial = strtoupper(substr($db_last, 0, 1));
+
                             if (
-                                strcasecmp($db_first_name, $first_name) === 0 &&
-                                $last_initial === $db_last_initial
+                                strcasecmp($db_first, $first_name) === 0 &&
+                                $db_last_initial === $last_initial
                             ) {
                                 $matched_user_id = $user_id;
                                 break;
@@ -106,8 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         }
                     }
 
-                    if (!$matched_user_id || !isset($roles[$role_name])) {
+                    if (!$matched_user_id) {
                         $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: User '$uploaded_username' not found.";
+                        continue;
+                    }
+
+                    if (!isset($roles[$role_name])) {
+                        $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: Role '$role_name' not found.";
                         continue;
                     }
 
@@ -117,12 +117,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         }
                     } catch (Exception $e) {
                         $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: Invalid date '$date'.";
                         continue;
                     }
 
-                    $role_id = $roles[$role_name];
-
                     try {
+                        $role_id = $roles[$role_name];
                         $insert->execute([$matched_user_id, $date, $start_time, $end_time, $role_id, $location]);
                         $uploaded_shifts++;
 
@@ -133,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         addNotification($conn, $matched_user_id, $notifMessage, "info");
                     } catch (PDOException $e) {
                         $failed_shifts++;
+                        $debug[] = "Row $row_num skipped: DB error - " . $e->getMessage();
                     }
                 }
 
@@ -154,6 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
 }
 ?>
 
+<!-- HTML Output below -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -162,40 +164,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     <link rel="stylesheet" href="../css/upload_shift.css">
 </head>
 <body>
-<div class="container">
-    <h1>Upload Shifts</h1>
-    <a href="admin_dashboard.php" class="action-button">Back to Dashboard</a>
+    <div class="container">
+        <h1>Upload Shifts</h1>
+        <a href="admin_dashboard.php" class="action-button">Back to Dashboard</a>
 
-    <?php if (isset($installation_message)): ?>
-        <div class="error-message"><?php echo $installation_message; ?></div>
-    <?php else: ?>
-        <?php if (!empty($error)): ?>
-            <div class="error-message"><?php echo $error; ?></div>
-        <?php endif; ?>
+        <?php if (isset($installation_message)): ?>
+            <div class="error-message"><?php echo $installation_message; ?></div>
+        <?php else: ?>
+            <?php if (!empty($error)): ?>
+                <div class="error-message"><?php echo $error; ?></div>
+            <?php endif; ?>
 
-        <?php if (!empty($message)): ?>
-            <div class="success-message"><?php echo $message; ?></div>
-        <?php endif; ?>
+            <?php if (!empty($message)): ?>
+                <div class="success-message"><?php echo $message; ?></div>
+            <?php endif; ?>
 
-        <div class="upload-form">
-            <h2>Upload Shifts File</h2>
-            <p>Upload an Excel file (.xls, .xlsx) or CSV file structured like this:</p>
-            <ul>
-                <li><strong>Name row:</strong> e.g., "A, Carrington"</li>
-                <li><strong>Shift rows:</strong> Date | Start | End | Role | Location</li>
-                <li>This repeats for each user.</li>
-            </ul>
+            <?php if (!empty($debug)): ?>
+                <div class="debug-output">
+                    <h3>Debug Output</h3>
+                    <ul>
+                        <?php foreach ($debug as $line): ?>
+                            <li><?php echo htmlspecialchars($line); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
             <form method="POST" enctype="multipart/form-data">
                 <p>
-                    <label for="shift_file">Select File:</label>
+                    <label for="shift_file">Select Excel File:</label>
                     <input type="file" name="shift_file" id="shift_file" accept=".xls,.xlsx,.csv" required>
                 </p>
                 <p>
                     <button type="submit">Upload Shifts</button>
                 </p>
             </form>
-        </div>
-    <?php endif; ?>
-</div>
+        <?php endif; ?>
+    </div>
 </body>
 </html>
