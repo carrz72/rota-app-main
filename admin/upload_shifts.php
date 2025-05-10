@@ -58,7 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
 
                 foreach ($rows as $index => $row) {
                     $row_num = $index + 2;
-                    if (count($row) < 6 || empty($row[0]) || empty($row[1])) {
+                    
+                    if (count($row) < 6 || empty($row[0]) || empty($row[1]) || empty($row[2]) || empty($row[3]) || empty($row[4]) || empty($row[5])) {
                         $failed_shifts++;
                         $debug[] = "Row $row_num skipped: Missing or incomplete data.";
                         continue;
@@ -71,9 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     $raw_role = trim($row[4]);
                     $location = trim($row[5]);
                 
-                    // Special case roles like 'Day Off', 'Holiday', etc.
-                    $non_roles = ['day off', 'holiday', 'sick', 'available', 'off', 'vacation'];
-                    if (in_array(strtolower($raw_role), $non_roles)) {
+                    $special_cases = ['day off', 'holiday', 'sick', 'available', 'off', 'vacation'];
+                    if (in_array(strtolower($raw_role), $special_cases)) {
                         $debug[] = "Row $row_num skipped: Special case '$raw_role' ignored.";
                         $failed_shifts++;
                         continue;
@@ -89,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     $last_initial = strtoupper($last_initial);
                     $first_name = ucfirst(strtolower($first_name));
                 
-                    // Match user by username "Firstname Lastname", ignoring case
                     $matched_user_id = null;
                     foreach ($users as $db_username => $user_id) {
                         $parts = explode(' ', $db_username);
@@ -109,11 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         continue;
                     }
                 
-                    // Role match (partial match)
                     $matched_role = null;
-                    foreach ($roles as $known_role => $id) {
+                    foreach ($roles as $known_role => $role_id) {
                         if (stripos($known_role, $raw_role) !== false || stripos($raw_role, $known_role) !== false) {
-                            $matched_role = $id;
+                            $matched_role = $role_id;
                             break;
                         }
                     }
@@ -124,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         continue;
                     }
                 
-                    // Format date
                     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
                         try {
                             $date = date('Y-m-d', strtotime($date));
