@@ -251,15 +251,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                     continue;
                                 }
 
-                                // More flexible time format parsing - handles multiple formats
+                                // More flexible time format parsing - handles multiple formats including multi-line entries
                                 if (preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})(?:\s*\((.*)\))?/', $shiftCell, $matches) ||
-                                    preg_match('/(\d{1,2})(?::|\.)\d{2}\s*(?:am|pm)?\s*-\s*(\d{1,2})(?::|\.)\d{2}\s*(?:am|pm)?(?:\s*\((.*)\))?/i', $shiftCell, $matches)) {
+                                    preg_match('/(\d{1,2})(?::|\.)\d{2}\s*(?:am|pm)?\s*-\s*(\d{1,2})(?::|\.)\d{2}\s*(?:am|pm)?(?:\s*\((.*)\))?/i', $shiftCell, $matches) ||
+                                    // New pattern for multi-line entries with role on first line, time on second line
+                                    preg_match('/(?:.*\n)?(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})(?:\s*\n\s*\((.*)\))?/m', $shiftCell, $matches)) {
                                     
                                     try {
                                         // Format times consistently to ensure 24-hour format (HH:MM)
                                         $startTime = $matches[1];
                                         $endTime = $matches[2];
                                         $location = isset($matches[3]) ? trim($matches[3]) : 'Default Location';
+                                        
+                                        // Check for location on its own line
+                                        if (empty($location) && preg_match('/\((.*?)\)/m', $shiftCell, $locMatches)) {
+                                            $location = trim($locMatches[1]);
+                                        }
                                         
                                         $debug[] = "Parsed shift: $startTime - $endTime ($location)";
                                         
