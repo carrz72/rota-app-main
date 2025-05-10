@@ -16,7 +16,8 @@ $uploaded_shifts = 0;
 $failed_shifts = 0;
 $debug = [];
 
-// ... [Keep the initial includes and auth checks] ...
+
+// ... [Keep includes and initial setup] ...
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     try {
@@ -24,96 +25,121 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
             // ... [File validation remains the same] ...
 
             require '../vendor/autoload.php';
-            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($_FILES['shift_file']['tmp_name']);
-            $spreadsheet = $reader->load($_FILES['shift_file']['tmp_name']);
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($_FILES['shift_file']['tmp_name']);
             $worksheet = $spreadsheet->getActiveSheet();
-            $rows = $worksheet->toArray();
 
-            // ========== KEY FIXES START HERE ========== //
-            
-            // 1. Extract the week start date from cell A1
-            $weekStartStr = trim(explode('W/C', $worksheet->getCell('A1')->getValue())[1]);
+            // ================================================
+            // 1. Extract Week Start Date from Cell A1
+            // ================================================
+            $headerText = $worksheet->getCell('A1')->getValue();
+            $weekStartStr = trim(explode('W/C', $headerText)[1]);
             $startDate = DateTime::createFromFormat('d/m/Y', $weekStartStr);
 
-            // 2. Map columns B-H to dates (Sat 3rd, Sun 4th, etc.)
+            // ================================================
+            // 2. Map Columns B-H to Actual Dates
+            // ================================================
             $dateColumns = [];
             foreach (range('B', 'H') as $col) {
-                $cellValue = $worksheet->getCell($col . '2')->getValue(); // Row 2 has days
-                preg_match('/\b(\w{3}) (\d+)\w+/', $cellValue, $matches);
-                $dayOffset = $matches[2] - $startDate->format('d'); // Calculate day offset
-                $date = (clone $startDate)->modify("+$dayOffset days");
+                $dayCell = $worksheet->getCell($col . '2')->getValue();
+                preg_match('/\b(\d+)\w+/', $dayCell, $dayMatch);
+                $dayNumber = (int)$dayMatch[1];
+                $date = (clone $startDate)->modify("+" . ($dayNumber - $startDate->format('d')) . " days");
                 $dateColumns[$col] = $date->format('Y-m-d');
             }
 
-            // 3. Iterate through employee rows
-            $currentUser = null;
-            foreach ($rows as $rowIdx => $row) {
-                $cellA = trim($row[0] ?? '');
+            // ================================================
+            // 3. Process Employee Rows and Shifts
+            // ================================================
+            $currentUserId = null;
+            $currentRole = null;
+
+            foreach ($worksheet->getRowIterator(3) as $row) { // Start at row 3
+                $cellA = $worksheet->getCell('A' . $row->getRowIndex())->getValue();
                 
                 // Detect employee rows (e.g., "B, Christine - Assistant Man…")
-                if (preg_match('/^([A-Z]),\s([A-Za-z]+)\s+-/', $cellA, $nameMatches)) {
+                if (preg_match('/^([A-Z]),\s+([A-Za-z]+)\s+-/', $cellA, $nameMatches)) {
                     $lastInitial = $nameMatches[1];
                     $firstName = $nameMatches[2];
                     
-                    // Find user ID (example logic - adjust to your DB schema)
-                    $stmt = $conn->prepare("SELECT id FROM users WHERE last_name LIKE ? AND first_name LIKE ?");
-                    $stmt->execute([$lastInitial . '%', $firstName . '%']);
+                    // Reconstruct username (e.g., "Christine B")
+                    $usernameToFind = "$firstName $lastInitial";
+                    
+                    // Find user in database using username
+                    $stmt = $conn->prepare("SELECT id FROM users 
+                        WHERE username LIKE ?");
+                    $stmt->execute(["%$usernameToFind%"]);
                     $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     
-                    $currentUser = $user ? $user['id'] : null;
-                    $currentRole = trim($row[1] ?? ''); // Role in column B
+                    $currentUserId = $user['id'] ?? null;
+                    
+                    if (!$currentUserId) {
+                        $debug[] = "User not found: $usernameToFind (Row {$row->getRowIndex()})";
+                        continue;
+                    }
+                    
+                    // Get role from column B
+                    $currentRole = $worksheet->getCell('B' . $row->getRowIndex())->getValue();
                     continue;
                 }
 
-                // Process shift rows for the current user
-                if ($currentUser && $rowIdx > 2 && !empty(trim(implode('', $row)))) {
+                // Process shifts for the current user
+                if ($currentUserId) {
                     foreach (range('B', 'H') as $col) {
-                        $shiftInfo = trim($row[array_search($col, range('A', 'Z'))] ?? '');
-                        
-                        // Skip empty or special cases
-                        if (empty($shiftInfo) || in_array(strtolower($shiftInfo), ['day off', 'holiday'])) continue;
+                        $shiftCell = $worksheet->getCell($col . $row->getRowIndex())->getValue();
+                        $shiftCell = trim($shiftCell);
 
-                        // Extract time and location (e.g., "08:00 - 12:00 (Bulwell - MS)")
-                        preg_match('/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\s*(?:\((.*)\))?/', $shiftInfo, $matches);
+                        // Skip empty or non-shift cells
+                        if (empty($shiftCell) || 
+                            in_array(strtolower($shiftCell), ['day off', 'holiday', 'sick', 'available'])) {
+                            continue;
+                        }
+
+                        // Parse time and location
+                        preg_match('/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})(?:\s*\((.*)\))?/', $shiftCell, $matches);
                         if ($matches) {
                             try {
                                 $conn->beginTransaction();
                                 $stmt = $conn->prepare("INSERT INTO shifts 
-                                    (user_id, shift_date, start_time, end_time, location) 
-                                    VALUES (?, ?, ?, ?, ?)");
+                                    (user_id, shift_date, start_time, end_time, location, role_id) 
+                                    VALUES (?, ?, ?, ?, ?, ?)");
                                 $stmt->execute([
-                                    $currentUser,
+                                    $currentUserId,
                                     $dateColumns[$col],
                                     $matches[1],
                                     $matches[2],
-                                    $matches[3] ?? null
+                                    $matches[3] ?? null,
+                                    $currentRole // Ensure role_id exists in roles table
                                 ]);
                                 $uploaded_shifts++;
+                                
+                                // Add user notification
+                                $formattedDate = date("M j, Y", strtotime($dateColumns[$col]));
+                                $notifMessage = "New shift: {$matches[1]} - {$matches[2]} on $formattedDate";
+                                addNotification($conn, $currentUserId, $notifMessage, "schedule");
+                                
                                 $conn->commit();
                             } catch (PDOException $e) {
                                 $conn->rollBack();
                                 $failed_shifts++;
-                                $debug[] = "Error at row $rowIdx: " . $e->getMessage();
+                                $debug[] = "DB Error: " . $e->getMessage();
                             }
+                        } else {
+                            $failed_shifts++;
+                            $debug[] = "Invalid shift format: '$shiftCell' (Row {$row->getRowIndex()}, Col $col)";
                         }
                     }
                 }
             }
 
-            // ========== KEY FIXES END HERE ========== //
-
-            if ($uploaded_shifts > 0) {
-                $message = "Successfully uploaded $uploaded_shifts shifts.";
-                if ($failed_shifts > 0) $message .= " $failed_shifts failed.";
-            } else {
-                $error = "No shifts uploaded. Check file format.";
-            }
+            // ... [Rest of success/error handling] ...
         }
     } catch (Exception $e) {
         $error = "Error: " . $e->getMessage();
     }
 }
 ?>
+
+<!-- Keep HTML form unchanged -->
 
 <!-- Keep the HTML form unchanged -->
 
