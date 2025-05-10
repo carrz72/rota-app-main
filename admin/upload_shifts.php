@@ -47,8 +47,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     
                     // More flexible date extraction - tries multiple formats
                     if (strpos($headerText, 'W/C') !== false) {
-                        $weekStartStr = trim(explode('W/C', $headerText)[1]);
-                        $debug[] = "Extracted date string: " . $weekStartStr;
+                        // Try to extract just the date part using regex
+                        if (preg_match('/W\/C\s+(\d{1,2}\/\d{1,2}\/\d{4})/', $headerText, $matches)) {
+                            $weekStartStr = trim($matches[1]);
+                            $debug[] = "Extracted date string: " . $weekStartStr;
+                        } else {
+                            // Fallback to the original method but clean up the string
+                            $weekStartStr = trim(explode('W/C', $headerText)[1]);
+                            // Remove any text after the date format
+                            if (preg_match('/(\d{1,2}\/\d{1,2}\/\d{4})/', $weekStartStr, $matches)) {
+                                $weekStartStr = trim($matches[1]);
+                                $debug[] = "Extracted date string (cleanup): " . $weekStartStr;
+                            }
+                        }
                         
                         // Try different date formats (d/m/Y, m/d/Y, Y-m-d)
                         $dateFormats = ['d/m/Y', 'm/d/Y', 'Y-m-d', 'd-m-Y', 'm-d-Y'];
