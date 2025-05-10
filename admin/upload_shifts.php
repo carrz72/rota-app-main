@@ -179,27 +179,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                 // Check if this cell contains a role name or try to get it from row header
                                 $roleName = null;
                                 $cellRole = null;
+                                $currentRoleId = null;
                                 
-                                // First, check if the cell contains both role and time (format: "CSA \n 21:30 - 08:00")
-                                if (preg_match('/^(.*?)(?:\s*\n\s*|\s+)(\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2})/', $shiftCell, $roleMatches)) {
-                                    $cellRole = trim($roleMatches[1]);
-                                    $shiftCell = $roleMatches[2]; // Keep just the time part for later processing
+                                // Extract role from cell - handle multi-line cells with role on top line
+                                if (strpos($shiftCell, "\n") !== false) {
+                                    $cellLines = explode("\n", $shiftCell);
+                                    // First line is likely the role name if it doesn't contain time format
+                                    if (!preg_match('/\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/', $cellLines[0])) {
+                                        $cellRole = trim($cellLines[0]);
+                                        $debug[] = "Found role in cell first line: $cellRole";
+                                        // Keep the remaining part for time processing
+                                        $shiftCell = implode("\n", array_slice($cellLines, 1));
+                                    }
                                 }
                                 
-                                // Special handling for truncated role names
+                                // Special handling for truncated role names and common abbreviations
                                 $roleMapping = [
                                     'Relief Supe' => 'Relief Supervisor',
                                     'Assistant M' => 'Assistant Manager',
                                     'Venue Man' => 'Venue Manager',
-                                    'Kwik Tan S' => 'Kwik Tan Supervisor'
+                                    'Kwik Tan S' => 'Kwik Tan Supervisor',
+                                    'CSA' => 'Customer Service Associate',
+                                    'Relief Super' => 'Relief Supervisor'
                                 ];
                                 
                                 // If we found a role in the cell
                                 if ($cellRole) {
                                     // Apply role mapping for truncated names
                                     foreach ($roleMapping as $partial => $full) {
-                                        if (strpos($cellRole, $partial) === 0) {
-                                            $debug[] = "Mapped truncated role '$cellRole' to '$full'";
+                                        if (strpos($cellRole, $partial) === 0 || $cellRole === $partial) {
+                                            $debug[] = "Mapped role '$cellRole' to '$full'";
                                             $cellRole = $full;
                                             break;
                                         }
@@ -215,32 +224,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         $debug[] = "Found role ID: $currentRoleId for role: $cellRole";
                                         $roleName = $cellRole;
                                     } else {
-                                        $debug[] = "Role not found in cell: $cellRole";
+                                        $debug[] = "Role not found in database: $cellRole - trying direct insert";
+                                        
+                                        // Try to insert this role if it doesn't exist
+                                        try {
+                                            $conn->beginTransaction();
+                                            $stmt = $conn->prepare("INSERT INTO roles (name) VALUES (?)");
+                                            $stmt->execute([$cellRole]);
+                                            $currentRoleId = $conn->lastInsertId();
+                                            $conn->commit();
+                                            $debug[] = "Created new role ID: $currentRoleId for: $cellRole";
+                                            $roleName = $cellRole;
+                                        } catch (PDOException $e) {
+                                            $conn->rollBack();
+                                            $debug[] = "Failed to create role: " . $e->getMessage();
+                                        }
                                     }
                                 }
                                 
                                 // If we still don't have a role, try from the user's info in column A
-                                if (!$currentRoleId) {
-                                    $userCellA = $worksheet->getCell('A' . $rowIndex)->getValue() ?? '';
-                                    if (preg_match('/-\s*(.+)$/', $userCellA, $roleMatches)) {
-                                        $extractedRole = trim($roleMatches[1]);
-                                        
-                                        // Apply role mapping
-                                        foreach ($roleMapping as $partial => $full) {
-                                            if (strpos($extractedRole, $partial) === 0) {
-                                                $extractedRole = $full;
-                                                break;
-                                            }
+                                $userCellA = $worksheet->getCell('A' . $rowIndex)->getValue() ?? '';
+                                if (preg_match('/-\s*(.+)$/', $userCellA, $roleMatches)) {
+                                    $extractedRole = trim($roleMatches[1]);
+                                    
+                                    // Apply role mapping
+                                    foreach ($roleMapping as $partial => $full) {
+                                        if (strpos($extractedRole, $partial) === 0) {
+                                            $extractedRole = $full;
+                                            break;
                                         }
-                                        
-                                        $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
-                                        $stmt->execute(["%$extractedRole%"]);
-                                        $role = $stmt->fetch(PDO::FETCH_ASSOC);
-                                        $currentRoleId = $role['id'] ?? null;
-                                        
-                                        if ($currentRoleId) {
-                                            $roleName = $extractedRole;
-                                            $debug[] = "Found role ID: $currentRoleId from user info: $extractedRole";
+                                    }
+                                    
+                                    $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
+                                    $stmt->execute(["%$extractedRole%"]);
+                                    $role = $stmt->fetch(PDO::FETCH_ASSOC);
+                                    $currentRoleId = $role['id'] ?? null;
+                                    
+                                    if ($currentRoleId) {
+                                        $roleName = $extractedRole;
+                                        $debug[] = "Found role ID: $currentRoleId from user info: $extractedRole";
+                                    }
+                                }
+                                
+                                // Try to find a default role for the user if no role was identified
+                                if (!$currentRoleId) {
+                                    $stmt = $conn->prepare("SELECT role_id FROM user_roles WHERE user_id = ? LIMIT 1");
+                                    $stmt->execute([$currentUserId]);
+                                    $userRole = $stmt->fetch(PDO::FETCH_ASSOC);
+                                    if ($userRole) {
+                                        $currentRoleId = $userRole['role_id'];
+                                        $debug[] = "Using default role ID: $currentRoleId for user from user_roles table";
+                                    } else {
+                                        // Try to get any role as fallback
+                                        $stmt = $conn->prepare("SELECT id FROM roles ORDER BY id LIMIT 1");
+                                        $stmt->execute();
+                                        $defaultRole = $stmt->fetch(PDO::FETCH_ASSOC);
+                                        if ($defaultRole) {
+                                            $currentRoleId = $defaultRole['id'];
+                                            $debug[] = "Using fallback role ID: $currentRoleId as last resort";
                                         }
                                     }
                                 }
