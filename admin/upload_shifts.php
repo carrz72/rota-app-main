@@ -117,18 +117,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         // More flexible employee row detection
                         // Now handles formats like "B, Christine - Assistant" or "Christine B - Assistant" 
                         if (!empty($cellA) && (
-                            preg_match('/^([A-Z]),\s+([A-Za-z]+)\s+-/', $cellA, $nameMatches) || 
-                            preg_match('/^([A-Za-z]+)\s+([A-Z])\s+-/', $cellA, $reversedMatches)
+                            preg_match('/^([A-Z]),\s+([A-Za-z]+)\s+-\s*(.*)/', $cellA, $nameMatches) || 
+                            preg_match('/^([A-Za-z]+)\s+([A-Z])\s+-\s*(.*)/', $cellA, $reversedMatches)
                         )) {
                             // Set name parts based on the pattern that matched
                             if (isset($nameMatches[1])) {
                                 $lastInitial = $nameMatches[1];
                                 $firstName = $nameMatches[2];
-                                $debug[] = "Matched pattern 1: $firstName $lastInitial";
+                                $rowRoleName = !empty($nameMatches[3]) ? trim($nameMatches[3]) : '';
+                                $debug[] = "Matched pattern 1: $firstName $lastInitial" . ($rowRoleName ? " - $rowRoleName" : "");
                             } else {
                                 $firstName = $reversedMatches[1];
                                 $lastInitial = $reversedMatches[2];
-                                $debug[] = "Matched pattern 2: $firstName $lastInitial";
+                                $rowRoleName = !empty($reversedMatches[3]) ? trim($reversedMatches[3]) : '';
+                                $debug[] = "Matched pattern 2: $firstName $lastInitial" . ($rowRoleName ? " - $rowRoleName" : "");
                             }
                             
                             // Try both name formats in database lookup
@@ -144,11 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                             } else {
                                 $debug[] = "User not found: Tried patterns '$pattern1' and '$pattern2'";
                             }
-
-                            // Get role from column B with more flexible matching
-                            $roleName = trim($worksheet->getCell('B' . $rowIndex)->getValue() ?? '');
                             
-                            // We'll check for roles when processing individual cells instead
                             // Just track if we found a user
                             if (!$currentUserId) {
                                 $debug[] = "Row $rowIndex skipped:";
@@ -159,9 +157,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
 
                         // Process shifts for the current user
                         if ($currentUserId) {
+                            // If we have a role name from the employee row, try to find its ID
+                            $currentRowRoleId = null;
+
+                            if (!empty($rowRoleName)) {
+                                // Check for CSA specifically first
+                                if (strcasecmp(trim($rowRoleName), "CSA") == 0) {
+                                    $stmtRole = $conn->prepare("SELECT id FROM roles WHERE name = ? OR name LIKE ?");
+                                    $stmtRole->execute(['CSA', '%Customer Service%']);
+                                    $role = $stmtRole->fetch(PDO::FETCH_ASSOC);
+                                    if ($role) {
+                                        $currentRowRoleId = $role['id'];
+                                        $debug[] = "Found role ID: $currentRowRoleId for employee row role: $rowRoleName";
+                                    }
+                                } else {
+                                    $mappedRoleName = $rowRoleName;
+                                    // Apply standard role mapping
+                                    foreach ($roleMapping as $partial => $full) {
+                                        if (strpos($rowRoleName, $partial) === 0 || $rowRoleName === $partial) {
+                                            $mappedRoleName = $full;
+                                            break;
+                                        }
+                                    }
+                                    $stmtRole = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
+                                    $stmtRole->execute(["%$mappedRoleName%"]);
+                                    $role = $stmtRole->fetch(PDO::FETCH_ASSOC);
+                                    if ($role) {
+                                        $currentRowRoleId = $role['id'];
+                                        $debug[] = "Found role ID: $currentRowRoleId for employee row role: $rowRoleName";
+                                    }
+                                }
+                            }
+
                             foreach (range('B', 'H') as $col) {
                                 if (!isset($dateColumns[$col])) continue;
-                                
                                 $shiftCell = trim($worksheet->getCell($col . $rowIndex)->getValue() ?? '');
                                 $debug[] = "Row $rowIndex, Col $col: '$shiftCell'";
 
@@ -169,18 +198,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                 if (empty($shiftCell)) {
                                     continue;
                                 }
-                                
+
                                 // Skip known non-shift entries
                                 $nonShiftEntries = ['day off', 'holiday', 'sick', 'available'];
                                 if (in_array(strtolower($shiftCell), $nonShiftEntries)) {
                                     continue;
                                 }
 
+                                // First, check if there's a role in a cell above this one
+                                $roleName = null;
+                                $cellRole = null;
+
+                                // Look for role in cells above (check up to 3 cells up)
+                                for ($i = 1; $i <= 3; $i++) {
+                                    $checkRow = $rowIndex - $i;
+                                    if ($checkRow < 3) break; // Don't go above row 3
+                                    $roleCell = trim($worksheet->getCell($col . $checkRow)->getValue() ?? '');
+                                    if (!empty($roleCell) && !preg_match('/\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/', $roleCell)) {
+                                        // This cell might contain a role name
+                                        $debug[] = "Found potential role cell above: '$roleCell' at row $checkRow, col $col";
+                                        
+                                        // Special handling for CSA
+                                        if ($roleCell == "CSA" || strcasecmp(trim($roleCell), "CSA") == 0) {
+                                            // Try to find the CSA role in the database
+                                            $stmtRole = $conn->prepare("SELECT id FROM roles WHERE name = ? OR name LIKE ?");
+                                            $stmtRole->execute(['CSA', '%CSA%']);
+                                            $role = $stmtRole->fetch(PDO::FETCH_ASSOC);
+                                            if ($role) {
+                                                $currentRoleId = $role['id'];
+                                                $roleName = 'CSA';
+                                                $debug[] = "Found CSA role ID: $currentRoleId from cell above";
+                                                break; // Role found, stop looking
+                                            }
+                                        } else {
+                                            // Apply role mapping for truncated names
+                                            foreach ($roleMapping as $partial => $full) {
+                                                if (strpos($roleCell, $partial) === 0 || $roleCell === $partial) {
+                                                    $debug[] = "Mapped role '$roleCell' to '$full'";
+                                                    $roleCell = $full;
+                                                    break;
+                                                }
+                                            }
+                                            // Look up the role ID
+                                            $stmtRole = $conn->prepare("SELECT id, name FROM roles WHERE name LIKE ?");
+                                            $stmtRole->execute(["%$roleCell%"]);
+                                            $role = $stmtRole->fetch(PDO::FETCH_ASSOC);
+                                            if ($role) {
+                                                $currentRoleId = $role['id'];
+                                                $roleName = $role['name'];
+                                                $debug[] = "Found role ID: $currentRoleId ($roleName) from cell above";
+                                                break; // Role found, stop looking
+                                            }
+                                        }
+                                        
+                                        // If we found text but couldn't match to a role, save it for future checks
+                                        $cellRole = $roleCell;
+                                        break;
+                                    }
+                                }
+
+                                // Continue with existing role detection if we didn't find a role above
                                 // Check if this cell contains a role name or try to get it from row header
                                 $roleName = null;
                                 $cellRole = null;
-                                $currentRoleId = null;
-                                
+
                                 // Extract role from cell - handle multi-line cells with role on top line
                                 if (strpos($shiftCell, "\n") !== false) {
                                     $cellLines = explode("\n", $shiftCell);
@@ -192,17 +273,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         $shiftCell = implode("\n", array_slice($cellLines, 1));
                                     }
                                 }
-                                
+
                                 // Special handling for truncated role names and common abbreviations
                                 $roleMapping = [
-                                    'Relief Supe' => 'Relief Supervisor',
+                                    'Relief Super' => 'Relief Supervisor',
                                     'Assistant M' => 'Assistant Manager',
                                     'Venue Man' => 'Venue Manager',
                                     'Kwik Tan S' => 'Kwik Tan Supervisor',
                                     'CSA' => 'Customer Service Associate',
                                     'Relief Super' => 'Relief Supervisor'
                                 ];
-                                
                                 // If we found a role in the cell
                                 if ($cellRole) {
                                     // Apply role mapping for truncated names
@@ -213,19 +293,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                             break;
                                         }
                                     }
-                                    
                                     // Look up the role ID
                                     $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
                                     $stmt->execute(["%$cellRole%"]);
                                     $role = $stmt->fetch(PDO::FETCH_ASSOC);
                                     $currentRoleId = $role['id'] ?? null;
-                                    
                                     if ($currentRoleId) {
                                         $debug[] = "Found role ID: $currentRoleId for role: $cellRole";
-                                        $roleName = $cellRole;
                                     } else {
                                         $debug[] = "Role not found in database: $cellRole - trying direct insert";
-                                        
                                         // Try to insert this role if it doesn't exist
                                         try {
                                             $conn->beginTransaction();
@@ -241,12 +317,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         }
                                     }
                                 }
-                                
+
                                 // If we still don't have a role, try from the user's info in column A
                                 $userCellA = $worksheet->getCell('A' . $rowIndex)->getValue() ?? '';
                                 if (preg_match('/-\s*(.+)$/', $userCellA, $roleMatches)) {
                                     $extractedRole = trim($roleMatches[1]);
-                                    
                                     // Apply role mapping
                                     foreach ($roleMapping as $partial => $full) {
                                         if (strpos($extractedRole, $partial) === 0) {
@@ -254,7 +329,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                             break;
                                         }
                                     }
-                                    
                                     $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
                                     $stmt->execute(["%$extractedRole%"]);
                                     $role = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -274,7 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         $cellCharCodes .= ord($shiftCell[$i]) . ' ';
                                     }
                                     $debug[] = "Cell content character codes: $cellCharCodes";
-                                    
+
                                     // First, scan the entire row to find role information
                                     $rowCells = [];
                                     foreach (range('A', 'H') as $scanCol) {
@@ -291,7 +365,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                             break;
                                         }
                                     }
-                                    
                                     // Pre-load all roles from database for direct comparison
                                     $stmtRoles = $conn->query("SELECT id, name FROM roles");
                                     $allDbRoles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
@@ -303,7 +376,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         $debug[] = $foundCSA ? 
                                             "MATCH: Found CSA in row for cell: '$shiftCell'" : 
                                             "EXACT MATCH: Found CSA text in cell: '$shiftCell'";
-                                        
                                         // Find CSA role in our pre-loaded roles - try exact CSA first
                                         foreach ($allDbRoles as $dbRole) {
                                             if ($dbRole['name'] === 'CSA' || strcasecmp($dbRole['name'], 'CSA') === 0) {
@@ -326,23 +398,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                                 }
                                             }
                                         }
-                                    } 
-                                    
+                                    }
                                     // If we still don't have a role match, try exact cell value against all roles
                                     if (!$currentRoleId) {
                                         $normalizedCell = strtolower(trim($shiftCell));
                                         $debug[] = "Looking for exact role match for: '$normalizedCell'";
-                                        
                                         foreach ($allDbRoles as $dbRole) {
                                             $roleShortName = strtolower(trim(substr($dbRole['name'], 0, 10)));
                                             $roleInitials = '';
-                                            
                                             // Create abbreviation from first letter of each word
                                             $words = explode(' ', $dbRole['name']);
                                             foreach ($words as $word) {
                                                 $roleInitials .= strtolower(substr($word, 0, 1));
                                             }
-                                            
                                             // Check for matches against full role name, short name, or abbreviation
                                             if ($normalizedCell == strtolower($dbRole['name']) || 
                                                 ($normalizedCell == $roleShortName && strlen($normalizedCell) >= 3) ||
@@ -354,12 +422,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                             }
                                         }
                                     }
-                                    
                                     // If still no match, continue with expanded mapping approach
                                     if (!$currentRoleId) {
                                         // Extended role mapping with more variants
                                         $expandedMapping = $roleMapping;
-                                        
                                         // Add more mappings as needed
                                         $expandedMapping['csa'] = 'Customer Service Associate';  // Lowercase variant
                                         $expandedMapping['C.S.A'] = 'Customer Service Associate'; // Variant with periods
@@ -368,13 +434,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         foreach ($expandedMapping as $partial => $full) {
                                             if (strpos(strtolower($shiftCell), strtolower($partial)) !== false) {
                                                 $debug[] = "Mapped role '$shiftCell' to '$full'";
-                                                
                                                 // Look up the role ID
                                                 $stmt = $conn->prepare("SELECT id FROM roles WHERE name LIKE ?");
                                                 $stmt->execute(["%$full%"]);
                                                 $role = $stmt->fetch(PDO::FETCH_ASSOC);
                                                 $currentRoleId = $role['id'] ?? null;
-                                                
                                                 if ($currentRoleId) {
                                                     $roleName = $full;
                                                     $debug[] = "Found role ID: $currentRoleId for role: $full";
@@ -384,14 +448,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         }
                                     }
                                 }
-                                
                                 // Try to find a default role for the user if no role was identified
                                 if (!$currentRoleId) {
                                     // Try to get role_id directly from users table instead of user_roles
                                     $stmt = $conn->prepare("SELECT role_id FROM users WHERE id = ? AND role_id IS NOT NULL LIMIT 1");
                                     $stmt->execute([$currentUserId]);
                                     $userRole = $stmt->fetch(PDO::FETCH_ASSOC);
-                                    
                                     if ($userRole && isset($userRole['role_id'])) {
                                         $currentRoleId = $userRole['role_id'];
                                         $debug[] = "Using default role ID: $currentRoleId from users table";
@@ -406,30 +468,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         }
                                     }
                                 }
-                                
                                 // If we still don't have a role, skip this shift
                                 if (!$currentRoleId) {
                                     $debug[] = "No valid role found for shift in Row $rowIndex, Col $col - skipping";
                                     continue;
                                 }
-                                
+
                                 // More flexible time format parsing - handles multiple formats including multi-line entries
                                 if (preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})(?:\s*\((.*)\))?/', $shiftCell, $matches) ||
                                     preg_match('/(\d{1,2})(?::|\.)\d{2}\s*(?:am|pm)?\s*-\s*(\d{1,2})(?::|\.)\d{2}\s*(?:am|pm)?(?:\s*\((.*)\))?/i', $shiftCell, $matches) ||
                                     // New pattern for multi-line entries with role on first line, time on second line
-                                    preg_match('/(?:.*\n)?(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})(?:\s*\n\s*\((.*)\))?/m', $shiftCell, $matches)) {
-                                    
+                                    preg_match('/(?:.*\n)?(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})(?:\s*\n\s*\((.*)\))?/m', $shiftCell, $matches)) { 
                                     try {
                                         // Format times consistently to ensure 24-hour format (HH:MM)
                                         $startTime = $matches[1];
                                         $endTime = $matches[2];
                                         $location = isset($matches[3]) ? trim($matches[3]) : 'The Lion'; // Changed default location
-                                        
                                         // Check for location on its own line
                                         if (empty($location) && preg_match('/\((.*?)\)/m', $shiftCell, $locMatches)) {
                                             $location = trim($locMatches[1]);
                                         }
-                                        
                                         $debug[] = "Parsed shift: $startTime - $endTime ($location)";
 
                                         // Check if a shift already exists for this user on this date
@@ -440,7 +498,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         $existingShift = $stmt->fetch(PDO::FETCH_ASSOC);
                                         
                                         $conn->beginTransaction();
-                                        
                                         if ($existingShift) {
                                             // Check if there are any changes to the shift
                                             if ($existingShift['start_time'] != $startTime || 
@@ -449,7 +506,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                                 $existingShift['role_id'] != $currentRoleId) {
                                                 // Update the existing shift
                                                 $stmt = $conn->prepare("UPDATE shifts 
-                                                                      SET start_time = ?, end_time = ?, location = ?, role_id = ? 
+                                                                      SET start_time = ?, end_time = ?, location = ?, role_id = ?
                                                                       WHERE id = ?");
                                                 $stmt->execute([
                                                     $startTime,
@@ -460,7 +517,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                                 ]);
                                                 $uploaded_shifts++;
                                                 $debug[] = "Updated existing shift ID: " . $existingShift['id'];
-                                                
                                                 // Add notification about the update
                                                 $formattedDate = date("M j, Y", strtotime($dateColumns[$col]));
                                                 $notifMessage = "Shift updated: $startTime - $endTime on $formattedDate";
@@ -502,7 +558,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                             }
                         }
                     }
-
                     // ================================================
                     // 4. Final Output
                     // ================================================
@@ -522,8 +577,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     }
 }
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -571,17 +624,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                 <p>
                     <button type="submit">Upload Shifts</button>
                 </p>
+                <div class="template-info">
+                    <h3>File Format Requirements</h3>
+                    <ul>
+                        <li>Excel file (.xls or .xlsx) with the week start date in cell A1 (format: "W/C dd/mm/yyyy")</li>
+                        <li>Days of the week in row 2, columns B-H</li>
+                        <li>Employee names in column A in format "LastInitial, FirstName - Role" (e.g., "B, Christine - Manager")</li>
+                        <li>Shifts in format "HH:MM - HH:MM (Location)" (e.g., "09:00 - 17:00 (Main Office)")</li>
+                    </ul>
+                </div>
             </form>
-
-            <div class="template-info">
-                <h3>File Format Requirements</h3>
-                <ul>
-                    <li>Excel file (.xls or .xlsx) with the week start date in cell A1 (format: "W/C dd/mm/yyyy")</li>
-                    <li>Days of the week in row 2, columns B-H</li>
-                    <li>Employee names in column A in format "LastInitial, FirstName - Role" (e.g., "B, Christine - Manager")</li>
-                    <li>Shifts in format "HH:MM - HH:MM (Location)" (e.g., "09:00 - 17:00 (Main Office)")</li>
-                </ul>
-            </div>
         <?php endif; ?>
     </div>
 </body>
