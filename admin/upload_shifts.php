@@ -287,13 +287,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         }
                                     }
                                 }
-                                
+                                // Try to find a default role for the user if no role was identified
                                 // If we still don't have a role, skip this shift
                                 if (!$currentRoleId) {
                                     $debug[] = "No valid role found for shift in Row $rowIndex, Col $col - skipping";
                                     continue;
                                 }
-
+                                
                                 // More flexible time format parsing - handles multiple formats including multi-line entries
                                 if (preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})(?:\s*\((.*)\))?/', $shiftCell, $matches) ||
                                     preg_match('/(\d{1,2})(?::|\.)\d{2}\s*(?:am|pm)?\s*-\s*(\d{1,2})(?::|\.)\d{2}\s*(?:am|pm)?(?:\s*\((.*)\))?/i', $shiftCell, $matches) ||
@@ -304,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         // Format times consistently to ensure 24-hour format (HH:MM)
                                         $startTime = $matches[1];
                                         $endTime = $matches[2];
-                                        $location = isset($matches[3]) ? trim($matches[3]) : 'Default Location';
+                                        $location = isset($matches[3]) ? trim($matches[3]) : 'The Lion'; // Changed default location
                                         
                                         // Check for location on its own line
                                         if (empty($location) && preg_match('/\((.*?)\)/m', $shiftCell, $locMatches)) {
@@ -312,120 +312,158 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         }
                                         
                                         $debug[] = "Parsed shift: $startTime - $endTime ($location)";
-                                        
+
+                                        // Check if a shift already exists for this user on this date
+                                        $stmt = $conn->prepare("SELECT id, start_time, end_time, location, role_id 
+                                                               FROM shifts ats including multi-line entries
+                                                               WHERE user_id = ? AND shift_date = ?");
+                                        $stmt->execute([$currentUserId, $dateColumns[$col]]);
+                                        $existingShift = $stmt->fetch(PDO::FETCH_ASSOC);
+                                        shiftCell, $matches)) {
                                         $conn->beginTransaction();
-                                        $stmt = $conn->prepare("INSERT INTO shifts 
-                                            (user_id, shift_date, start_time, end_time, location, role_id) 
-                                            VALUES (?, ?, ?, ?, ?, ?)");
-                                        $stmt->execute([
-                                            $currentUserId,
-                                            $dateColumns[$col],
-                                            $startTime,
-                                            $endTime,
-                                            $location,
-                                            $currentRoleId
-                                        ]);
-                                        $uploaded_shifts++;
-
-                                        // Add notification
-                                        $formattedDate = date("M j, Y", strtotime($dateColumns[$col]));
-                                        $notifMessage = "New shift: $startTime - $endTime on $formattedDate";
-                                        addNotification($conn, $currentUserId, $notifMessage, "schedule");
-
-                                        $conn->commit();
-                                        $debug[] = "Successfully added shift to database";
-                                    } catch (PDOException $e) {
-                                        $conn->rollBack();
-                                        $failed_shifts++;
+                                        ormat times consistently to ensure 24-hour format (HH:MM)
+                                        if ($existingShift) {
+                                            // Check if there are any changes to the shift
+                                            if ($existingShift['start_time'] != $startTime || 
+                                                $existingShift['end_time'] != $endTime || 
+                                                $existingShift['location'] != $location || 
+                                                $existingShift['role_id'] != $currentRoleId) { {
+                                                tches[1]);
+                                                // Update the existing shift
+                                                $stmt = $conn->prepare("UPDATE shifts 
+                                                                      SET start_time = ?, end_time = ?, location = ?, role_id = ? 
+                                                                      WHERE id = ?");
+                                                $stmt->execute([exists for this user on this date
+                                                    $startTime,_time, end_time, location, role_id 
+                                                    $endTime,
+                                                    $location,
+                                                    $currentRoleId, $dateColumns[$col]]);
+                                                    $existingShift['id']   H_ASSOC);
+                                                ]);
+                                                $uploaded_shifts++;
+                                                $debug[] = "Updated existing shift ID: " . $existingShift['id'];
+                                                
+                                                // Add notification about the updatere any changes to the shift
+                                                $formattedDate = date("M j, Y", strtotime($dateColumns[$col]));
+                                                $notifMessage = "Shift updated: $startTime - $endTime on $formattedDate";
+                                                addNotification($conn, $currentUserId, $notifMessage, "schedule");
+                                            } else {
+                                                $debug[] = "Skipped unchanged shift for date: " . $dateColumns[$col];
+                                            }
+                                        } else {epare("UPDATE shifts 
+                                            // Insert new shift                  SET start_time = ?, end_time = ?, location = ?, role_id = ? 
+                                            $stmt = $conn->prepare("INSERT INTO shifts    WHERE id = ?");
+                                                (user_id, shift_date, start_time, end_time, location, role_id) 
+                                                VALUES (?, ?, ?, ?, ?, ?)");
+                                            $stmt->execute([
+                                                $currentUserId,
+                                                $dateColumns[$col],
+                                                $startTime,
+                                                $endTime,
+                                                $location,
+                                                $currentRoleId
+                                            ]);
+                                            $uploaded_shifts++;
+                                            $debug[] = "Added new shift to database";
+                                            
+                                            // Add notificationn($conn, $currentUserId, $notifMessage, "schedule");
+                                            $formattedDate = date("M j, Y", strtotime($dateColumns[$col]));
+                                            $notifMessage = "New shift: $startTime - $endTime on $formattedDate";
+                                            addNotification($conn, $currentUserId, $notifMessage, "schedule");
+                                        }
+                                        $conn->commit();/ Insert new shift
+                                    } catch (PDOException $e) {ifts 
+                                        $conn->rollBack();        (user_id, shift_date, start_time, end_time, location, role_id) 
+                                        $failed_shifts++;, ?)");
                                         $debug[] = "DB Error (Row $rowIndex): " . $e->getMessage();
-                                    }
+                                    }d,
                                 } else {
-                                    $failed_shifts++;
+                                    $failed_shifts++;       $startTime,
                                     $debug[] = "Invalid shift format: '$shiftCell' (Row $rowIndex, Col $col)";
                                 }
                             }
                         }
                     }
-
+               $debug[] = "Added new shift to database";
                     // ================================================
-                    // 4. Final Output
-                    // ================================================
-                    if ($uploaded_shifts > 0) {
-                        $message = "Successfully uploaded $uploaded_shifts shifts.";
+                    // 4. Final Output                                        // Add notification
+                    // ================================================ strtotime($dateColumns[$col]));
+                    if ($uploaded_shifts > 0) {ge = "New shift: $startTime - $endTime on $formattedDate";
+                        $message = "Successfully uploaded $uploaded_shifts shifts.";UserId, $notifMessage, "schedule");
                         if ($failed_shifts > 0) $message .= " Failed: $failed_shifts shifts.";
                     } else {
                         $error = "No shifts uploaded. Check file format or user/role matching.";
                     }
                 }
-            }
-        }
-    } catch (Exception $e) {
-        $error = "Error: " . $e->getMessage();
+            }               $debug[] = "Invalid shift format: '$shiftCell' (Row $rowIndex, Col $col)";
+        }               }
+    } catch (Exception $e) {               }
+        $error = "Error: " . $e->getMessage();               }
         $debug[] = "Exception: " . $e->getMessage();
         $debug[] = "Stack trace: " . $e->getTraceAsString();
-    }
+    }===================
 }
-?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+?>     // ================================================
+d_shifts > 0) {
+<!DOCTYPE html>               $message = "Successfully uploaded $uploaded_shifts shifts.";
+<html lang="en">                        if ($failed_shifts > 0) $message .= " Failed: $failed_shifts shifts.";
+<head>lse {
+    <meta charset="UTF-8">        $error = "No shifts uploaded. Check file format or user/role matching.";
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">              }
     <title>Upload Shifts</title>
     <link rel="stylesheet" href="../css/upload_shift.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Upload Shifts</h1>
-        <a href="admin_dashboard.php" class="action-button">Back to Dashboard</a>
+    <div class="container">->getMessage();
+        <h1>Upload Shifts</h1>getMessage();
+        <a href="admin_dashboard.php" class="action-button">Back to Dashboard</a>g();
 
         <?php if (isset($installation_message)): ?>
-            <div class="error-message"><?php echo $installation_message; ?></div>
+            <div class="error-message"><?php echo $installation_message; ?></div>?>
         <?php else: ?>
             <?php if (!empty($message)): ?>
                 <div class="success-message">
                     <p><?php echo htmlspecialchars($message); ?></p>
                 </div>
-            <?php endif; ?>
+            <?php endif; ?>=1.0">
 
             <?php if (!empty($error)): ?>
                 <div class="error-message">
-                    <p><?php echo htmlspecialchars($error); ?></p>
-                </div>
-            <?php endif; ?>
-
+                    <p><?php echo htmlspecialchars($error); ?></p><body>
+                </div>    <div class="container">
+            <?php endif; ?>        <h1>Upload Shifts</h1>
+        <a href="admin_dashboard.php" class="action-button">Back to Dashboard</a>
             <?php if (!empty($debug)): ?>
-                <div class="debug-output">
-                    <h3>Debug Details</h3>
-                    <ul>
-                        <?php foreach ($debug as $line): ?>
-                            <li><?php echo htmlspecialchars($line); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
+                <div class="debug-output">        <?php if (isset($installation_message)): ?>
+                    <h3>Debug Details</h3>            <div class="error-message"><?php echo $installation_message; ?></div>
+                    <ul>        <?php else: ?>
+                        <?php foreach ($debug as $line): ?>            <?php if (!empty($message)): ?>
+                            <li><?php echo htmlspecialchars($line); ?></li>                <div class="success-message">
+                        <?php endforeach; ?>                    <p><?php echo htmlspecialchars($message); ?></p>
+                    </ul>                </div>
+                </div>            <?php endif; ?>
             <?php endif; ?>
-
-            <form method="POST" enctype="multipart/form-data">
-                <p>
-                    <label for="shift_file">Select Excel File:</label>
-                    <input type="file" name="shift_file" id="shift_file" accept=".xls,.xlsx" required>
+            <?php if (!empty($error)): ?>
+            <form method="POST" enctype="multipart/form-data">                <div class="error-message">
+                <p>                    <p><?php echo htmlspecialchars($error); ?></p>
+                    <label for="shift_file">Select Excel File:</label>                </div>
+                    <input type="file" name="shift_file" id="shift_file" accept=".xls,.xlsx" required>            <?php endif; ?>
                 </p>
-                <p>
-                    <button type="submit">Upload Shifts</button>
-                </p>
-            </form>
-            
-            <div class="template-info">
-                <h3>File Format Requirements</h3>
-                <ul>
-                    <li>Excel file (.xls or .xlsx) with the week start date in cell A1 (format: "W/C dd/mm/yyyy")</li>
-                    <li>Days of the week in row 2, columns B-H</li>
+                <p>            <?php if (!empty($debug)): ?>
+                    <button type="submit">Upload Shifts</button>                <div class="debug-output">
+                </p>                    <h3>Debug Details</h3>
+            </form>                    <ul>
+                                    <?php foreach ($debug as $line): ?>
+            <div class="template-info">                            <li><?php echo htmlspecialchars($line); ?></li>
+                <h3>File Format Requirements</h3>                        <?php endforeach; ?>
+                <ul>                    </ul>
+                    <li>Excel file (.xls or .xlsx) with the week start date in cell A1 (format: "W/C dd/mm/yyyy")</li>                </div>
+                    <li>Days of the week in row 2, columns B-H</li>            <?php endif; ?>
                     <li>Employee names in column A in format "LastInitial, FirstName - Role" (e.g., "B, Christine - Manager")</li>
-                    <li>Shifts in format "HH:MM - HH:MM (Location)" (e.g., "09:00 - 17:00 (Main Office)")</li>
-                </ul>
-            </div>
-        <?php endif; ?>
-    </div>
-</body>
+                    <li>Shifts in format "HH:MM - HH:MM (Location)" (e.g., "09:00 - 17:00 (Main Office)")</li>            <form method="POST" enctype="multipart/form-data">
+                </ul>                <p>
+            </div>                    <label for="shift_file">Select Excel File:</label>
+        <?php endif; ?>                    <input type="file" name="shift_file" id="shift_file" accept=".xls,.xlsx" required>
+    </div>                </p>
+</body>                <p>
 </html>
