@@ -26,7 +26,7 @@ if (isset($_SESSION['user_id'])) {
     <link rel="manifest" href="/rota-app-main/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Open Rota - Manage Your Work Schedule</title>
     <style>
         @font-face {
@@ -206,6 +206,7 @@ if (isset($_SESSION['user_id'])) {
         });
     }
 </script>
+<script src="/rota-app-main/js/pwa-debug.js"></script>
 <script src="/rota-app-main/js/links.js"></script>
 
 </html>

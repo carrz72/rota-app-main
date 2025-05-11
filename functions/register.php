@@ -40,8 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <link rel="apple-touch-icon" href="/rota-app-main/images/logo.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Register - Rota App</title>
     <link rel="stylesheet" href="../css/loginandregister.css">
 </head>
@@ -87,6 +86,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
     </script>
+    <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
 </body>
 

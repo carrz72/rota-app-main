@@ -30,6 +30,8 @@ if ($user_id) {
         media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
     <link rel="apple-touch-startup-image" href="/rota-app-main/images/splash-1242x2208.png"
         media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <script src="/rota-app-main/js/pwa-debug.js"></script>
 </head>
 
 <body>
@@ -160,6 +162,7 @@ if ($user_id) {
 
 
     </script>
+    <script src="/rota-app-main/js/links.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
 </body>
 
