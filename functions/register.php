@@ -34,20 +34,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Open Rota">
-<link rel="apple-touch-icon" href="/rota-app-main/images/logo.png">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Open Rota">
+    <link rel="apple-touch-icon" href="/rota-app-main/images/logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Rota App</title>
     <link rel="stylesheet" href="../css/loginandregister.css">
 </head>
+
 <body>
     <div class="register-container">
         <h2>Register</h2>
-        <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+        <?php if (isset($error))
+            echo "<p class='error'>$error</p>"; ?>
         <form action="register.php" method="POST">
             <input type="text" name="username" placeholder="Username" required>
             <input type="email" id="email" name="email" placeholder="Email" required>
@@ -59,7 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <p>Already have an account? <a href="login.php">Login</a></p>
     </div>
     <script>
-        document.getElementById("email").addEventListener("keyup", function() {
+        document.getElementById("email").addEventListener("keyup", function () {
             let email = this.value;
             let status = document.getElementById("email-status");
 
@@ -81,6 +84,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 xhr.send("email=" + encodeURIComponent(email));
             }
         });
+
+
     </script>
+    <script src="/rota-app-main/js/links.js"></script>
 </body>
+
 </html>

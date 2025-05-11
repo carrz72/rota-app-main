@@ -1,7 +1,7 @@
 <?php
 if (isset($_SESSION['user_id'])) {
     header("Location: ../users/dashboard.php");
-    exit; 
+    exit;
 }
 require '../includes/auth.php';
 
@@ -9,11 +9,11 @@ require '../includes/auth.php';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
-    
+
     $stmt = $conn->prepare("SELECT id, username, password, role FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if ($user && password_verify($password, $user['password'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];  // ✅ Store username in session
@@ -30,43 +30,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Open Rota">
-  <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="/rota-app-main/manifest.json">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <title>Login - Rota App</title>
-  <link rel="stylesheet" href="../css/loginandregister.css">
+    <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Open Rota">
+    <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/rota-app-main/manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>Login - Rota App</title>
+    <link rel="stylesheet" href="../css/loginandregister.css">
 </head>
+
 <body>
     <div class="login-container">
         <h2>Login</h2>
-        <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+        <?php if (isset($error))
+            echo "<p class='error'>$error</p>"; ?>
         <form action="login.php" method="POST">
             <input type="email" name="email" placeholder="Email" required>
             <input type="password" name="password" placeholder="Password" required>
             <div class="btn">
-            <button class="button1" type="submit">Login</button>
-            <a class="button2" href="../functions/register.php">Sign up</a>
+                <button class="button1" type="submit">Login</button>
+                <a class="button2" href="../functions/register.php">Sign up</a>
             </div>
-        <a class="button3" href="../functions/forgot_password.php">Reset Password</a>
+            <a class="button3" href="../functions/forgot_password.php">Reset Password</a>
         </form>
-        
+
     </div>
 </body>
 <script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/rota-app-main/service-worker.js")
-        .then(registration => {
-            console.log("Service Worker registered with scope:", registration.scope);
-        })
-        .catch(error => {
-            console.log("Service Worker registration failed:", error);
-        });
-}
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/rota-app-main/service-worker.js")
+            .then(registration => {
+                console.log("Service Worker registered with scope:", registration.scope);
+            })
+            .catch(error => {
+                console.log("Service Worker registration failed:", error);
+            });
+    }
 </script>
+<script src="/rota-app-main/js/links.js"></script>
+
 </html>

@@ -10,79 +10,40 @@ if (isset($_SESSION['user_id'])) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Open Rota">
-  <link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
-  <link rel="manifest" href="/rota-app-main/manifest.json">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Open Rota">
+    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
+    <link rel="manifest" href="/rota-app-main/manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rota App - Manage Your Work Schedule</title>
-    <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
-   
-
     <main class="landing-container">
-        <section class="hero-section">
-            <h1>Welcome to Open Rota</h1>
-            <p>The easiest way to manage your work schedule and shifts</p>
-            
-            <div class="cta-buttons">
-            <a href="functions/login.php" class="btn" onclick="window.location=this.href; return false;">Log In</a>               
-                <a href="functions/register.php" class="btn btn-secondary">Sign Up</a>
-            </div>
-        </section>
-        
-        <div class="features">
-            <div class="feature-card">
-                <h3>Shift Management</h3>
-                <p>Easily view and manage your upcoming shifts. Get notified about schedule changes instantly.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3>Role Settings</h3>
-                <p>Configure your work roles with custom pay rates, night shift settings, and more.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3>Earnings Tracker</h3>
-                <p>Keep track of your earnings with our intuitive dashboard that calculates your income based on shifts.</p>
-            </div>
-        </div>
+        <!-- Your landing page content -->
     </main>
-
-   
-
-
 </body>
-<script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/rota-app-main/service-worker.js")
-        .then(registration => {
-            console.log("Service Worker registered with scope:", registration.scope);
-        })
-        .catch(error => {
-            console.log("Service Worker registration failed:", error);
-        });
-        function isStandalone() {
-        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        if (isStandalone()) {
-            const links = document.querySelectorAll('a');
-            links.forEach(link => {
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    window.open(link.href, '_blank');
+<!-- Keep service worker registration -->
+<script>
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+            navigator.serviceWorker.register("/rota-app-main/service-worker.js")
+                .then(function (registration) {
+                    console.log("ServiceWorker registration successful");
+                })
+                .catch(function (error) {
+                    console.log("ServiceWorker registration failed: ", error);
                 });
-            });
-        }
-    });
-}
+        });
+    }
 </script>
+<script src="/rota-app-main/js/links.js"></script>
+
 </html>
