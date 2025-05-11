@@ -80,7 +80,7 @@ if ($user_id) {
         </div>
 
     </header>
-    <script src="/rota-app-main/js/menu.js"></script>
+    <script src="../js/menu.js"></script>
     <script>
         // Ensure the DOM is fully loaded before attaching the event listener
         document.addEventListener('DOMContentLoaded', function () {
@@ -152,9 +152,18 @@ if ($user_id) {
             return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         }
 
-
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isStandalone()) {
+                const links = document.querySelectorAll('a');
+                links.forEach(link => {
+                    link.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        window.open(link.href, '_blank');
+                    });
+                });
+            }
+        });
     </script>
-    <script src="/rota-app-main/js/links.js"></script>
 </body>
 
 </html>
