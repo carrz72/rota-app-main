@@ -1,6 +1,6 @@
 /**
  * Enhanced navigation handler for Progressive Web App (PWA) standalone mode
- * Ensures the app stays in standalone mode during page navigation
+ * With special handling for iOS devices
  */
 function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches ||
@@ -13,7 +13,7 @@ function setupStandaloneNavigation() {
 
     console.log('[PWA] Running in standalone mode - applying navigation handlers');
 
-    // 1. Handle all link clicks
+    // 1. Handle all link clicks with iOS-specific approach
     document.querySelectorAll('a').forEach(link => {
         if (!link.hasAttribute('data-standalone-handled')) {
             link.setAttribute('data-standalone-handled', 'true');
@@ -30,7 +30,12 @@ function setupStandaloneNavigation() {
     });
 }
 
-// Handle link clicks
+// Special handling for iOS devices
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+// Handle link clicks with iOS-specific approach
 function handleLinkClick(event) {
     // Skip links that should open in new windows/tabs
     if (this.target === '_blank') return;
@@ -48,10 +53,16 @@ function handleLinkClick(event) {
 
     event.preventDefault();
     console.log('[PWA] Navigating to:', href);
-    location.href = href;
+
+    // Use window.location.replace() for iOS devices
+    if (isIOS()) {
+        window.location.replace(href);
+    } else {
+        location.href = href;
+    }
 }
 
-// Handle form submissions
+// Handle form submissions with iOS-specific approach
 function handleFormSubmit(event) {
     const form = event.target;
     const method = (form.getAttribute('method') || 'get').toLowerCase();
@@ -69,9 +80,16 @@ function handleFormSubmit(event) {
         const action = form.getAttribute('action') || '';
         const formData = new FormData(form);
         const queryString = new URLSearchParams(formData).toString();
-        location.href = action + (action.includes('?') ? '&' : '?') + queryString;
+        const url = action + (action.includes('?') ? '&' : '?') + queryString;
+
+        // Use window.location.replace() for iOS devices
+        if (isIOS()) {
+            window.location.replace(url);
+        } else {
+            location.href = url;
+        }
     } else {
-        // Use fetch for POST forms
+        // Use Fetch API approach for POST forms
         fetch(form.action, {
             method: 'POST',
             body: new FormData(form),
@@ -79,7 +97,12 @@ function handleFormSubmit(event) {
         })
             .then(response => {
                 if (response.redirected) {
-                    window.location.href = response.url;
+                    // Use window.location.replace() for iOS devices
+                    if (isIOS()) {
+                        window.location.replace(response.url);
+                    } else {
+                        window.location.href = response.url;
+                    }
                 } else {
                     return response.text();
                 }
@@ -89,25 +112,23 @@ function handleFormSubmit(event) {
                     document.open();
                     document.write(html);
                     document.close();
-                    // Re-setup navigation handlers after writing new content
                     setupStandaloneNavigation();
                 }
             })
             .catch(error => {
                 console.error('[PWA] Form submission error:', error);
-                // Fall back to normal form submission
                 form.submit();
             });
     }
 }
 
-// Run on page load
-document.addEventListener('DOMContentLoaded', setupStandaloneNavigation);
-
-// For Apple devices, execute immediately (don't wait for DOMContentLoaded)
-if (window.navigator.standalone) {
+// Run IMMEDIATELY for iOS devices
+if (isIOS() && isStandalone()) {
     setupStandaloneNavigation();
 }
+
+// Also run on DOMContentLoaded for all devices
+document.addEventListener('DOMContentLoaded', setupStandaloneNavigation);
 
 // Set up a mutation observer to handle dynamically added links and forms
 const observer = new MutationObserver(mutations => {
