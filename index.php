@@ -1,6 +1,12 @@
 <?php
 session_start();
 
+// Force HTTPS for better PWA compatibility
+if (!isset($_SERVER['HTTPS']) && $_SERVER['HTTP_HOST'] !== 'localhost') {
+    header("Location: https://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+    exit();
+}
+
 // Redirect if user is already logged in
 if (isset($_SESSION['user_id'])) {
     header("Location: users/dashboard.php");

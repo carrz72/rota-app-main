@@ -63,6 +63,7 @@ function handleFormSubmit(event) {
     if (form.querySelector('input[type="file"]')) return;
 
     event.preventDefault();
+    console.log('[PWA] Handling form submission:', method.toUpperCase(), form.action);
 
     if (method === 'get') {
         const action = form.getAttribute('action') || '';
@@ -88,6 +89,8 @@ function handleFormSubmit(event) {
                     document.open();
                     document.write(html);
                     document.close();
+                    // Re-setup navigation handlers after writing new content
+                    setupStandaloneNavigation();
                 }
             })
             .catch(error => {
@@ -100,6 +103,11 @@ function handleFormSubmit(event) {
 
 // Run on page load
 document.addEventListener('DOMContentLoaded', setupStandaloneNavigation);
+
+// For Apple devices, execute immediately (don't wait for DOMContentLoaded)
+if (window.navigator.standalone) {
+    setupStandaloneNavigation();
+}
 
 // Set up a mutation observer to handle dynamically added links and forms
 const observer = new MutationObserver(mutations => {
@@ -126,5 +134,4 @@ const observer = new MutationObserver(mutations => {
 });
 
 // Start observing the document with the configured parameters
-
-observer.observe(document.body, { childList: true, subtree: true }); observer.observe(document.body, { childList: true, subtree: true });
+observer.observe(document.body, { childList: true, subtree: true });

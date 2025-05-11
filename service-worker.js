@@ -17,12 +17,23 @@ self.addEventListener("install", event => {
     );
 });
 
-self.addEventListener("fetch", event => {
-    event.respondWith(
-        caches.match(event.request).then(response => {
-            return response || fetch(event.request);
-        })
-    );
+self.addEventListener('fetch', event => {
+    // For navigation requests, try the network first, falling back to the cache
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request).catch(error => {
+                console.log('Fetch failed; returning offline page instead.', error);
+                return caches.match(event.request);
+            })
+        );
+    } else {
+        // For non-navigation requests, use the cache-first strategy
+        event.respondWith(
+            caches.match(event.request).then(response => {
+                return response || fetch(event.request);
+            })
+        );
+    }
 });
 
 self.addEventListener("activate", event => {
