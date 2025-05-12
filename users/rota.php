@@ -839,6 +839,49 @@ if ($period === 'week') {
         });
     </script>
     
+    <script>
+    // Chrome-specific navigation fix for rota page links
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fix the dashboard link specifically
+        const dashboardLink = document.querySelector('.nav-links ul li a[href="../users/dashboard.php"]');
+        if (dashboardLink) {
+            // Fix the path issue - make the path direct to ensure it works
+            dashboardLink.href = "/rota-app-main/users/dashboard.php";
+            
+            // Add specific click handler for this troublesome link
+            dashboardLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = "/rota-app-main/users/dashboard.php";
+                console.log('Dashboard link clicked, navigating to', this.href);
+            });
+            
+            // Visual indicator that this link has been fixed
+            dashboardLink.style.borderLeft = "3px solid white";
+        } else {
+            // If we can't find the exact link, let's fix all links that contain "dashboard"
+            document.querySelectorAll('.nav-links ul li a').forEach(link => {
+                if (link.textContent.toLowerCase().includes('dashboard')) {
+                    link.href = "/rota-app-main/users/dashboard.php";
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.location.href = "/rota-app-main/users/dashboard.php";
+                    });
+                    link.style.borderLeft = "3px solid white";
+                }
+            });
+        }
+        
+        // Fix navigation menu links
+        const navLinks = document.querySelectorAll('.nav-links ul li a');
+        navLinks.forEach(link => {
+            link.style.backgroundColor = '#fd2b2b';
+            link.style.color = '#ffffff';
+        });
+    });
+    </script>
+
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
