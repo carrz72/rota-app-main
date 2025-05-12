@@ -28,7 +28,7 @@ if ($user_id) {
 </head>
 
 <body>
-    <header>
+    <header style="opacity: 0; transition: opacity 0.5s ease;">
         <div class="logo">Open Rota.</div>
         <div class="nav-group">
 
@@ -69,21 +69,21 @@ if ($user_id) {
             </div>
             <nav class="nav-links" id="nav-links">
                 <ul>
-                    <li><a href="/rota-app-main/users/dashboard.php">Dashboard</a></li>
-                    <li><a href="/rota-app-main/users/shifts.php">My Shifts</a></li>
-                    <li><a href="/rota-app-main/users/rota.php">Rota</a></li>
-                    <li><a href="/rota-app-main/users/roles.php">Roles</a></li>
-                    <li><a href="/rota-app-main/users/settings.php">Settings</a></li>
-                    <li><a href="/rota-app-main/functions/logout.php">Logout</a></li>
+                    <li><a href="../users/dashboard.php">Dashboard</a></li>
+                    <li><a href="shifts.php">My Shifts</a></li>
+                    <li><a href="rota.php">Rota</a></li>
+                    <li><a href="roles.php">Roles</a></li>
+                    <li><a href="../users/settings.php">Settings</a></li>
+                    <li><a href="../functions/logout.php">Logout</a></li>
                 </ul>
             </nav>
 
         </div>
 
     </header>
-    <script src="/rota-app-main/js/menu.js"></script>
+    <script src="../js/menu.js"></script>
     <script>
-        // Notification handling
+        // Ensure the DOM is fully loaded before attaching the event listener
         document.addEventListener('DOMContentLoaded', function () {
             var notificationIcon = document.getElementById('notification-icon');
             var dropdown = document.getElementById('notification-dropdown');
@@ -105,18 +105,15 @@ if ($user_id) {
                     dropdown.style.display = "none";
                 }
             });
-
-            // Special fix for Safari - make sure nav links have the right color
-            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-            if (isSafari) {
-                const navLinks = document.querySelectorAll('.nav-links ul li a');
-                navLinks.forEach(link => {
-                    link.style.backgroundColor = '#fd2b2b';
-                    link.style.color = '#ffffff';
-                });
-            }
         });
+    </script>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelector('header').style.opacity = "1";
+        });
+    </script>
+    <script>
         function markAsRead(notificationElem) {
             var notifId = notificationElem.getAttribute('data-id');
             if (!notifId) return;
@@ -166,6 +163,17 @@ if ($user_id) {
                     });
                 });
             }
+        });
+    </script>
+    <script>
+        // Add this to ensure consistent styling
+        document.addEventListener('DOMContentLoaded', function () {
+            // Make sure nav menu links have the right background
+            const navLinks = document.querySelectorAll('.nav-links ul li a');
+            navLinks.forEach(link => {
+                link.style.backgroundColor = '#fd2b2b';
+                link.style.color = '#ffffff';
+            });
         });
     </script>
 </body>
