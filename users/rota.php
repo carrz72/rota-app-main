@@ -402,7 +402,6 @@ if ($period === 'week') {
             }
             
             .filter-row a.btn {
-                width: 100%;
                 margin-bottom: 5px;
             }
             
