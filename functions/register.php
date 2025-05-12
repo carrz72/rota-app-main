@@ -199,7 +199,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         .input-with-icon i {
-            position: absolute;
             left: 15px;
             top: 50%;
             transform: translateY(-50%);
@@ -436,8 +435,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </a>
 
         <div class="app-logo">
-            <img src="/rota-app-main/images/logo.png" alt="Open Rota Logo"
-                onerror="this.src='/rota-app-main/images/icon.png'; this.onerror='';">
+            <img src="../images/logo.png" alt="Open Rota Logo"
+                onerror="this.src='../images/icon.png'; this.onerror='';">
         </div>
         <h2>Create Account</h2>
 

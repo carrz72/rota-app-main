@@ -337,8 +337,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="login-container">
         <div class="app-logo">
-            <img src="/rota-app-main/images/logo.png" alt="Open Rota Logo"
-                onerror="this.src='/rota-app-main/images/icon.png'; this.onerror='';">
+            <img src="../images/logo.png" alt="Open Rota Logo"
+                onerror="this.src='../images/icon.png'; this.onerror='';">
         </div>
         <h2>Welcome Back</h2>
 
