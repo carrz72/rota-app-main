@@ -1,0 +1,123 @@
+/* Global Navigation Styles */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: transparent;
+  color: #000;
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+.nav-group {
+  display: flex;
+  align-items: center;
+}
+
+.menu-toggle {
+  font-size: 1.8em;
+  cursor: pointer;
+  display: block;
+  z-index: 1001;
+  padding: 5px;
+}
+
+.menu-toggle:hover {
+  transition: 0.4s;
+  transform: translateX(2px);
+}
+
+/* Navigation Menu */
+.nav-links {
+  display: none;
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  background: #ffffff;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.nav-links.show {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+.nav-links ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-links ul li {
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links ul li a {
+  display: block;
+  padding: 12px 20px;
+  color: #ffffff;
+  background-color: #fd2b2b;
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 1px solid #eee;
+}
+
+.nav-links ul li:last-child a {
+  border-bottom: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Notification styles */
+.notification-container {
+  position: relative;
+  display: inline-block;
+  margin-right: 15px;
+}
+
+.notification-icon {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.notification-dropdown {
+  display: none;
+  position: absolute;
+  top: 30px;
+  right: 0;
+  background-color: #fff;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  z-index: 1000;
+}
