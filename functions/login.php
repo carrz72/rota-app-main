@@ -2,6 +2,7 @@
 session_start();
 require_once '../includes/db.php';
 
+// If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
     header("Location: ../users/dashboard.php");
     exit;
@@ -12,41 +13,62 @@ if (isset($_COOKIE['remember_email'])) {
     $remember_email = $_COOKIE['remember_email'];
 }
 
+$error = '';
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = $_POST['email'];
-    $password = $_POST['password'];
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
     $remember = isset($_POST['remember']) ? $_POST['remember'] : '';
 
-    // Set or delete remember me cookie
-    if ($remember) {
-        setcookie('remember_email', $email, time() + (86400 * 30), "/"); // 30 days
-    } else {
-        setcookie('remember_email', "", time() - 3600, "/"); // Delete cookie
-    }
+    try {
+        // Set or delete remember me cookie
+        if ($remember) {
+            setcookie('remember_email', $email, time() + (86400 * 30), "/"); // 30 days
+        } else {
+            setcookie('remember_email', "", time() - 3600, "/"); // Delete cookie
+        }
 
-    $stmt = $conn->prepare("SELECT id, username, password, role FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt = $conn->prepare("SELECT id, username, password, role FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role'] = $user['role'];
+        if ($user && password_verify($password, $user['password'])) {
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
 
-        // Record login for history
-        $ip = $_SERVER['REMOTE_ADDR'];
-        $user_agent = $_SERVER['HTTP_USER_AGENT'];
-        $stmt = $conn->prepare("INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
-        $stmt->execute([$user['id'], $ip, $user_agent]);
+            // Record login for history
+            $ip = $_SERVER['REMOTE_ADDR'];
+            $user_agent = $_SERVER['HTTP_USER_AGENT'];
+            $stmt = $conn->prepare("INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
+            $stmt->execute([$user['id'], $ip, $user_agent]);
 
-        header("Location: ../users/dashboard.php");
-        exit;
-    } else {
-        $error = "Invalid email or password.";
+            // Use an absolute path for redirect and ensure no output before this
+            $redirect_url = "../users/dashboard.php";
+
+            // Make sure nothing has been output yet
+            if (!headers_sent()) {
+                header("Location: $redirect_url");
+                exit;
+            } else {
+                // JavaScript fallback redirect if headers already sent
+                echo "<script>window.location.href = '$redirect_url';</script>";
+                echo "If you are not redirected, <a href='$redirect_url'>click here</a>";
+                exit;
+            }
+        } else {
+            $error = "Invalid email or password.";
+        }
+    } catch (Exception $e) {
+        $error = "A system error occurred. Please try again later.";
+        // Log the actual error for admins
+        error_log("Login error: " . $e->getMessage());
     }
 }
-?>
 
+// Start output buffering to ensure no whitespace before headers
+ob_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -342,9 +364,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
         <h2>Welcome Back</h2>
 
-        <?php if (isset($error)): ?>
+        <?php if (!empty($error)): ?>
             <div class="error-message">
-                <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
+                <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
             </div>
         <?php endif; ?>
 
@@ -421,7 +443,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         });
     </script>
 
-    <script src="/rota-app-main/js/pwa-debug.js"></script>
+    <script src="../js/pwa-debug.js"></script>
 </body>
 
 </html>
+<?php
+// End output buffering and send all output to browser
+ob_end_flush();
+?>
