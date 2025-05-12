@@ -66,7 +66,7 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>Full Rota</title>
     <link rel="stylesheet" href="../css/rota.css">
     <style>
-        /* Navigation menu styling to match other pages */
+        /* Navigation menu styling consistent with shifts page */
         .nav-links {
             display: none;
             position: absolute;

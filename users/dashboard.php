@@ -187,7 +187,7 @@ foreach ($days_result as $day) {
             transform: translateX(2px);
         }
 
-        /* Navigation Menu - consistent with shifts page */
+        /* Navigation Menu - exact match with other pages */
         .nav-links {
             display: none;
             position: absolute;
@@ -197,6 +197,7 @@ foreach ($days_result as $day) {
             border-radius: 5px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             z-index: 1000;
+            overflow: hidden;
         }
 
         .nav-links.show {
@@ -213,6 +214,7 @@ foreach ($days_result as $day) {
         .nav-links ul li {
             margin: 0;
             padding: 0;
+            display: block;
         }
 
         .nav-links ul li a {
@@ -224,22 +226,17 @@ foreach ($days_result as $day) {
             white-space: nowrap;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 14px;
+            transition: background-color 0.3s ease;
         }
 
         .nav-links ul li:last-child a {
             border-bottom: none;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .nav-links ul li a:hover {
+            background-color: #c82333 !important;
+            transform: translateY(0);
+            box-shadow: none;
         }
 
         /* Welcome card adjustments */
@@ -969,6 +966,17 @@ foreach ($days_result as $day) {
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
+    <script>
+        // Add at the bottom of the body before the closing </body> tag
+        document.addEventListener('DOMContentLoaded', function () {
+            // Fix navigation menu links specifically for Chrome
+            const navLinks = document.querySelectorAll('.nav-links ul li a');
+            navLinks.forEach(link => {
+                link.style.backgroundColor = '#fd2b2b';
+                link.style.color = '#ffffff';
+            });
+        });
+    </script>
 </body>
 
 </html>
