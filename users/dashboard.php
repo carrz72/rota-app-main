@@ -218,7 +218,8 @@ foreach ($days_result as $day) {
         .nav-links ul li a {
             display: block;
             padding: 12px 20px;
-            color: #333;
+            color: white;
+            /* Changed from #333 to white */
             text-decoration: none;
             white-space: nowrap;
             border-bottom: 1px solid #eee;
