@@ -6,6 +6,7 @@ require_once '../includes/db.php';
 
 // Determine filtering period from GET parameters (default to week)
 $period = $_GET['period'] ?? 'week';
+$view = $_GET['view'] ?? 'list'; // Add view option: list or calendar
 
 // Set up filtering conditions and variables
 if ($period === 'week') {
@@ -36,6 +37,37 @@ if ($period === 'week') {
     $bindings = [':weekStart' => $weekStart];
 }
 
+// Get all available roles for filter
+$roleStmt = $conn->prepare("SELECT id, name FROM roles ORDER BY name");
+$roleStmt->execute();
+$allRoles = $roleStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get all locations for filter
+$locationStmt = $conn->prepare("SELECT DISTINCT location FROM shifts ORDER BY location");
+$locationStmt->execute();
+$allLocations = $locationStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Add filters for role and location
+$roleFilter = $_GET['role_filter'] ?? '';
+$locationFilter = $_GET['location_filter'] ?? '';
+
+// Modify the SQL query to include filters
+$filterConditions = [];
+if ($roleFilter) {
+    $filterConditions[] = "r.id = :role_id";
+    $bindings[':role_id'] = $roleFilter;
+}
+if ($locationFilter) {
+    $filterConditions[] = "s.location = :location";
+    $bindings[':location'] = $locationFilter;
+}
+
+// Combine all filter conditions
+$sql = "WHERE $periodSql";
+if (!empty($filterConditions)) {
+    $sql .= " AND " . implode(" AND ", $filterConditions);
+}
+
 // Query shifts for ALL users for the selected period
 $query = "
     SELECT s.*, u.username, r.name AS role_name, r.base_pay, r.has_night_pay, 
@@ -43,15 +75,64 @@ $query = "
     FROM shifts s
     JOIN users u ON s.user_id = u.id
     JOIN roles r ON s.role_id = r.id
-    WHERE $periodSql
+    $sql
     ORDER BY s.shift_date ASC, s.start_time ASC
 ";
+
 $stmt = $conn->prepare($query);
 foreach ($bindings as $param => $value) {
     $stmt->bindValue($param, $value);
 }
 $stmt->execute();
 $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get all role colors for styling shifts by role
+$roleColors = [
+    'default' => '#fd2b2b', // Default red
+    'Manager' => '#3366cc', // Blue
+    'Assistant Manager' => '#109618', // Green
+    'Supervisor' => '#ff9900', // Orange
+    'CSA' => '#990099', // Purple
+    'Customer Service Associate' => '#990099', // Purple
+    'Barista' => '#0099c6', // Teal
+    'Server' => '#dd4477', // Pink
+    'Cook' => '#66aa00', // Lime
+    'Host' => '#b82e2e', // Dark Red
+    'Dishwasher' => '#316395', // Dark Blue
+];
+
+// Helper function to organize shifts by date for calendar view
+function organizeShiftsByDate($shifts) {
+    $organized = [];
+    foreach ($shifts as $shift) {
+        $date = $shift['shift_date'];
+        if (!isset($organized[$date])) {
+            $organized[$date] = [];
+        }
+        $organized[$date][] = $shift;
+    }
+    return $organized;
+}
+
+// Organize shifts by date
+$shiftsByDate = organizeShiftsByDate($shifts);
+
+// Generate dates for the current period for calendar view
+$calendarDates = [];
+if ($period === 'week') {
+    for ($i = 0; $i < 7; $i++) {
+        $date = date('Y-m-d', strtotime("$weekStart +$i days"));
+        $calendarDates[] = $date;
+    }
+} elseif ($period === 'month') {
+    $firstDay = date('Y-m-01', strtotime("$year-$month-01"));
+    $lastDay = date('Y-m-t', strtotime("$year-$month-01"));
+    $currentDate = $firstDay;
+    while ($currentDate <= $lastDay) {
+        $calendarDates[] = $currentDate;
+        $currentDate = date('Y-m-d', strtotime("$currentDate +1 day"));
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -66,7 +147,7 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>Full Rota</title>
     <link rel="stylesheet" href="../css/rota.css">
     <style>
-        /* Navigation menu styling consistent with shifts page */
+        /* Navigation menu styling specific to rota page */
         .nav-links {
             display: none;
             position: absolute;
@@ -105,17 +186,188 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
             white-space: nowrap;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 14px;
-            transition: background-color 0.3s ease;
         }
 
         .nav-links ul li:last-child a {
             border-bottom: none;
         }
 
-        .nav-links ul li a:hover {
-            background-color: #c82333 !important;
-            transform: translateY(0);
-            box-shadow: none;
+        /* Enhanced Filter Section */
+        .filter-section {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .filter-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .view-toggle button {
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .view-toggle button.active {
+            background-color: #fd2b2b;
+            color: white;
+            border-color: #fd2b2b;
+        }
+
+        /* Calendar View Styles */
+        .calendar-view {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .calendar-day {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 120px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .calendar-day-header {
+            background-color: #f5f5f5;
+            padding: 8px;
+            border-radius: 5px 5px 0 0;
+            margin: -10px -10px 10px -10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .calendar-day:empty {
+            background-color: #f9f9f9;
+        }
+
+        .day-number {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 25px;
+            height: 25px;
+            background-color: #fd2b2b;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Shift Card in Calendar */
+        .shift-card {
+            background-color: #f8f8f8;
+            border-left: 3px solid #fd2b2b;
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .shift-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .shift-time {
+            font-weight: bold;
+        }
+
+        .shift-user {
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shift-role {
+            font-style: italic;
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* Export Button */
+        .export-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-right: 10px;
+        }
+
+        .export-btn:hover {
+            background-color: #218838;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .calendar-view {
+                grid-template-columns: repeat(1, 1fr);
+            }
+
+            .export-btn {
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 10px;
+            }
+        }
+
+        @media (max-width: 992px) and (min-width: 769px) {
+            .calendar-view {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
 
         /* Safari-specific fixes */
@@ -124,36 +376,45 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 -webkit-transform: translateZ(0);
                 transform: translateZ(0);
             }
-
+            
             .nav-links ul li a {
                 -webkit-appearance: none;
                 padding: 12px 20px !important;
             }
-
+            
             @-webkit-keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    -webkit-transform: translateY(-10px);
-                    transform: translateY(-10px);
-                }
-
-                to {
-                    opacity: 1;
-                    -webkit-transform: translateY(0);
-                    transform: translateY(0);
-                }
+                from { opacity: 0; -webkit-transform: translateY(-10px); }
+                to { opacity: 1; -webkit-transform: translateY(0); }
             }
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Print-friendly styles */
+        @media print {
+            header, .filter-section, .view-toggle, .export-btn, button {
+                display: none !important;
             }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            
+            body, .container {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
+            
+            table {
+                width: 100% !important;
+                page-break-inside: auto !important;
+            }
+            
+            tr {
+                page-break-inside: avoid !important;
+                page-break-after: auto !important;
             }
         }
     </style>
@@ -162,108 +423,196 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <body>
     <div class="container">
         <h1>Full Rota</h1>
+        
+        <!-- Enhanced Filter Section -->
+        <div class="filter-section">
+            <form method="GET" id="filterForm">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="period">Time Period:</label>
+                        <select name="period" id="period" onchange="this.form.submit()">
+                            <option value="week" <?php echo ($period == 'week') ? 'selected' : ''; ?>>Week</option>
+                            <option value="month" <?php echo ($period == 'month') ? 'selected' : ''; ?>>Month</option>
+                            <option value="year" <?php echo ($period == 'year') ? 'selected' : ''; ?>>Year</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="role_filter">Filter by Role:</label>
+                        <select name="role_filter" id="role_filter" onchange="this.form.submit()">
+                            <option value="">All Roles</option>
+                            <?php foreach ($allRoles as $role): ?>
+                                <option value="<?php echo $role['id']; ?>" <?php echo ($roleFilter == $role['id']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($role['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="location_filter">Filter by Location:</label>
+                        <select name="location_filter" id="location_filter" onchange="this.form.submit()">
+                            <option value="">All Locations</option>
+                            <?php foreach ($allLocations as $location): ?>
+                                <option value="<?php echo $location['location']; ?>" <?php echo ($locationFilter == $location['location']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($location['location']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                
+                <?php if ($period === 'week'): ?>
+                    <div class="filter-group">
+                        <label for="weekStart">Week Starting:</label>
+                        <input type="date" name="weekStart" id="weekStart" value="<?php echo htmlspecialchars($weekStart); ?>" onchange="this.form.submit()">
+                        <span>Viewing week from <?php echo date('D, j M Y', strtotime($weekStart)); ?> to <?php echo date('D, j M Y', strtotime($weekEnd)); ?></span>
+                    </div>
+                <?php elseif ($period === 'month'): ?>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="month">Month:</label>
+                            <select name="month" id="month" onchange="this.form.submit()">
+                                <?php for ($m = 1; $m <= 12; $m++): ?>
+                                    <option value="<?php echo $m; ?>" <?php echo (($month ?? date('n')) == $m) ? 'selected' : ''; ?>>
+                                        <?php echo date("F", mktime(0, 0, 0, $m, 1)); ?>
+                                    </option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="year">Year:</label>
+                            <input type="number" name="year" id="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100" onchange="this.form.submit()">
+                        </div>
+                    </div>
+                <?php elseif ($period === 'year'): ?>
+                    <div class="filter-group">
+                        <label for="year">Year:</label>
+                        <input type="number" name="year" id="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100" onchange="this.form.submit()">
+                    </div>
+                <?php endif; ?>
+                
+                <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
+                <noscript><button type="submit" class="btn">Apply Filters</button></noscript>
+            </form>
 
-        <!-- Filtering Controls -->
-        <form method="GET">
-            <label for="period">Select period: </label>
-            <select name="period" id="period" onchange="this.form.submit()">
-                <option value="week" <?php echo ($period == 'week') ? 'selected' : ''; ?>>Week</option>
-                <option value="month" <?php echo ($period == 'month') ? 'selected' : ''; ?>>Month</option>
-                <option value="year" <?php echo ($period == 'year') ? 'selected' : ''; ?>>Year</option>
-            </select>
-            <?php if ($period === 'week'): ?>
-                <input type="date" name="weekStart" value="<?php echo htmlspecialchars($weekStart); ?>"
-                    onchange="this.form.submit()">
-                <span>Viewing week from <?php echo date('D, j M Y', strtotime($weekStart)); ?> to
-                    <?php echo date('D, j M Y', strtotime($weekEnd)); ?></span>
-            <?php elseif ($period === 'month'): ?>
-                <select name="month" onchange="this.form.submit()">
-                    <?php for ($m = 1; $m <= 12; $m++): ?>
-                        <option value="<?php echo $m; ?>" <?php echo (($month ?? date('n')) == $m) ? 'selected' : ''; ?>>
-                            <?php echo date("F", mktime(0, 0, 0, $m, 1)); ?>
-                        </option>
-                    <?php endfor; ?>
-                </select>
-                <input type="number" name="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100"
-                    onchange="this.form.submit()">
-                <span>Viewing <?php echo date("F", mktime(0, 0, 0, $month, 1)); ?>     <?php echo $year; ?></span>
-            <?php elseif ($period === 'year'): ?>
-                <input type="number" name="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100"
-                    onchange="this.form.submit()">
-
-                <span class="viewing">Viewing <?php echo $year; ?></span>
-            <?php endif; ?>
-            <noscript><button type="submit">Filter</button></noscript>
-
-        </form>
-
-        <!-- Navigation Buttons for Week Period -->
-        <?php if ($period === 'week'): ?>
-            <p>
-                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>">Previous
-                    Week</a> |
-                <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>">Current Week</a> |
-                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>">Next
-                    Week</a>
-            </p>
-        <?php endif; ?>
-
-        <?php if ($period === 'month'): ?>
-            <p>
-                <a
-                    href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>">Previous
-                    Month</a> |
-                <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>">Current Month</a> |
-                <a
-                    href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>">Next
-                    Month</a>
-            </p>
-        <?php endif; ?>
-
-        <?php if ($period === 'year'): ?>
-            <p>
-                <a href="?period=year&year=<?php echo $year - 1; ?>">Previous Year</a> |
-                <a href="?period=year&year=<?php echo date('Y'); ?>">Current Year</a> |
-                <a href="?period=year&year=<?php echo $year + 1; ?>">Next Year</a>
-            </p>
-        <?php endif; ?>
-
+            <!-- Period Navigation Buttons -->
+            <div class="filter-row">
+                <div>
+                    <?php if ($period === 'week'): ?>
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Previous Week</a>
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Current Week</a>
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Next Week</a>
+                    <?php elseif ($period === 'month'): ?>
+                        <a href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Previous Month</a>
+                        <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Current Month</a>
+                        <a href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Next Month</a>
+                    <?php elseif ($period === 'year'): ?>
+                        <a href="?period=year&year=<?php echo $year - 1; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Previous Year</a>
+                        <a href="?period=year&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Current Year</a>
+                        <a href="?period=year&year=<?php echo $year + 1; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Next Year</a>
+                    <?php endif; ?>
+                </div>
+                
+                <div>
+                    <button onclick="printRota()" class="export-btn"><i class="fa fa-print"></i> Print</button>
+                    <button onclick="exportToCSV()" class="export-btn"><i class="fa fa-file-excel-o"></i> Export</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- View Toggle Buttons -->
+        <div class="view-toggle">
+            <button onclick="switchView('list')" class="<?php echo $view === 'list' ? 'active' : ''; ?>">
+                <i class="fa fa-list"></i> List View
+            </button>
+            <button onclick="switchView('calendar')" class="<?php echo $view === 'calendar' ? 'active' : ''; ?>">
+                <i class="fa fa-calendar"></i> Calendar View
+            </button>
+        </div>
+        
         <?php if (!empty($shifts)): ?>
-            <section class="upcoming-shifts">
+            <!-- List View -->
+            <section class="upcoming-shifts" <?php echo $view === 'calendar' ? 'style="display:none;"' : ''; ?> id="list-view">
                 <h3>Shifts for Selected Period</h3>
                 <table>
                     <thead>
                         <tr>
                             <th>User</th>
-                            <th>Start Time</th>
-                            <th>End Time</th>
+                            <th>Date</th>
+                            <th>Time</th>
                             <th>Role</th>
                             <th>Location</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php
-                        $lastDate = '';
-                        foreach ($shifts as $shift):
+                        <?php 
+                        $lastDate = ''; 
+                        foreach ($shifts as $shift): 
                             $currentDate = date("Y-m-d", strtotime($shift['shift_date']));
-                            if ($currentDate !== $lastDate):
+                            $roleColor = $roleColors[$shift['role_name']] ?? $roleColors['default'];
+                            if ($currentDate !== $lastDate): 
                                 // Output a day separator row.
                                 $lastDate = $currentDate;
-                                ?>
-                                <tr class="day-separator">
-                                    <td colspan="5"><?php echo date("l, F j, Y", strtotime($shift['shift_date'])); ?></td>
-                                </tr>
-                            <?php endif; ?>
+                        ?>
+                            <tr class="day-separator">
+                                <td colspan="5"><?php echo date("l, F j, Y", strtotime($shift['shift_date'])); ?></td>
+                            </tr>
+                        <?php endif; ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($shift['username']); ?></td>
-                                <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?></td>
-                                <td><?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
-                                <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
+                                <td><?php echo date("D, j M", strtotime($shift['shift_date'])); ?></td>
+                                <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?> - <?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
+                                <td>
+                                    <span style="display:inline-block; width:12px; height:12px; background-color:<?php echo $roleColor; ?>; border-radius:50%; margin-right:5px;"></span>
+                                    <?php echo htmlspecialchars($shift['role_name']); ?>
+                                </td>
                                 <td><?php echo htmlspecialchars($shift['location']); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </section>
+            
+            <!-- Calendar View -->
+            <section id="calendar-view" <?php echo $view === 'list' ? 'style="display:none;"' : ''; ?>>
+                <h3>Calendar View</h3>
+                <div class="calendar-view">
+                    <?php 
+                    if ($period === 'week' || $period === 'month'): 
+                        foreach ($calendarDates as $date):
+                            $dayName = date('D', strtotime($date));
+                            $dayNumber = date('j', strtotime($date));
+                            $isToday = date('Y-m-d') === $date;
+                    ?>
+                        <div class="calendar-day" <?php echo $isToday ? 'style="border: 2px solid #fd2b2b;"' : ''; ?>>
+                            <div class="calendar-day-header">
+                                <?php echo $dayName; ?>
+                                <span class="day-number"><?php echo $dayNumber; ?></span>
+                            </div>
+                            <?php if (isset($shiftsByDate[$date])): 
+                                foreach ($shiftsByDate[$date] as $shift): 
+                                    $roleColor = $roleColors[$shift['role_name']] ?? $roleColors['default'];
+                            ?>
+                                <div class="shift-card" style="border-left-color: <?php echo $roleColor; ?>;">
+                                    <div class="shift-time">
+                                        <?php echo date("g:i A", strtotime($shift['start_time'])); ?> - 
+                                        <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
+                                    </div>
+                                    <div class="shift-user"><?php echo htmlspecialchars($shift['username']); ?></div>
+                                    <div class="shift-role"><?php echo htmlspecialchars($shift['role_name']); ?></div>
+                                    <small><?php echo htmlspecialchars($shift['location']); ?></small>
+                                </div>
+                            <?php 
+                                endforeach; 
+                            endif; 
+                            ?>
+                        </div>
+                    <?php 
+                        endforeach;
+                    endif; 
+                    ?>
+                </div>
             </section>
         <?php else: ?>
             <p class="no-shifts">No shifts scheduled for the selected period.</p>
@@ -272,7 +621,7 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <script>
         // Page-specific navigation fix
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // Fix navigation menu links
             const navLinks = document.querySelectorAll('.nav-links ul li a');
             navLinks.forEach(link => {
@@ -284,77 +633,65 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
             const menuToggle = document.getElementById('menu-toggle');
             const navMenu = document.getElementById('nav-links');
             if (menuToggle && navMenu) {
-                menuToggle.addEventListener('click', function () {
+                menuToggle.addEventListener('click', function() {
                     navMenu.classList.toggle('show');
                 });
             }
         });
+        
+        // Switch between list and calendar views
+        function switchView(view) {
+            const listView = document.getElementById('list-view');
+            const calendarView = document.getElementById('calendar-view');
+            const viewParam = document.querySelector('input[name="view"]');
+            
+            if (view === 'list') {
+                listView.style.display = 'block';
+                calendarView.style.display = 'none';
+                document.querySelectorAll('.view-toggle button')[0].classList.add('active');
+                document.querySelectorAll('.view-toggle button')[1].classList.remove('active');
+            } else {
+                listView.style.display = 'none';
+                calendarView.style.display = 'block';
+                document.querySelectorAll('.view-toggle button')[0].classList.remove('active');
+                document.querySelectorAll('.view-toggle button')[1].classList.add('active');
+            }
+            
+            viewParam.value = view;
+        }
+        
+        // Print function
+        function printRota() {
+            window.print();
+        }
+        
+        // Export to CSV function
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "User,Date,Start Time,End Time,Role,Location\n";
+            
+            <?php foreach ($shifts as $shift): ?>
+                csvContent += "<?php echo addslashes($shift['username']); ?>,";
+                csvContent += "<?php echo date("Y-m-d", strtotime($shift['shift_date'])); ?>,";
+                csvContent += "<?php echo date("H:i", strtotime($shift['start_time'])); ?>,";
+                csvContent += "<?php echo date("H:i", strtotime($shift['end_time'])); ?>,";
+                csvContent += "<?php echo addslashes($shift['role_name']); ?>,";
+                csvContent += "<?php echo addslashes($shift['location']); ?>\n";
+            <?php endforeach; ?>
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "rota_<?php echo date('Y-m-d'); ?>.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
+    
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
-
-    <script>
-        // Fix navigation menu functionality for Chrome
-        document.addEventListener('DOMContentLoaded', function () {
-            // Get navigation elements
-            const menuToggle = document.getElementById('menu-toggle');
-            const navLinks = document.getElementById('nav-links');
-
-            // Ensure elements exist
-            if (menuToggle && navLinks) {
-                // Remove any existing event listeners by cloning and replacing
-                const newMenuToggle = menuToggle.cloneNode(true);
-                menuToggle.parentNode.replaceChild(newMenuToggle, menuToggle);
-
-                // Add click event listener to toggle navigation
-                newMenuToggle.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    navLinks.classList.toggle('show');
-                    console.log('Menu toggle clicked');
-                });
-
-                // Close menu when clicking outside
-                document.addEventListener('click', function (e) {
-                    if (navLinks.classList.contains('show') &&
-                        !navLinks.contains(e.target) &&
-                        !newMenuToggle.contains(e.target)) {
-                        navLinks.classList.remove('show');
-                    }
-                });
-            }
-
-            // Ensure navigation links have correct styling
-            const navMenuItems = document.querySelectorAll('.nav-links ul li a');
-            navMenuItems.forEach(link => {
-                link.style.backgroundColor = '#fd2b2b';
-                link.style.color = '#ffffff';
-                link.style.display = 'block';
-                link.style.padding = '12px 20px';
-            });
-        });
-    </script>
-
-    <script>
-        // Additional fix for Chrome - force repaint of navigation elements
-        window.addEventListener('load', function () {
-            const header = document.querySelector('header');
-            if (header) {
-                header.style.opacity = '0.99';
-                setTimeout(() => { header.style.opacity = '1'; }, 10);
-            }
-
-            // Force repaint of navigation menu
-            const navMenu = document.getElementById('nav-links');
-            if (navMenu) {
-                navMenu.style.display = 'none';
-                setTimeout(() => {
-                    navMenu.style.display = '';
-                }, 20);
-            }
-        });
-    </script>
 </body>
 
 </html>
