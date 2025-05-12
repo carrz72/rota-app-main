@@ -153,6 +153,40 @@ foreach ($days_result as $day) {
             }
         }
 
+        /* Ensure consistent nav menu styling with shifts page */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: transparent;
+            color: #000;
+            position: relative;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+
+        .nav-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-toggle {
+            font-size: 1.8em;
+            cursor: pointer;
+            display: block;
+            z-index: 1001;
+            padding: 5px;
+        }
+
+        .menu-toggle:hover {
+            transition: 0.4s;
+            transform: translateX(2px);
+        }
+
         /* Navigation Menu - consistent with shifts page */
         .nav-links {
             display: none;
@@ -179,7 +213,6 @@ foreach ($days_result as $day) {
         .nav-links ul li {
             margin: 0;
             padding: 0;
-            display: block;
         }
 
         .nav-links ul li a {
@@ -523,32 +556,6 @@ foreach ($days_result as $day) {
             .upcoming-shifts-table {
                 font-size: 0.9rem;
             }
-
-            /* Table responsive fix */
-            .responsive-table {
-                overflow-x: auto;
-                display: block;
-                width: 100%;
-            }
-
-            /* Ensure vertical nav menu (not horizontal) */
-            .nav-links ul {
-                display: block;
-            }
-
-            .nav-links ul li {
-                display: block;
-                margin: 0;
-                width: 100%;
-            }
-
-            .nav-links ul li a {
-                padding: 12px 15px;
-                border-bottom: 1px solid #eee;
-                display: block;
-                width: 100%;
-                box-sizing: border-box;
-            }
         }
 
         @media (max-width: 480px) {
@@ -606,6 +613,7 @@ foreach ($days_result as $day) {
                 <?php endif; ?>
             </div>
         </div>
+
         <!-- Quick Stats -->
         <div class="quick-stats">
             <div class="stat-card">
@@ -625,6 +633,7 @@ foreach ($days_result as $day) {
                 <div class="stat-label">Upcoming Shifts</div>
             </div>
         </div>
+
         <!-- Next Shift Section -->
         <div class="dashboard-card">
             <h3><i class="fas fa-clock"></i> Next Shift</h3>
@@ -633,11 +642,13 @@ foreach ($days_result as $day) {
                 $formattedDate = date("l, F j, Y", strtotime($next_shift['shift_date']));
                 $formattedStart = date("g:i A", strtotime($next_shift['start_time']));
                 $formattedEnd = date("g:i A", strtotime($next_shift['end_time']));
+
                 // Calculate days until next shift
                 $today = new DateTime('today');
                 $shift_date = new DateTime($next_shift['shift_date']);
                 $days_until = $today->diff($shift_date)->days;
                 $days_label = $days_until == 0 ? 'Today' : ($days_until == 1 ? 'Tomorrow' : "In $days_until days");
+
                 // Compute next shift's start datetime
                 $next_start_dt = date("Y-m-d H:i:s", strtotime($next_shift['shift_date'] . " " . $next_shift['start_time']));
                 // If the shift spans overnight (start > end), add one day to the end datetime
@@ -653,24 +664,29 @@ foreach ($days_result as $day) {
                         <?php echo $formattedDate; ?>
                         <span style="color: #fd2b2b; font-weight: bold;"><?php echo $days_label; ?></span>
                     </div>
+
                     <div class="next-shift-info">
                         <div class="next-shift-meta">
                             <i class="fas fa-clock"></i>
                             <span><?php echo $formattedStart; ?> - <?php echo $formattedEnd; ?></span>
                         </div>
+
                         <div class="next-shift-meta">
                             <i class="fas fa-briefcase"></i>
                             <span><?php echo htmlspecialchars($next_shift['role_name']); ?></span>
                         </div>
+
                         <div class="next-shift-meta">
                             <i class="fas fa-map-marker-alt"></i>
                             <span><?php echo htmlspecialchars($next_shift['location']); ?></span>
                         </div>
+
                         <div class="next-shift-meta">
                             <i class="fas fa-pound-sign"></i>
                             <span>£<?php echo number_format($next_shift['estimated_pay'], 2); ?></span>
                         </div>
                     </div>
+
                     <?php
                     // Query overlapping shifts with matching location
                     $overlappingShifts = [];
@@ -680,7 +696,7 @@ foreach ($days_result as $day) {
                             FROM shifts s 
                             JOIN users u ON s.user_id = u.id 
                             WHERE s.user_id <> :user_id 
-                              AND s.location = :location 
+                              AND s.location = :location
                               AND (
                                 STR_TO_DATE(CONCAT(s.shift_date, ' ', s.start_time), '%Y-%m-%d %H:%i:%s') <= :next_end_dt
                                 AND IF(s.start_time < s.end_time,
@@ -700,6 +716,7 @@ foreach ($days_result as $day) {
                     } catch (PDOException $e) {
                         $overlappingShifts = [];
                     }
+
                     if (!empty($overlappingShifts)) {
                         echo "<div class='overlap-info'>";
                         echo "<h4><i class='fas fa-users'></i> Working with Colleagues</h4>";
@@ -722,9 +739,11 @@ foreach ($days_result as $day) {
                 </div>
             <?php endif; ?>
         </div>
+
         <!-- Earnings Section -->
         <div class="dashboard-card">
             <h3><i class="fas fa-chart-line"></i> Hours & Earnings</h3>
+
             <div class="period-selector">
                 <form method="GET">
                     <label for="period">Time Period:</label>
@@ -735,6 +754,7 @@ foreach ($days_result as $day) {
                     </select>
                 </form>
             </div>
+
             <div class="earnings-stats">
                 <div class="earnings-stat-box">
                     <div class="earnings-stat-label">Hours Worked</div>
@@ -745,6 +765,7 @@ foreach ($days_result as $day) {
                     <div class="earnings-stat-value">£<?php echo number_format($total_earnings, 2); ?></div>
                 </div>
             </div>
+
             <?php if (count($shifts) > 0): ?>
                 <div style="margin-top: 20px; font-size: 0.9rem; color: #666;">
                     <p>Most common working days:</p>
@@ -752,6 +773,7 @@ foreach ($days_result as $day) {
                         <?php
                         $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                         $max_val = max($day_distribution);
+
                         foreach ($day_distribution as $index => $count) {
                             $opacity = $max_val > 0 ? ($count / $max_val) : 0;
                             $opacity = max(0.2, $opacity); // Minimum opacity of 0.2
@@ -763,9 +785,11 @@ foreach ($days_result as $day) {
                 </div>
             <?php endif; ?>
         </div>
+
         <!-- Upcoming Shifts Section -->
         <div class="dashboard-card" style="grid-column: 1 / -1;">
             <h3><i class="fas fa-calendar-alt"></i> Upcoming Shifts</h3>
+
             <?php if (!empty($next_shifts)): ?>
                 <table class="upcoming-shifts-table">
                     <tr>
@@ -775,12 +799,14 @@ foreach ($days_result as $day) {
                         <th>Location</th>
                         <th>Est. Pay</th>
                     </tr>
+
                     <?php
                     $current_date = '';
                     foreach ($next_shifts as $shift):
                         $shift_date = date("Y-m-d", strtotime($shift['shift_date']));
                         $is_new_date = ($shift_date != $current_date);
                         $current_date = $shift_date;
+
                         // Format for display
                         $formattedShiftDate = date("D, M j, Y", strtotime($shift['shift_date']));
                         $formattedStartTime = date("g:i A", strtotime($shift['start_time']));
@@ -795,6 +821,7 @@ foreach ($days_result as $day) {
                         </tr>
                     <?php endforeach; ?>
                 </table>
+
                 <div style="margin-top: 15px; text-align: right;">
                     <a href="shifts.php" style="font-size: 0.9rem;">View all shifts <i class="fas fa-arrow-right"></i></a>
                 </div>
@@ -805,6 +832,7 @@ foreach ($days_result as $day) {
                 </div>
             <?php endif; ?>
         </div>
+
         <?php if ($_SESSION['role'] === 'admin'): ?>
             <!-- Admin Quick Access -->
             <div class="dashboard-card">
@@ -827,42 +855,7 @@ foreach ($days_result as $day) {
             </div>
         <?php endif; ?>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Initialize the burger menu functionality 
-            const menuToggle = document.getElementById('menu-toggle');
-            const navLinks = document.getElementById('nav-links');
 
-            if (menuToggle && navLinks) {
-                menuToggle.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    navLinks.classList.toggle('show');
-                    console.log('Menu toggled');
-                });
-
-                // Close menu when clicking outside
-                document.addEventListener('click', function (event) {
-                    if (!menuToggle.contains(event.target) &&
-                        !navLinks.contains(event.target) &&
-                        navLinks.classList.contains('show')) {
-                        navLinks.classList.remove('show');
-                    }
-                });
-            }
-
-            // Set header opacity to 1 once page is loaded
-            document.querySelector('header').style.opacity = "1";
-
-            // Handle period selector
-            const periodSelect = document.getElementById('period');
-            if (periodSelect) {
-                periodSelect.addEventListener('change', function () {
-                    this.form.submit();
-                });
-            }
-        });
-    </script>
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
