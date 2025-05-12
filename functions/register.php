@@ -7,15 +7,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
-    $agree_terms = isset($_POST['agree_terms']) ? $_POST['agree_terms'] : '';
 
     // Validation
     $errors = [];
-
-    // Check if terms are accepted
-    if (!$agree_terms) {
-        $errors['terms'] = "You must agree to the terms and conditions.";
-    }
 
     // Check if passwords match
     if ($password !== $confirm_password) {
@@ -501,14 +495,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div id="confirm-password-feedback" class="feedback"></div>
             </div>
 
-            <div class="form-group">
-                <div class="terms-checkbox">
-                    <input type="checkbox" id="agree_terms" name="agree_terms" required>
-                    <label for="agree_terms">I agree to the <a href="#">Terms and Conditions</a> and <a href="#">Privacy
-                            Policy</a></label>
-                </div>
-            </div>
-
             <div class="btn-container">
                 <div class="submit-btn-container">
                     <button type="submit" id="registerBtn" class="register-btn">
@@ -583,8 +569,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         });
 
-        // Form submission handling
-        document.getElementById('registerForm').addEventListener('submit', function () {
+        // Fixed form submission handling
+        document.getElementById('registerForm').addEventListener('submit', function (event) {
             // Check if passwords match
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
@@ -600,6 +586,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Show loading indicator
             document.getElementById('registerBtn').disabled = true;
             document.getElementById('registerLoader').style.display = 'block';
+
+            // Important: Let the form submit normally now that validation passed
+            return true;
         });
     </script>
 

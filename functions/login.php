@@ -409,10 +409,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
 
-        // Form submission with loader
-        document.getElementById('loginForm').addEventListener('submit', function () {
+        // Fixed form submission with loader
+        document.getElementById('loginForm').addEventListener('submit', function (event) {
+            // Don't prevent default - let the form submit naturally
+            // Just show the loader and disable the button
             document.getElementById('loginBtn').disabled = true;
             document.getElementById('loginLoader').style.display = 'block';
+
+            // Make sure the form submission continues
+            return true;
         });
     </script>
 
