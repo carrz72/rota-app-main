@@ -118,13 +118,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             overflow: hidden;
         }
 
+        /* Fixed logo styling */
         .app-logo {
             margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .app-logo img {
             width: 80px;
             height: 80px;
+            border-radius: 15px;
+            object-fit: contain;
+            /* Fix for logo aspect ratio */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         h2 {
@@ -145,6 +153,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             height: 3px;
             background-color: #fd2b2b;
             border-radius: 3px;
+        }
+
+        /* Back button styling */
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: transparent;
+            border: none;
+            color: #888;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.3s;
+        }
+
+        .back-btn:hover {
+            color: #fd2b2b;
+        }
+
+        .back-btn i {
+            font-size: 1rem;
         }
 
         .form-group {
@@ -375,14 +407,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             .form-control {
                 padding: 10px 15px 10px 35px;
             }
+
+            .back-btn {
+                top: 15px;
+                left: 15px;
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="register-container">
+        <!-- Back button to login page -->
+        <a href="login.php" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Login
+        </a>
+
         <div class="app-logo">
-            <img src="/rota-app-main/images/icon.png" alt="Open Rota Logo">
+            <img src="/rota-app-main/images/logo.png" alt="Open Rota Logo"
+                onerror="this.src='/rota-app-main/images/icon.png'; this.onerror='';">
         </div>
         <h2>Create Account</h2>
 
@@ -429,3 +473,127 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </span>
                 </div>
                 <div class="password-strength">
+                    <div class="strength-meter" id="strength-meter"></div>
+                </div>
+                <div id="password-feedback" class="feedback"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+                        placeholder="Confirm your password" required minlength="8">
+                    <span class="password-toggle" onclick="togglePassword('confirm_password')">
+                        <i class="fas fa-eye"></i>
+                    </span>
+                </div>
+                <div id="confirm-password-feedback" class="feedback"></div>
+            </div>
+
+            <div class="form-group">
+                <div class="terms-checkbox">
+                    <input type="checkbox" id="agree_terms" name="agree_terms" required>
+                    <label for="agree_terms">I agree to the <a href="#">Terms and Conditions</a> and <a href="#">Privacy
+                            Policy</a></label>
+                </div>
+            </div>
+
+            <div class="btn-container">
+                <div class="submit-btn-container">
+                    <button type="submit" id="registerBtn" class="register-btn">
+                        Create Account
+                        <span class="loader" id="registerLoader"></span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <p class="login-link">Already have an account? <a href="login.php">Sign In</a></p>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        function togglePassword(inputId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleIcon = passwordInput.nextElementSibling.querySelector('i');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', function () {
+            const password = this.value;
+            const meter = document.getElementById('strength-meter');
+            const feedback = document.getElementById('password-feedback');
+
+            // Remove any existing classes
+            meter.className = 'strength-meter';
+
+            if (password.length === 0) {
+                meter.style.width = '0';
+                feedback.style.display = 'none';
+                return;
+            }
+
+            // Check strength
+            let strength = 0;
+
+            // Length check
+            if (password.length >= 8) strength += 1;
+
+            // Complexity checks
+            if (/[A-Z]/.test(password)) strength += 1;
+            if (/[0-9]/.test(password)) strength += 1;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+            // Display feedback
+            feedback.style.display = 'block';
+
+            if (strength < 2) {
+                meter.classList.add('strength-weak');
+                feedback.textContent = 'Weak password';
+                feedback.className = 'feedback invalid-feedback';
+            } else if (strength < 4) {
+                meter.classList.add('strength-medium');
+                feedback.textContent = 'Medium strength password';
+                feedback.className = 'feedback invalid-feedback';
+            } else {
+                meter.classList.add('strength-strong');
+                feedback.textContent = 'Strong password';
+                feedback.className = 'feedback valid-feedback';
+            }
+        });
+
+        // Form submission handling
+        document.getElementById('registerForm').addEventListener('submit', function () {
+            // Check if passwords match
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+
+            if (password !== confirmPassword) {
+                document.getElementById('confirm-password-feedback').textContent = 'Passwords do not match';
+                document.getElementById('confirm-password-feedback').style.display = 'block';
+                document.getElementById('confirm-password-feedback').className = 'feedback invalid-feedback';
+                event.preventDefault();
+                return false;
+            }
+
+            // Show loading indicator
+            document.getElementById('registerBtn').disabled = true;
+            document.getElementById('registerLoader').style.display = 'block';
+        });
+    </script>
+
+    <script src="/rota-app-main/js/pwa-debug.js"></script>
+</body>
+
+</html>

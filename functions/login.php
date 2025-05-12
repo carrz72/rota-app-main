@@ -99,15 +99,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             overflow: hidden;
         }
 
+        /* Fixed logo styling */
         .app-logo {
             margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .app-logo img {
             width: 80px;
             height: 80px;
             border-radius: 15px;
-            object-fit: cover;
+            object-fit: contain;
+            /* Fix for logo aspect ratio */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         h2 {
@@ -331,7 +337,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="login-container">
         <div class="app-logo">
-            <img src="/rota-app-main/images/icon.png" alt="Open Rota Logo">
+            <img src="/rota-app-main/images/logo.png" alt="Open Rota Logo"
+                onerror="this.src='/rota-app-main/images/icon.png'; this.onerror='';">
         </div>
         <h2>Welcome Back</h2>
 
