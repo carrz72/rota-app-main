@@ -97,13 +97,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             background-image: url(../images/backg3.jpg);
             background-size: cover;
             background-position: center;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            display: block;
+            /* Changed from flex to block for scrollable layout */
+            padding: 40px 20px;
             margin: 0;
-            padding: 20px;
             font-family: "newFont", Arial, sans-serif;
+            min-height: 100vh;
         }
 
         .register-container {
@@ -116,6 +115,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             text-align: center;
             position: relative;
             overflow: hidden;
+            margin: 20px auto;
+            /* Center horizontally with auto margins */
         }
 
         /* Fixed logo styling */
@@ -199,15 +200,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         .input-with-icon i {
             position: absolute;
-            left: 12px;
+            left: 15px;
             top: 50%;
             transform: translateY(-50%);
             color: #888;
+            width: 16px;
+            /* Fixed width for icon */
+            text-align: center;
         }
 
         .form-control {
             width: 100%;
-            padding: 12px 15px 12px 40px;
+            padding: 12px 15px 12px 45px;
+            /* Increased left padding from 40px to 45px */
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 1rem;
@@ -396,8 +401,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         /* Responsive adjustments */
         @media (max-width: 480px) {
+            body {
+                padding: 20px 10px;
+            }
+
             .register-container {
                 padding: 30px 20px;
+                margin: 10px auto;
             }
 
             h2 {
@@ -405,7 +415,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             .form-control {
-                padding: 10px 15px 10px 35px;
+                padding: 10px 15px 10px 40px;
+                /* Adjusted padding for smaller screens */
             }
 
             .back-btn {
