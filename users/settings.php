@@ -154,6 +154,71 @@ if ($user_id) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>Settings - Open Rota</title>
     <link rel="stylesheet" href="../css/settings.css">
+    <style>
+        /* Button spacing fixes */
+        .settings-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .settings-actions .btn {
+            padding: 10px 20px;
+            background-color: #f2f2f2;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid #ddd;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .settings-actions .btn:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .primary-btn {
+            margin-top: 20px;
+            padding: 12px 24px !important;
+        }
+
+        .secondary-btn {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 5px 10px;
+            background-color: #f2f2f2;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .verification-form .primary-btn {
+            margin-top: 15px;
+        }
+
+        /* Fix for mobile responsiveness */
+        @media (max-width: 480px) {
+            .settings-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .settings-actions .btn {
+                width: 100%;
+            }
+
+            .secondary-btn {
+                display: block;
+                margin: 10px 0 0 0;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 
 <body>
