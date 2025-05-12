@@ -55,21 +55,94 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Open Rota">
-<link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Open Rota">
+    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Full Rota</title>
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/rota.css">
+    <style>
+        /* Navigation menu styling specific to rota page */
+        .nav-links {
+            display: none;
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: #fd2b2b !important;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .nav-links.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .nav-links ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-links ul li {
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+
+        .nav-links ul li a {
+            display: block;
+            padding: 12px 20px;
+            color: #ffffff !important;
+            background-color: #fd2b2b !important;
+            text-decoration: none;
+            white-space: nowrap;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+
+        .nav-links ul li:last-child a {
+            border-bottom: none;
+        }
+
+        /* Safari-specific fixes */
+        @supports (-webkit-touch-callout: none) {
+            .nav-links {
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            }
+
+            .nav-links ul li a {
+                -webkit-appearance: none;
+                padding: 12px 20px !important;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Full Rota</h1>
-        
+
         <!-- Filtering Controls -->
         <form method="GET">
             <label for="period">Select period: </label>
@@ -79,8 +152,10 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <option value="year" <?php echo ($period == 'year') ? 'selected' : ''; ?>>Year</option>
             </select>
             <?php if ($period === 'week'): ?>
-                <input type="date" name="weekStart" value="<?php echo htmlspecialchars($weekStart); ?>" onchange="this.form.submit()">
-                <span>Viewing week from <?php echo date('D, j M Y', strtotime($weekStart)); ?> to <?php echo date('D, j M Y', strtotime($weekEnd)); ?></span>
+                <input type="date" name="weekStart" value="<?php echo htmlspecialchars($weekStart); ?>"
+                    onchange="this.form.submit()">
+                <span>Viewing week from <?php echo date('D, j M Y', strtotime($weekStart)); ?> to
+                    <?php echo date('D, j M Y', strtotime($weekEnd)); ?></span>
             <?php elseif ($period === 'month'): ?>
                 <select name="month" onchange="this.form.submit()">
                     <?php for ($m = 1; $m <= 12; $m++): ?>
@@ -89,86 +164,95 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </option>
                     <?php endfor; ?>
                 </select>
-                <input type="number" name="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100" onchange="this.form.submit()">
-                <span>Viewing <?php echo date("F", mktime(0,0,0,$month,1)); ?> <?php echo $year; ?></span>
+                <input type="number" name="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100"
+                    onchange="this.form.submit()">
+                <span>Viewing <?php echo date("F", mktime(0, 0, 0, $month, 1)); ?>     <?php echo $year; ?></span>
             <?php elseif ($period === 'year'): ?>
-                <input type="number" name="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100" onchange="this.form.submit()">
-              
+                <input type="number" name="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100"
+                    onchange="this.form.submit()">
+
                 <span class="viewing">Viewing <?php echo $year; ?></span>
             <?php endif; ?>
             <noscript><button type="submit">Filter</button></noscript>
-          
+
         </form>
-        
+
         <!-- Navigation Buttons for Week Period -->
         <?php if ($period === 'week'): ?>
             <p>
-                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>">Previous Week</a> |
+                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>">Previous
+                    Week</a> |
                 <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>">Current Week</a> |
-                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>">Next Week</a>
+                <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>">Next
+                    Week</a>
             </p>
         <?php endif; ?>
 
-<?php if ($period === 'month'): ?>
-    <p>
-        <a href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>">Previous Month</a> |
-        <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>">Current Month</a> |
-        <a href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>">Next Month</a>
-    </p>
-<?php endif; ?>
+        <?php if ($period === 'month'): ?>
+            <p>
+                <a
+                    href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>">Previous
+                    Month</a> |
+                <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>">Current Month</a> |
+                <a
+                    href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>">Next
+                    Month</a>
+            </p>
+        <?php endif; ?>
 
         <?php if ($period === 'year'): ?>
-    <p>
-        <a href="?period=year&year=<?php echo $year - 1; ?>">Previous Year</a> |
-        <a href="?period=year&year=<?php echo date('Y'); ?>">Current Year</a> |
-        <a href="?period=year&year=<?php echo $year + 1; ?>">Next Year</a>
-    </p>
-<?php endif; ?>
-        
+            <p>
+                <a href="?period=year&year=<?php echo $year - 1; ?>">Previous Year</a> |
+                <a href="?period=year&year=<?php echo date('Y'); ?>">Current Year</a> |
+                <a href="?period=year&year=<?php echo $year + 1; ?>">Next Year</a>
+            </p>
+        <?php endif; ?>
+
         <?php if (!empty($shifts)): ?>
-    <section class="upcoming-shifts">
-        <h3>Shifts for Selected Period</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Role</th>
-                    <th>Location</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php 
-                $lastDate = ''; 
-                foreach ($shifts as $shift): 
-                    $currentDate = date("Y-m-d", strtotime($shift['shift_date']));
-                    if ($currentDate !== $lastDate): 
-                        // Output a day separator row.
-                        $lastDate = $currentDate;
-                ?>
-                    <tr class="day-separator">
-                        <td colspan="5"><?php echo date("l, F j, Y", strtotime($shift['shift_date'])); ?></td>
-                    </tr>
-                <?php endif; ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($shift['username']); ?></td>
-                        <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?></td>
-                        <td><?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
-                        <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
-                        <td><?php echo htmlspecialchars($shift['location']); ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </section>
-<?php else: ?>
-    <p class="no-shifts">No shifts scheduled for the selected period.</p>
-<?php endif; ?>
+            <section class="upcoming-shifts">
+                <h3>Shifts for Selected Period</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Role</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $lastDate = '';
+                        foreach ($shifts as $shift):
+                            $currentDate = date("Y-m-d", strtotime($shift['shift_date']));
+                            if ($currentDate !== $lastDate):
+                                // Output a day separator row.
+                                $lastDate = $currentDate;
+                                ?>
+                                <tr class="day-separator">
+                                    <td colspan="5"><?php echo date("l, F j, Y", strtotime($shift['shift_date'])); ?></td>
+                                </tr>
+                            <?php endif; ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($shift['username']); ?></td>
+                                <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?></td>
+                                <td><?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
+                                <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
+                                <td><?php echo htmlspecialchars($shift['location']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </section>
+        <?php else: ?>
+            <p class="no-shifts">No shifts scheduled for the selected period.</p>
+        <?php endif; ?>
     </div>
-    
+
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
 </body>
+
 </html>

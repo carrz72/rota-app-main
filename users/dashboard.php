@@ -193,7 +193,7 @@ foreach ($days_result as $day) {
             position: absolute;
             top: 60px;
             right: 10px;
-            background: #ffffff;
+            background: #fd2b2b !important;
             border-radius: 5px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             z-index: 1000;
@@ -218,11 +218,12 @@ foreach ($days_result as $day) {
         .nav-links ul li a {
             display: block;
             padding: 12px 20px;
-            color: white;
-            /* Changed from #333 to white */
+            color: #ffffff !important;
+            background-color: #fd2b2b !important;
             text-decoration: none;
             white-space: nowrap;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
         }
 
         .nav-links ul li:last-child a {
