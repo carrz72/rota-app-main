@@ -1,9 +1,11 @@
 <?php
+session_start();
+require_once '../includes/db.php';
+
 if (isset($_SESSION['user_id'])) {
     header("Location: ../users/dashboard.php");
     exit;
 }
-require '../includes/auth.php';
 
 $remember_email = '';
 if (isset($_COOKIE['remember_email'])) {
@@ -28,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if ($user && password_verify($password, $user['password'])) {
         $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];  // ✅ Store username in session
+        $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
 
         // Record login for history
@@ -58,10 +60,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link rel="manifest" href="/rota-app-main/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <title>Login - Open Rota</title>
-    <link rel="stylesheet" href="../css/loginandregister.css">
     <style>
-        /* Enhanced styles for login page */
+        @font-face {
+            font-family: "newFont";
+            src: url("../fonts/CooperHewitt-Book.otf");
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
+            font-family: "newFont", Arial, sans-serif;
             background-image: url(../images/backg3.jpg);
             background-size: cover;
             background-position: center;
@@ -71,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             min-height: 100vh;
             margin: 0;
             padding: 20px;
-            font-family: "newFont", Arial, sans-serif;
         }
 
         .login-container {
@@ -93,6 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .app-logo img {
             width: 80px;
             height: 80px;
+            border-radius: 15px;
+            object-fit: cover;
         }
 
         h2 {
@@ -241,12 +256,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .error-message {
             background-color: rgba(255, 0, 0, 0.1);
             color: #e61919;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 8px;
             margin-bottom: 20px;
             text-align: left;
             font-size: 0.9rem;
-            border-left: 3px solid #e61919;
+            border-left: 4px solid #e61919;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-message i {
+            font-size: 20px;
         }
 
         .loader {
@@ -273,57 +295,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             position: relative;
         }
 
-        .social-login {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-
-        .social-login p {
-            color: #666;
-            margin-bottom: 15px;
-            font-size: 0.9rem;
-        }
-
-        .social-login-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-
-        .social-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.3s;
-        }
-
-        .social-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .google-btn {
-            background-color: #fff;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            color: #ea4335;
-        }
-
-        .facebook-btn {
-            background-color: #3b5998;
-            color: white;
-        }
-
-        .apple-btn {
-            background-color: #000;
-            color: white;
-        }
-
         /* Safari-specific fixes */
         @supports (-webkit-touch-callout: none) {
 
@@ -331,6 +302,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             button {
                 -webkit-appearance: none;
                 border-radius: 8px;
+            }
+
+            .remember-me input[type="checkbox"] {
+                -webkit-appearance: checkbox;
+                width: 16px;
+                height: 16px;
             }
         }
 
@@ -370,8 +347,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="input-with-icon">
                     <i class="fas fa-envelope"></i>
                     <input type="email" id="email" name="email" class="form-control"
-                        value="<?php echo htmlspecialchars($remember_email); ?>" placeholder="Enter your email"
-                        required>
+                        value="<?php echo htmlspecialchars($remember_email); ?>" placeholder="Enter your email" required
+                        autocomplete="email">
                 </div>
             </div>
 
@@ -380,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="input-with-icon">
                     <i class="fas fa-lock"></i>
                     <input type="password" id="password" name="password" class="form-control"
-                        placeholder="Enter your password" required>
+                        placeholder="Enter your password" required autocomplete="current-password">
                     <span class="password-toggle" onclick="togglePassword()">
                         <i class="fas fa-eye"></i>
                     </span>
@@ -406,22 +383,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </form>
 
         <p class="register-link">Don't have an account? <a href="register.php">Sign Up</a></p>
-
-        <!-- Social Login Options (Frontend only - needs backend implementation) -->
-        <div class="social-login">
-            <p>Or log in with</p>
-            <div class="social-login-buttons">
-                <button class="social-btn google-btn" title="Login with Google">
-                    <i class="fab fa-google"></i>
-                </button>
-                <button class="social-btn facebook-btn" title="Login with Facebook">
-                    <i class="fab fa-facebook-f"></i>
-                </button>
-                <button class="social-btn apple-btn" title="Login with Apple">
-                    <i class="fab fa-apple"></i>
-                </button>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -446,20 +407,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             document.getElementById('loginBtn').disabled = true;
             document.getElementById('loginLoader').style.display = 'block';
         });
-
-        // Service Worker Registration
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.register("/rota-app-main/service-worker.js")
-                .then(registration => {
-                    console.log("Service Worker registered with scope:", registration.scope);
-                })
-                .catch(error => {
-                    console.log("Service Worker registration failed:", error);
-                });
-        }
     </script>
+
     <script src="/rota-app-main/js/pwa-debug.js"></script>
-    <script src="/rota-app-main/js/links.js"></script>
 </body>
 
 </html>
