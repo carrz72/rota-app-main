@@ -28,7 +28,7 @@ $users = $conn->query("
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
     $userId = $_POST['user_id'];
     $newRole = $_POST['role'];
-    
+
     $stmt = $conn->prepare("UPDATE users SET role = ? WHERE id = ?");
     if ($stmt->execute([$newRole, $userId])) {
         $successMessage = "User role updated successfully";
@@ -78,6 +78,7 @@ if ($viewType === 'week') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -351,6 +352,7 @@ if ($viewType === 'week') {
         }
     </style>
 </head>
+
 <body>
     <div class="admin-container">
         <div class="admin-header">
@@ -372,19 +374,19 @@ if ($viewType === 'week') {
                 </a>
             </div>
         </div>
-        
+
         <?php if (isset($successMessage)): ?>
             <div class="success-message">
                 <i class="fas fa-check-circle"></i> <?php echo $successMessage; ?>
             </div>
         <?php endif; ?>
-        
+
         <?php if (isset($errorMessage)): ?>
             <div class="error-message">
                 <i class="fas fa-exclamation-circle"></i> <?php echo $errorMessage; ?>
             </div>
         <?php endif; ?>
-        
+
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value"><?php echo $totalUsers; ?></div>
@@ -400,21 +402,21 @@ if ($viewType === 'week') {
             </div>
             <div class="stat-card">
                 <div class="stat-value">
-                    <?php 
-                        $adminCount = 0;
-                        foreach ($roles as $role) {
-                            if ($role['role'] === 'admin') {
-                                $adminCount = $role['count'];
-                                break;
-                            }
+                    <?php
+                    $adminCount = 0;
+                    foreach ($roles as $role) {
+                        if ($role['role'] === 'admin') {
+                            $adminCount = $role['count'];
+                            break;
                         }
-                        echo $adminCount;
+                    }
+                    echo $adminCount;
                     ?>
                 </div>
                 <div class="stat-label">Admin Users</div>
             </div>
         </div>
-        
+
         <div class="admin-panel">
             <div class="admin-panel-header">
                 <h2><i class="fas fa-users-cog"></i> User Management</h2>
@@ -432,43 +434,47 @@ if ($viewType === 'week') {
                     </thead>
                     <tbody>
                         <?php foreach ($users as $user): ?>
-                        <tr>
-                            <td><?php echo $user['id']; ?></td>
-                            <td><?php echo htmlspecialchars($user['username']); ?></td>
-                            <td><?php echo htmlspecialchars($user['email']); ?></td>
-                            <td>
-                                <span class="role-badge <?php echo $user['role']; ?>">
-                                    <?php echo ucfirst(htmlspecialchars($user['role'])); ?>
-                                </span>
-                            </td>
-                            <td class="actions">
-                                <form method="POST" class="admin-form">
-                                    <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                    <select name="role">
-                                        <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User</option>
-                                        <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                                    </select>
-                                    <button type="submit" name="update_role">Update</button>
-                                </form>
-                                <a href="manage_shifts.php?user_id=<?php echo $user['id']; ?>" class="admin-btn">
-                                    <i class="fas fa-calendar"></i> Shifts
-                                </a>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td><?php echo $user['id']; ?></td>
+                                <td><?php echo htmlspecialchars($user['username']); ?></td>
+                                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td>
+                                    <span class="role-badge <?php echo $user['role']; ?>">
+                                        <?php echo ucfirst(htmlspecialchars($user['role'])); ?>
+                                    </span>
+                                </td>
+                                <td class="actions">
+                                    <form method="POST" class="admin-form">
+                                        <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                        <select name="role">
+                                            <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>
+                                                User</option>
+                                            <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>
+                                                Admin</option>
+                                        </select>
+                                        <button type="submit" name="update_role">Update</button>
+                                    </form>
+                                    <a href="manage_shifts.php?user_id=<?php echo $user['id']; ?>" class="admin-btn">
+                                        <i class="fas fa-calendar"></i> Shifts
+                                    </a>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         </div>
-        
+
         <div class="admin-panel">
             <div class="admin-panel-header">
                 <h2><i class="fas fa-calendar-week"></i> All Shifts</h2>
                 <div class="view-toggle">
-                    <a href="?view=week&week_start=<?php echo $currentWeekStart; ?>" class="<?php echo $viewType === 'week' ? 'active' : ''; ?>">
+                    <a href="?view=week&week_start=<?php echo $currentWeekStart; ?>"
+                        class="<?php echo $viewType === 'week' ? 'active' : ''; ?>">
                         <i class="fas fa-calendar-week"></i> Week
                     </a>
-                    <a href="?view=day&day=<?php echo $currentDay; ?>" class="<?php echo $viewType === 'day' ? 'active' : ''; ?>">
+                    <a href="?view=day&day=<?php echo $currentDay; ?>"
+                        class="<?php echo $viewType === 'day' ? 'active' : ''; ?>">
                         <i class="fas fa-calendar-day"></i> Day
                     </a>
                 </div>
@@ -480,7 +486,8 @@ if ($viewType === 'week') {
                             <a href="?view=week&week_start=<?php echo $prevWeekStart; ?>" class="admin-btn">
                                 <i class="fas fa-chevron-left"></i> Previous Week
                             </a>
-                            <a href="?view=week&week_start=<?php echo date('Y-m-d', strtotime('monday this week')); ?>" class="admin-btn">
+                            <a href="?view=week&week_start=<?php echo date('Y-m-d', strtotime('monday this week')); ?>"
+                                class="admin-btn">
                                 Current Week
                             </a>
                             <a href="?view=week&week_start=<?php echo $nextWeekStart; ?>" class="admin-btn">
@@ -499,7 +506,7 @@ if ($viewType === 'week') {
                         <?php endif; ?>
                     </div>
                 </div>
-                
+
                 <table class="admin-table">
                     <thead>
                         <tr>
@@ -515,47 +522,47 @@ if ($viewType === 'week') {
                         <?php if (empty($allShifts)): ?>
                             <tr>
                                 <td colspan="6" style="text-align: center; padding: 30px;">
-                                    <i class="fas fa-calendar-times" style="font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block;"></i>
+                                    <i class="fas fa-calendar-times"
+                                        style="font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block;"></i>
                                     <p style="margin: 0;">No shifts found for this period</p>
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php 
-                            $currentDate = ''; 
-                            foreach ($allShifts as $shift): 
+                            <?php
+                            $currentDate = '';
+                            foreach ($allShifts as $shift):
                                 $shiftDate = $shift['shift_date'];
-                                
+
                                 // Add a separator row when the date changes
-                                if ($viewType === 'week' && $currentDate !== $shiftDate): 
+                                if ($viewType === 'week' && $currentDate !== $shiftDate):
                                     $currentDate = $shiftDate;
-                            ?>
+                                    ?>
+                                    <tr>
+                                        <td colspan="6" class="day-header">
+                                            <i class="fas fa-calendar-day"></i>
+                                            <?php echo date("l, F j, Y", strtotime($currentDate)); ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
                                 <tr>
-                                    <td colspan="6" class="day-header">
-                                        <i class="fas fa-calendar-day"></i>
-                                        <?php echo date("l, F j, Y", strtotime($currentDate)); ?>
+                                    <td><?php echo htmlspecialchars($shift['username']); ?></td>
+                                    <td><?php echo date("D, M j", strtotime($shift['shift_date'])); ?></td>
+                                    <td>
+                                        <?php echo date("g:i A", strtotime($shift['start_time'])); ?> -
+                                        <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($shift['location']); ?></td>
+                                    <td class="actions">
+                                        <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="delete_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn secondary"
+                                            onclick="return confirm('Are you sure you want to delete this shift?');">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
                                     </td>
                                 </tr>
-                            <?php endif; ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($shift['username']); ?></td>
-                                <td><?php echo date("D, M j", strtotime($shift['shift_date'])); ?></td>
-                                <td>
-                                    <?php echo date("g:i A", strtotime($shift['start_time'])); ?> - 
-                                    <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
-                                </td>
-                                <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
-                                <td><?php echo htmlspecialchars($shift['location']); ?></td>
-                                <td class="actions">
-                                    <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="delete_shift.php?id=<?php echo $shift['id']; ?>" 
-                                       class="admin-btn secondary"
-                                       onclick="return confirm('Are you sure you want to delete this shift?');">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </td>
-                            </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
@@ -566,4 +573,5 @@ if ($viewType === 'week') {
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
 </body>
+
 </html>

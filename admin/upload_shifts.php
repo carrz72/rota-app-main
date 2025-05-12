@@ -872,10 +872,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                 <h3><i class="fas fa-info-circle"></i> File Format Requirements</h3>
                 <ul>
                     <li><strong>File Type:</strong> Excel file (.xls or .xlsx)</li>
-                    <li><strong>Header Format:</strong> Cell A1 must contain the week start date in format "W/C dd/mm/yyyy"</li>
+                    <li><strong>Header Format:</strong> Cell A1 must contain the week start date in format "W/C dd/mm/yyyy"
+                    </li>
                     <li><strong>Days:</strong> Row 2, columns B-H should contain the days of the week</li>
-                    <li><strong>Employee Format:</strong> Column A should list employees as "LastInitial, FirstName - Role" (e.g., "B, Christine - Manager")</li>
-                    <li><strong>Shift Format:</strong> Shifts should be listed as "HH:MM - HH:MM (Location)" (e.g., "09:00 - 17:00 (Main Office)")</li>
+                    <li><strong>Employee Format:</strong> Column A should list employees as "LastInitial, FirstName - Role"
+                        (e.g., "B, Christine - Manager")</li>
+                    <li><strong>Shift Format:</strong> Shifts should be listed as "HH:MM - HH:MM (Location)" (e.g., "09:00 -
+                        17:00 (Main Office)")</li>
                 </ul>
             </div>
 

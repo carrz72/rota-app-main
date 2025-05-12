@@ -4,7 +4,7 @@ requireAdmin();
 require_once '../includes/db.php';
 
 // Check if we're managing shifts for a specific user
-$user_id = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
+$user_id = isset($_GET['user_id']) ? (int) $_GET['user_id'] : null;
 $username = null;
 
 // If a specific user is provided, get their username
@@ -55,12 +55,12 @@ $shifts = $conn->query($shiftsQuery)->fetchAll(PDO::FETCH_ASSOC);
 
 // If form submitted for shift deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_shift'])) {
-    $shift_id = (int)$_POST['shift_id'];
-    
+    $shift_id = (int) $_POST['shift_id'];
+
     try {
         $stmt = $conn->prepare("DELETE FROM shifts WHERE id = ?");
         $deleted = $stmt->execute([$shift_id]);
-        
+
         if ($deleted) {
             $successMessage = "Shift deleted successfully";
             // Refresh shifts list
@@ -87,6 +87,7 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -199,7 +200,8 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
             color: #555;
         }
 
-        select, input[type="date"] {
+        select,
+        input[type="date"] {
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 5px;
@@ -335,23 +337,23 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
             .container {
                 padding: 20px 15px;
             }
-            
+
             .header {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
             }
-            
+
             .filter-bar {
                 flex-direction: column;
                 align-items: stretch;
             }
-            
+
             .shifts-table {
                 display: block;
                 overflow-x: auto;
             }
-            
+
             .period-navigation {
                 flex-direction: column;
                 align-items: flex-start;
@@ -360,6 +362,7 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -380,19 +383,19 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                 </a>
             </div>
         </div>
-        
+
         <?php if (isset($successMessage)): ?>
             <div class="success-message">
                 <i class="fas fa-check-circle"></i> <?php echo $successMessage; ?>
             </div>
         <?php endif; ?>
-        
+
         <?php if (isset($errorMessage)): ?>
             <div class="error-message">
                 <i class="fas fa-exclamation-circle"></i> <?php echo $errorMessage; ?>
             </div>
         <?php endif; ?>
-        
+
         <div class="filter-bar">
             <div class="filter-group">
                 <label for="period">View:</label>
@@ -402,85 +405,94 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                     <option value="range" <?php echo $period === 'range' ? 'selected' : ''; ?>>Date Range</option>
                 </select>
             </div>
-            
-            <div class="filter-group" id="week-filter" style="<?php echo $period !== 'week' ? 'display: none;' : ''; ?>">
+
+            <div class="filter-group" id="week-filter"
+                style="<?php echo $period !== 'week' ? 'display: none;' : ''; ?>">
                 <label for="week_start">Week Starting:</label>
                 <input type="date" id="week_start" value="<?php echo $currentWeekStart; ?>">
             </div>
-            
-            <div class="filter-group" id="month-filter" style="<?php echo $period !== 'month' ? 'display: none;' : ''; ?>">
+
+            <div class="filter-group" id="month-filter"
+                style="<?php echo $period !== 'month' ? 'display: none;' : ''; ?>">
                 <label for="month">Month:</label>
                 <select id="month">
-                    <?php for($m=1; $m<=12; $m++): ?>
-                    <option value="<?php echo $m; ?>" <?php echo $m == $currentMonth ? 'selected' : ''; ?>>
-                        <?php echo date('F', mktime(0, 0, 0, $m, 1, date('Y'))); ?>
-                    </option>
+                    <?php for ($m = 1; $m <= 12; $m++): ?>
+                        <option value="<?php echo $m; ?>" <?php echo $m == $currentMonth ? 'selected' : ''; ?>>
+                            <?php echo date('F', mktime(0, 0, 0, $m, 1, date('Y'))); ?>
+                        </option>
                     <?php endfor; ?>
                 </select>
                 <label for="year">Year:</label>
                 <select id="year">
-                    <?php for($y=date('Y')-2; $y<=date('Y')+1; $y++): ?>
-                    <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>>
-                        <?php echo $y; ?>
-                    </option>
+                    <?php for ($y = date('Y') - 2; $y <= date('Y') + 1; $y++): ?>
+                        <option value="<?php echo $y; ?>" <?php echo $y == $currentYear ? 'selected' : ''; ?>>
+                            <?php echo $y; ?>
+                        </option>
                     <?php endfor; ?>
                 </select>
             </div>
-            
-            <div class="filter-group" id="range-filter" style="<?php echo $period !== 'range' ? 'display: none;' : ''; ?>">
+
+            <div class="filter-group" id="range-filter"
+                style="<?php echo $period !== 'range' ? 'display: none;' : ''; ?>">
                 <label for="start_date">From:</label>
                 <input type="date" id="start_date" value="<?php echo $startDate; ?>">
                 <label for="end_date">To:</label>
                 <input type="date" id="end_date" value="<?php echo $endDate; ?>">
             </div>
-            
+
             <div class="filter-group">
                 <label for="user_filter">User:</label>
                 <select id="user_filter">
                     <option value="">All Users</option>
-                    <?php foreach($users as $user): ?>
-                    <option value="<?php echo $user['id']; ?>" <?php echo $user_id == $user['id'] ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($user['username']); ?>
-                    </option>
+                    <?php foreach ($users as $user): ?>
+                        <option value="<?php echo $user['id']; ?>" <?php echo $user_id == $user['id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($user['username']); ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            
+
             <button class="filter-button" onclick="applyFilters()">
                 <i class="fas fa-filter"></i> Apply Filters
             </button>
         </div>
-        
+
         <div class="period-navigation">
             <div class="period-title">
                 <i class="fas fa-calendar"></i> <?php echo htmlspecialchars($periodDesc); ?>
             </div>
-            
+
             <div class="period-buttons">
                 <?php if ($period === 'week'): ?>
-                    <a href="?period=week&week_start=<?php echo $prevWeekStart; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>" class="action-button">
+                    <a href="?period=week&week_start=<?php echo $prevWeekStart; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        class="action-button">
                         <i class="fas fa-chevron-left"></i> Previous Week
                     </a>
-                    <a href="?period=week&week_start=<?php echo date('Y-m-d', strtotime('monday this week')); ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>" class="action-button">
+                    <a href="?period=week&week_start=<?php echo date('Y-m-d', strtotime('monday this week')); ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        class="action-button">
                         Current Week
                     </a>
-                    <a href="?period=week&week_start=<?php echo $nextWeekStart; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>" class="action-button">
+                    <a href="?period=week&week_start=<?php echo $nextWeekStart; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        class="action-button">
                         Next Week <i class="fas fa-chevron-right"></i>
                     </a>
                 <?php elseif ($period === 'month'): ?>
-                    <a href="?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>" class="action-button">
+                    <a href="?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        class="action-button">
                         <i class="fas fa-chevron-left"></i> Previous Month
                     </a>
-                    <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>" class="action-button">
+                    <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        class="action-button">
                         Current Month
                     </a>
-                    <a href="?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>" class="action-button">
+                    <a href="?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        class="action-button">
                         Next Month <i class="fas fa-chevron-right"></i>
                     </a>
                 <?php endif; ?>
             </div>
         </div>
-        
+
         <?php if (empty($shifts)): ?>
             <div class="empty-state">
                 <i class="fas fa-calendar-times"></i>
@@ -502,46 +514,48 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
+                    <?php
                     $current_date = '';
                     foreach ($shifts as $shift):
                         $shift_date = $shift['shift_date'];
-                        
+
                         // Add date header when date changes
                         if ($current_date !== $shift_date):
                             $current_date = $shift_date;
-                    ?>
+                            ?>
+                            <tr>
+                                <td colspan="6" class="date-group-header">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <?php echo date('l, F j, Y', strtotime($shift_date)); ?>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                         <tr>
-                            <td colspan="6" class="date-group-header">
-                                <i class="fas fa-calendar-day"></i>
-                                <?php echo date('l, F j, Y', strtotime($shift_date)); ?>
+                            <td><?php echo htmlspecialchars($shift['username']); ?></td>
+                            <td><?php echo date('D, M j', strtotime($shift['shift_date'])); ?></td>
+                            <td><?php echo date('g:i A', strtotime($shift['start_time'])); ?> -
+                                <?php echo date('g:i A', strtotime($shift['end_time'])); ?></td>
+                            <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
+                            <td><?php echo htmlspecialchars($shift['location']); ?></td>
+                            <td class="shift-actions">
+                                <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="btn-icon btn-edit"
+                                    title="Edit shift">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form method="POST" onsubmit="return confirm('Are you sure you want to delete this shift?');">
+                                    <input type="hidden" name="shift_id" value="<?php echo $shift['id']; ?>">
+                                    <button type="submit" name="delete_shift" class="btn-icon btn-delete" title="Delete shift">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
-                    <?php endif; ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($shift['username']); ?></td>
-                        <td><?php echo date('D, M j', strtotime($shift['shift_date'])); ?></td>
-                        <td><?php echo date('g:i A', strtotime($shift['start_time'])); ?> - <?php echo date('g:i A', strtotime($shift['end_time'])); ?></td>
-                        <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
-                        <td><?php echo htmlspecialchars($shift['location']); ?></td>
-                        <td class="shift-actions">
-                            <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="btn-icon btn-edit" title="Edit shift">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <form method="POST" onsubmit="return confirm('Are you sure you want to delete this shift?');">
-                                <input type="hidden" name="shift_id" value="<?php echo $shift['id']; ?>">
-                                <button type="submit" name="delete_shift" class="btn-icon btn-delete" title="Delete shift">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         <?php endif; ?>
     </div>
-    
+
     <script>
         function updatePeriod() {
             const period = document.getElementById('period').value;
@@ -549,16 +563,16 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
             document.getElementById('month-filter').style.display = period === 'month' ? 'flex' : 'none';
             document.getElementById('range-filter').style.display = period === 'range' ? 'flex' : 'none';
         }
-        
+
         function applyFilters() {
             const period = document.getElementById('period').value;
             const user_id = document.getElementById('user_filter').value;
             let url = 'manage_shifts.php?period=' + period;
-            
+
             if (user_id) {
                 url += '&user_id=' + user_id;
             }
-            
+
             if (period === 'week') {
                 const week_start = document.getElementById('week_start').value;
                 url += '&week_start=' + week_start;
@@ -571,11 +585,12 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                 const end_date = document.getElementById('end_date').value;
                 url += '&start_date=' + start_date + '&end_date=' + end_date;
             }
-            
+
             window.location.href = url;
         }
     </script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
 </body>
+
 </html>
