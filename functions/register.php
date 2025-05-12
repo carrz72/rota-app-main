@@ -40,6 +40,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // If no errors, proceed with registration
     if (empty($errors)) {
         try {
+            // Start transaction to ensure atomicity
+            $conn->beginTransaction();
+
             // Check if the email already exists.
             $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
             $stmt->execute([$email]);
@@ -54,17 +57,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     // Get the new user's ID
                     $user_id = $conn->lastInsertId();
 
-                    // Auto-login the user
-                    $_SESSION['user_id'] = $user_id;
-                    $_SESSION['username'] = $username;
-                    $_SESSION['role'] = 'user';
-                    $_SESSION['login_time'] = time(); // Add login timestamp
-
-                    // Record initial login
+                    // Record initial login history BEFORE setting session
                     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
                     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
                     $stmt = $conn->prepare("INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
                     $stmt->execute([$user_id, $ip, $user_agent]);
+
+                    // Commit the transaction - user is now created and login history recorded
+                    $conn->commit();
+
+                    // Auto-login the user AFTER successful database operations
+                    $_SESSION['user_id'] = $user_id;
+                    $_SESSION['username'] = $username;
+                    $_SESSION['role'] = 'user';
+                    $_SESSION['login_time'] = time();
+
+                    // Force session write to disk
+                    session_write_close();
+                    session_start();
 
                     $redirect_url = "../users/dashboard.php";
 
@@ -79,12 +89,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         exit;
                     }
                 } else {
+                    $conn->rollBack();
                     $errors['general'] = "An error occurred while registering. Please try again.";
                 }
             }
         } catch (Exception $e) {
-            error_log("Registration error: " . $e->getMessage());
-            $errors['general'] = "A system error occurred. Please try again later.";
+            // Rollback the transaction if there was an error
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+
+            error_log("Registration error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+
+            // Check if user was actually created despite the error
+            if (isset($user_id) && $user_id > 0) {
+                // User exists but session setup failed - provide login link
+                $errors['general'] = "Your account was created but we couldn't log you in automatically. Please <a href='login.php'>log in</a> with your new credentials.";
+            } else {
+                $errors['general'] = "A system error occurred. Please try again later.";
+            }
         }
     }
 }
