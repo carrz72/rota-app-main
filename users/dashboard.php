@@ -136,6 +136,7 @@ foreach ($days_result as $day) {
     <link rel="manifest" href="/rota-app-main/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <title>Dashboard - Open Rota</title>
+
 </head>
 
 <body>
