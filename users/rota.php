@@ -147,6 +147,8 @@ if ($period === 'week') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Full Rota</title>
     <link rel="stylesheet" href="../css/rota.css">
+    <link rel="manifest" href="/rota-app-main/manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         /* Navigation menu styling specific to rota page */
         .nav-links {
@@ -530,7 +532,6 @@ if ($period === 'week') {
 </head>
 
 <body>
-    <?php include '../includes/header.php'; ?>
     
     <div class="container">
         <h1>Full Rota</h1>
