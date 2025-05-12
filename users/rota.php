@@ -102,7 +102,8 @@ $roleColors = [
 ];
 
 // Helper function to organize shifts by date for calendar view
-function organizeShiftsByDate($shifts) {
+function organizeShiftsByDate($shifts)
+{
     $organized = [];
     foreach ($shifts as $shift) {
         $date = $shift['shift_date'];
@@ -198,7 +199,7 @@ if ($period === 'week') {
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         .filter-row {
@@ -235,7 +236,7 @@ if ($period === 'week') {
         }
 
         .view-toggle button {
-            background-color: #f1f1f1;
+            background-color: rgb(42, 42, 42);
             border: 1px solid #ddd;
             padding: 8px 15px;
             border-radius: 4px;
@@ -263,7 +264,7 @@ if ($period === 'week') {
             border-radius: 5px;
             padding: 10px;
             min-height: 120px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             position: relative;
         }
 
@@ -327,23 +328,58 @@ if ($period === 'week') {
             color: #666;
         }
 
-        /* Export Button */
-        .export-btn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            margin-right: 10px;
+        /* Enhanced Calendar View Responsiveness */
+        .calendar-view {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 20px;
         }
 
-        .export-btn:hover {
-            background-color: #218838;
+        .calendar-day {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 120px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .calendar-day-header {
+            background-color: #f5f5f5;
+            padding: 8px;
+            border-radius: 5px 5px 0 0;
+            margin: -10px -10px 10px -10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Improved responsive adjustments */
+        @media (max-width: 992px) {
+            .calendar-view {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .calendar-view {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-view {
+                grid-template-columns: 1fr;
+            }
+
+            .calendar-day {
+                min-height: 100px;
+            }
         }
 
         /* Responsive Adjustments */
@@ -354,7 +390,7 @@ if ($period === 'week') {
             }
 
             .calendar-view {
-                grid-template-columns: repeat(1, 1fr);
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .export-btn {
@@ -376,42 +412,62 @@ if ($period === 'week') {
                 -webkit-transform: translateZ(0);
                 transform: translateZ(0);
             }
-            
+
             .nav-links ul li a {
                 -webkit-appearance: none;
                 padding: 12px 20px !important;
             }
-            
+
             @-webkit-keyframes fadeIn {
-                from { opacity: 0; -webkit-transform: translateY(-10px); }
-                to { opacity: 1; -webkit-transform: translateY(0); }
+                from {
+                    opacity: 0;
+                    -webkit-transform: translateY(-10px);
+                }
+
+                to {
+                    opacity: 1;
+                    -webkit-transform: translateY(0);
+                }
             }
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        
+
         /* Print-friendly styles */
         @media print {
-            header, .filter-section, .view-toggle, .export-btn, button {
+
+            header,
+            .filter-section,
+            .view-toggle,
+            .export-btn,
+            button {
                 display: none !important;
             }
-            
-            body, .container {
+
+            body,
+            .container {
                 background: white !important;
                 color: black !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 box-shadow: none !important;
             }
-            
+
             table {
                 width: 100% !important;
                 page-break-inside: auto !important;
             }
-            
+
             tr {
                 page-break-inside: avoid !important;
                 page-break-after: auto !important;
@@ -423,7 +479,7 @@ if ($period === 'week') {
 <body>
     <div class="container">
         <h1>Full Rota</h1>
-        
+
         <!-- Enhanced Filter Section -->
         <div class="filter-section">
             <form method="GET" id="filterForm">
@@ -436,7 +492,7 @@ if ($period === 'week') {
                             <option value="year" <?php echo ($period == 'year') ? 'selected' : ''; ?>>Year</option>
                         </select>
                     </div>
-                    
+
                     <div class="filter-group">
                         <label for="role_filter">Filter by Role:</label>
                         <select name="role_filter" id="role_filter" onchange="this.form.submit()">
@@ -448,7 +504,7 @@ if ($period === 'week') {
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    
+
                     <div class="filter-group">
                         <label for="location_filter">Filter by Location:</label>
                         <select name="location_filter" id="location_filter" onchange="this.form.submit()">
@@ -461,12 +517,14 @@ if ($period === 'week') {
                         </select>
                     </div>
                 </div>
-                
+
                 <?php if ($period === 'week'): ?>
                     <div class="filter-group">
                         <label for="weekStart">Week Starting:</label>
-                        <input type="date" name="weekStart" id="weekStart" value="<?php echo htmlspecialchars($weekStart); ?>" onchange="this.form.submit()">
-                        <span>Viewing week from <?php echo date('D, j M Y', strtotime($weekStart)); ?> to <?php echo date('D, j M Y', strtotime($weekEnd)); ?></span>
+                        <input type="date" name="weekStart" id="weekStart"
+                            value="<?php echo htmlspecialchars($weekStart); ?>" onchange="this.form.submit()">
+                        <span>Viewing week from <?php echo date('D, j M Y', strtotime($weekStart)); ?> to
+                            <?php echo date('D, j M Y', strtotime($weekEnd)); ?></span>
                     </div>
                 <?php elseif ($period === 'month'): ?>
                     <div class="filter-row">
@@ -482,16 +540,18 @@ if ($period === 'week') {
                         </div>
                         <div class="filter-group">
                             <label for="year">Year:</label>
-                            <input type="number" name="year" id="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100" onchange="this.form.submit()">
+                            <input type="number" name="year" id="year" value="<?php echo htmlspecialchars($year); ?>"
+                                min="2000" max="2100" onchange="this.form.submit()">
                         </div>
                     </div>
                 <?php elseif ($period === 'year'): ?>
                     <div class="filter-group">
                         <label for="year">Year:</label>
-                        <input type="number" name="year" id="year" value="<?php echo htmlspecialchars($year); ?>" min="2000" max="2100" onchange="this.form.submit()">
+                        <input type="number" name="year" id="year" value="<?php echo htmlspecialchars($year); ?>" min="2000"
+                            max="2100" onchange="this.form.submit()">
                     </div>
                 <?php endif; ?>
-                
+
                 <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
                 <noscript><button type="submit" class="btn">Apply Filters</button></noscript>
             </form>
@@ -500,27 +560,31 @@ if ($period === 'week') {
             <div class="filter-row">
                 <div>
                     <?php if ($period === 'week'): ?>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Previous Week</a>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Current Week</a>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Next Week</a>
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Previous Week</a>
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Current Week</a>
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Next Week</a>
                     <?php elseif ($period === 'month'): ?>
-                        <a href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Previous Month</a>
-                        <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Current Month</a>
-                        <a href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Next Month</a>
+                        <a href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Previous Month</a>
+                        <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Current Month</a>
+                        <a href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Next Month</a>
                     <?php elseif ($period === 'year'): ?>
-                        <a href="?period=year&year=<?php echo $year - 1; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Previous Year</a>
-                        <a href="?period=year&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Current Year</a>
-                        <a href="?period=year&year=<?php echo $year + 1; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>" class="btn">Next Year</a>
+                        <a href="?period=year&year=<?php echo $year - 1; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Previous Year</a>
+                        <a href="?period=year&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Current Year</a>
+                        <a href="?period=year&year=<?php echo $year + 1; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                            class="btn">Next Year</a>
                     <?php endif; ?>
-                </div>
-                
-                <div>
-                    <button onclick="printRota()" class="export-btn"><i class="fa fa-print"></i> Print</button>
-                    <button onclick="exportToCSV()" class="export-btn"><i class="fa fa-file-excel-o"></i> Export</button>
                 </div>
             </div>
         </div>
-        
+
         <!-- View Toggle Buttons -->
         <div class="view-toggle">
             <button onclick="switchView('list')" class="<?php echo $view === 'list' ? 'active' : ''; ?>">
@@ -530,10 +594,11 @@ if ($period === 'week') {
                 <i class="fa fa-calendar"></i> Calendar View
             </button>
         </div>
-        
+
         <?php if (!empty($shifts)): ?>
             <!-- List View -->
-            <section class="upcoming-shifts" <?php echo $view === 'calendar' ? 'style="display:none;"' : ''; ?> id="list-view">
+            <section class="upcoming-shifts" <?php echo $view === 'calendar' ? 'style="display:none;"' : ''; ?>
+                id="list-view">
                 <h3>Shifts for Selected Period</h3>
                 <table>
                     <thead>
@@ -546,25 +611,27 @@ if ($period === 'week') {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php 
-                        $lastDate = ''; 
-                        foreach ($shifts as $shift): 
+                        <?php
+                        $lastDate = '';
+                        foreach ($shifts as $shift):
                             $currentDate = date("Y-m-d", strtotime($shift['shift_date']));
                             $roleColor = $roleColors[$shift['role_name']] ?? $roleColors['default'];
-                            if ($currentDate !== $lastDate): 
+                            if ($currentDate !== $lastDate):
                                 // Output a day separator row.
                                 $lastDate = $currentDate;
-                        ?>
-                            <tr class="day-separator">
-                                <td colspan="5"><?php echo date("l, F j, Y", strtotime($shift['shift_date'])); ?></td>
-                            </tr>
-                        <?php endif; ?>
+                                ?>
+                                <tr class="day-separator">
+                                    <td colspan="5"><?php echo date("l, F j, Y", strtotime($shift['shift_date'])); ?></td>
+                                </tr>
+                            <?php endif; ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($shift['username']); ?></td>
                                 <td><?php echo date("D, j M", strtotime($shift['shift_date'])); ?></td>
-                                <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?> - <?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
+                                <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?> -
+                                    <?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
                                 <td>
-                                    <span style="display:inline-block; width:12px; height:12px; background-color:<?php echo $roleColor; ?>; border-radius:50%; margin-right:5px;"></span>
+                                    <span
+                                        style="display:inline-block; width:12px; height:12px; background-color:<?php echo $roleColor; ?>; border-radius:50%; margin-right:5px;"></span>
                                     <?php echo htmlspecialchars($shift['role_name']); ?>
                                 </td>
                                 <td><?php echo htmlspecialchars($shift['location']); ?></td>
@@ -573,44 +640,44 @@ if ($period === 'week') {
                     </tbody>
                 </table>
             </section>
-            
+
             <!-- Calendar View -->
             <section id="calendar-view" <?php echo $view === 'list' ? 'style="display:none;"' : ''; ?>>
                 <h3>Calendar View</h3>
                 <div class="calendar-view">
-                    <?php 
-                    if ($period === 'week' || $period === 'month'): 
+                    <?php
+                    if ($period === 'week' || $period === 'month'):
                         foreach ($calendarDates as $date):
                             $dayName = date('D', strtotime($date));
                             $dayNumber = date('j', strtotime($date));
                             $isToday = date('Y-m-d') === $date;
-                    ?>
-                        <div class="calendar-day" <?php echo $isToday ? 'style="border: 2px solid #fd2b2b;"' : ''; ?>>
-                            <div class="calendar-day-header">
-                                <?php echo $dayName; ?>
-                                <span class="day-number"><?php echo $dayNumber; ?></span>
-                            </div>
-                            <?php if (isset($shiftsByDate[$date])): 
-                                foreach ($shiftsByDate[$date] as $shift): 
-                                    $roleColor = $roleColors[$shift['role_name']] ?? $roleColors['default'];
                             ?>
-                                <div class="shift-card" style="border-left-color: <?php echo $roleColor; ?>;">
-                                    <div class="shift-time">
-                                        <?php echo date("g:i A", strtotime($shift['start_time'])); ?> - 
-                                        <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
-                                    </div>
-                                    <div class="shift-user"><?php echo htmlspecialchars($shift['username']); ?></div>
-                                    <div class="shift-role"><?php echo htmlspecialchars($shift['role_name']); ?></div>
-                                    <small><?php echo htmlspecialchars($shift['location']); ?></small>
+                            <div class="calendar-day" <?php echo $isToday ? 'style="border: 2px solid #fd2b2b;"' : ''; ?>>
+                                <div class="calendar-day-header">
+                                    <?php echo $dayName; ?>
+                                    <span class="day-number"><?php echo $dayNumber; ?></span>
                                 </div>
-                            <?php 
-                                endforeach; 
-                            endif; 
-                            ?>
-                        </div>
-                    <?php 
+                                <?php if (isset($shiftsByDate[$date])):
+                                    foreach ($shiftsByDate[$date] as $shift):
+                                        $roleColor = $roleColors[$shift['role_name']] ?? $roleColors['default'];
+                                        ?>
+                                        <div class="shift-card" style="border-left-color: <?php echo $roleColor; ?>;">
+                                            <div class="shift-time">
+                                                <?php echo date("g:i A", strtotime($shift['start_time'])); ?> -
+                                                <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
+                                            </div>
+                                            <div class="shift-user"><?php echo htmlspecialchars($shift['username']); ?></div>
+                                            <div class="shift-role"><?php echo htmlspecialchars($shift['role_name']); ?></div>
+                                            <small><?php echo htmlspecialchars($shift['location']); ?></small>
+                                        </div>
+                                    <?php
+                                    endforeach;
+                                endif;
+                                ?>
+                            </div>
+                        <?php
                         endforeach;
-                    endif; 
+                    endif;
                     ?>
                 </div>
             </section>
@@ -621,7 +688,7 @@ if ($period === 'week') {
 
     <script>
         // Page-specific navigation fix
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Fix navigation menu links
             const navLinks = document.querySelectorAll('.nav-links ul li a');
             navLinks.forEach(link => {
@@ -633,18 +700,18 @@ if ($period === 'week') {
             const menuToggle = document.getElementById('menu-toggle');
             const navMenu = document.getElementById('nav-links');
             if (menuToggle && navMenu) {
-                menuToggle.addEventListener('click', function() {
+                menuToggle.addEventListener('click', function () {
                     navMenu.classList.toggle('show');
                 });
             }
         });
-        
+
         // Switch between list and calendar views
         function switchView(view) {
             const listView = document.getElementById('list-view');
             const calendarView = document.getElementById('calendar-view');
             const viewParam = document.querySelector('input[name="view"]');
-            
+
             if (view === 'list') {
                 listView.style.display = 'block';
                 calendarView.style.display = 'none';
@@ -656,39 +723,14 @@ if ($period === 'week') {
                 document.querySelectorAll('.view-toggle button')[0].classList.remove('active');
                 document.querySelectorAll('.view-toggle button')[1].classList.add('active');
             }
-            
+
             viewParam.value = view;
         }
-        
-        // Print function
-        function printRota() {
-            window.print();
-        }
-        
-        // Export to CSV function
-        function exportToCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "User,Date,Start Time,End Time,Role,Location\n";
-            
-            <?php foreach ($shifts as $shift): ?>
-                csvContent += "<?php echo addslashes($shift['username']); ?>,";
-                csvContent += "<?php echo date("Y-m-d", strtotime($shift['shift_date'])); ?>,";
-                csvContent += "<?php echo date("H:i", strtotime($shift['start_time'])); ?>,";
-                csvContent += "<?php echo date("H:i", strtotime($shift['end_time'])); ?>,";
-                csvContent += "<?php echo addslashes($shift['role_name']); ?>,";
-                csvContent += "<?php echo addslashes($shift['location']); ?>\n";
-            <?php endforeach; ?>
-            
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "rota_<?php echo date('Y-m-d'); ?>.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+
+        // Removed printRota() function
+        // Removed exportToCSV() function
     </script>
-    
+
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
