@@ -417,6 +417,44 @@ if ($user_id) {
             position: relative;
             z-index: 5;
         }
+
+        /* Mobile-specific styling for Add New Shift button */
+        @media (max-width: 768px) {
+            #toggleAddShiftBtn {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+                white-space: nowrap;
+                width: auto;
+                justify-content: center;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .card-header h3 {
+                margin-bottom: 8px;
+            }
+
+            /* Make button span full width when header is stacked */
+            .card-header #toggleAddShiftBtn {
+                width: 100%;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 480px) {
+            #toggleAddShiftBtn {
+                padding: 6px 10px;
+                font-size: 0.85rem;
+            }
+
+            #toggleAddShiftBtn i {
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 
