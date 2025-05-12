@@ -160,6 +160,9 @@ if ($user_id) {
             justify-content: space-between;
             align-items: center;
             margin: 15px 0;
+            padding: 10px 0;
+            border-top: 1px solid #eee;
+            width: 100%;
         }
 
         .period-navigation p {
@@ -167,7 +170,7 @@ if ($user_id) {
             font-weight: 500;
         }
 
-        .nav-links {
+        .period-nav-buttons {
             display: flex;
             gap: 10px;
         }
@@ -378,6 +381,42 @@ if ($user_id) {
                 font-size: 0.8rem;
             }
         }
+
+        .period-nav-buttons a.btn {
+            padding: 8px 15px;
+            background-color: #fd2b2b;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .period-nav-buttons a.btn:hover {
+            background-color: #d42020;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .period-navigation {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .period-nav-buttons {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Make sure these links aren't affected by PWA link handlers */
+        .period-nav-buttons a.btn {
+            position: relative;
+            z-index: 5;
+        }
     </style>
 </head>
 
@@ -422,15 +461,15 @@ if ($user_id) {
                     <p>Week of <?php echo date('j M', strtotime($weekStart)); ?> -
                         <?php echo date('j M Y', strtotime($weekEnd)); ?>
                     </p>
-                    <div class="nav-links">
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>"
+                    <div class="period-nav-buttons">
+                        <a href="shifts.php?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>"
                             class="btn"><i class="fa fa-chevron-left"></i> Previous</a>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>"
+                        <a href="shifts.php?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>"
                             class="btn">Next <i class="fa fa-chevron-right"></i></a>
                     </div>
                 <?php elseif ($period == 'month'): ?>
                     <p><?php echo date('F Y', mktime(0, 0, 0, $month, 1, $year)); ?></p>
-                    <div class="nav-links">
+                    <div class="period-nav-buttons">
                         <?php
                         $prevMonth = $month - 1;
                         $prevYear = $year;
@@ -445,28 +484,31 @@ if ($user_id) {
                             $nextYear += 1;
                         }
                         ?>
-                        <a href="?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="btn"><i
-                                class="fa fa-chevron-left"></i> Previous</a>
-                        <a href="?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>"
+                        <a href="shifts.php?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>"
+                            class="btn"><i class="fa fa-chevron-left"></i> Previous</a>
+                        <a href="shifts.php?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>"
                             class="btn">Next <i class="fa fa-chevron-right"></i></a>
                     </div>
                 <?php else: ?>
                     <p><?php echo $year; ?></p>
-                    <div class="nav-links">
-                        <a href="?period=year&year=<?php echo $year - 1; ?>" class="btn"><i class="fa fa-chevron-left"></i>
-                            Previous</a>
-                        <a href="?period=year&year=<?php echo $year + 1; ?>" class="btn">Next <i
+                    <div class="period-nav-buttons">
+                        <a href="shifts.php?period=year&year=<?php echo $year - 1; ?>" class="btn"><i
+                                class="fa fa-chevron-left"></i> Previous</a>
+                        <a href="shifts.php?period=year&year=<?php echo $year + 1; ?>" class="btn">Next <i
                                 class="fa fa-chevron-right"></i></a>
                     </div>
                 <?php endif; ?>
             </div>
+
         </div>
-        <!-- Shift Management Card -->
+
+        <!-- Shifts Table -->
         <div class="card">
             <div class="card-header">
                 <h3><i class="fa fa-list"></i> Shift Management</h3>
                 <button id="toggleAddShiftBtn" class="btn"><i class="fa fa-plus-circle"></i> Add New Shift</button>
             </div>
+
             <!-- Add Shift Form (Hidden by Default) -->
             <div id="addShiftSection" style="display:none;" class="add-shift-section">
                 <form id="addShiftForm" method="POST" action="../functions/add_shift.php">
@@ -503,7 +545,7 @@ if ($user_id) {
                     <button class="btn save-shift-btn" type="submit"><i class="fa fa-save"></i> Save Shift</button>
                 </form>
             </div>
-            <!-- Shifts Table -->
+
             <div class="responsive-table">
                 <?php if (count($shifts) > 0): ?>
                     <table>
@@ -584,6 +626,7 @@ if ($user_id) {
                 <?php endif; ?>
             </div>
         </div>
+
         <!-- Edit Shift Modal -->
         <div id="editShiftModal" class="modal">
             <div class="modal-content">
@@ -631,19 +674,27 @@ if ($user_id) {
             // Toggle add shift form
             const toggleBtn = document.getElementById("toggleAddShiftBtn");
             const addSection = document.getElementById("addShiftSection");
-            toggleBtn.addEventListener("click", function () {
-                const isVisible = addSection.style.display !== "none";
-                addSection.style.display = isVisible ? "none" : "block";
-                toggleBtn.innerHTML = isVisible ?
-                    '<i class="fa fa-plus-circle"></i> Add New Shift' :
-                    '<i class="fa fa-minus-circle"></i> Cancel';
-            });
+            if (toggleBtn && addSection) {
+                toggleBtn.addEventListener("click", function () {
+                    const isVisible = addSection.style.display !== "none";
+                    addSection.style.display = isVisible ? "none" : "block";
+                    toggleBtn.innerHTML = isVisible ?
+                        '<i class="fa fa-plus-circle"></i> Add New Shift' :
+                        '<i class="fa fa-minus-circle"></i> Cancel';
+                });
+            }
+
             // Set today's date as default for new shift
-            document.getElementById("shift_date").valueAsDate = new Date();
+            const shiftDate = document.getElementById("shift_date");
+            if (shiftDate) {
+                shiftDate.valueAsDate = new Date();
+            }
+
             // Edit shift functionality
             const editBtns = document.querySelectorAll(".editBtn");
             const editModal = document.getElementById("editShiftModal");
             const closeModal = document.querySelector(".close-modal");
+
             editBtns.forEach(btn => {
                 btn.addEventListener("click", function () {
                     const row = this.closest("tr");
@@ -653,27 +704,32 @@ if ($user_id) {
                     document.getElementById("edit_end_time").value = row.querySelector("td:nth-child(2)").dataset.rawEnd;
                     document.getElementById("edit_location").value = row.querySelector("td:nth-child(4)").dataset.rawLocation;
                     document.getElementById("edit_role_id").value = row.querySelector("td:nth-child(3)").dataset.rawRole;
+
                     // Show the modal
                     editModal.style.display = "block";
                 });
             });
+
             // Close modal when clicking the X
-            closeModal.addEventListener("click", function () {
-                editModal.style.display = "none";
-            });
+            if (closeModal) {
+                closeModal.addEventListener("click", function () {
+                    editModal.style.display = "none";
+                });
+            }
+
             // Close modal when clicking outside of it
             window.addEventListener("click", function (event) {
                 if (event.target === editModal) {
                     editModal.style.display = "none";
                 }
             });
+
             // Handle delete buttons
             const deleteBtns = document.querySelectorAll(".deleteBtn");
             deleteBtns.forEach(btn => {
                 btn.addEventListener("click", function () {
                     const shiftId = this.dataset.id;
                     if (confirm("Are you sure you want to delete this shift?")) {
-                        // Use fetch API instead of jQuery
                         fetch('../functions/delete_shift.php', {
                             method: 'POST',
                             headers: {
@@ -690,6 +746,31 @@ if ($user_id) {
                                 alert("An error occurred: " + error);
                             });
                     }
+                });
+            });
+
+            // Initialize the burger menu functionality (fixed)
+            const menuToggle = document.getElementById('menu-toggle');
+            const navLinks = document.getElementById('nav-links');
+
+            if (menuToggle && navLinks) {
+                console.log('Menu elements found, attaching event listener');
+                menuToggle.addEventListener('click', function () {
+                    console.log('Menu toggle clicked');
+                    navLinks.classList.toggle('show');
+                });
+            } else {
+                console.log('Menu elements not found:', { menuToggle, navLinks });
+            }
+
+            // Make period navigation buttons work properly
+            const navButtons = document.querySelectorAll('.period-nav-buttons a');
+            navButtons.forEach(button => {
+                button.addEventListener('click', function (e) {
+                    console.log('Period navigation button clicked:', this.href);
+                    // Ensure direct navigation
+                    window.location.href = this.href;
+                    e.preventDefault();
                 });
             });
         });
