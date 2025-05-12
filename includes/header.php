@@ -80,10 +80,11 @@ if ($user_id) {
         </div>
 
     </header>
-    <script src="../js/menu.js"></script>
     <script>
-        // Ensure the DOM is fully loaded before attaching the event listener
         document.addEventListener('DOMContentLoaded', function () {
+            document.querySelector('header').style.opacity = "1";
+
+            // Notification dropdown functionality
             var notificationIcon = document.getElementById('notification-icon');
             var dropdown = document.getElementById('notification-dropdown');
 
@@ -97,21 +98,15 @@ if ($user_id) {
 
             // When clicking anywhere in the document outside the notification container, hide the dropdown.
             document.addEventListener('click', function (e) {
-                // If dropdown is open and the click is not within notificationIcon or dropdown, then hide dropdown.
-                if (dropdown.style.display === "block" &&
-                    !notificationIcon.contains(e.target) &&
+                if (dropdown && dropdown.style.display === "block" &&
+                    notificationIcon && !notificationIcon.contains(e.target) &&
                     !dropdown.contains(e.target)) {
                     dropdown.style.display = "none";
                 }
             });
         });
     </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelector('header').style.opacity = "1";
-        });
-    </script>
+    <script src="/rota-app-main/js/menu.js"></script>
     <script>
         function markAsRead(notificationElem) {
             var notifId = notificationElem.getAttribute('data-id');

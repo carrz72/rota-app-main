@@ -749,20 +749,6 @@ if ($user_id) {
                 });
             });
 
-            // Initialize the burger menu functionality (fixed)
-            const menuToggle = document.getElementById('menu-toggle');
-            const navLinks = document.getElementById('nav-links');
-
-            if (menuToggle && navLinks) {
-                console.log('Menu elements found, attaching event listener');
-                menuToggle.addEventListener('click', function () {
-                    console.log('Menu toggle clicked');
-                    navLinks.classList.toggle('show');
-                });
-            } else {
-                console.log('Menu elements not found:', { menuToggle, navLinks });
-            }
-
             // Make period navigation buttons work properly
             const navButtons = document.querySelectorAll('.period-nav-buttons a');
             navButtons.forEach(button => {
