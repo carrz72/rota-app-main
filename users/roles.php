@@ -544,7 +544,6 @@ if ($user_id) {
             })
                 .then(response => response.text())
                 .then(result => {
-                    alert("Role updated successfully!");
                     closeModal();
                     // Reload page to show updated data
                     window.location.reload();
