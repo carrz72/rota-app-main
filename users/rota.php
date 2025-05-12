@@ -293,6 +293,68 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
+
+    <script>
+        // Fix navigation menu functionality for Chrome
+        document.addEventListener('DOMContentLoaded', function () {
+            // Get navigation elements
+            const menuToggle = document.getElementById('menu-toggle');
+            const navLinks = document.getElementById('nav-links');
+
+            // Ensure elements exist
+            if (menuToggle && navLinks) {
+                // Remove any existing event listeners by cloning and replacing
+                const newMenuToggle = menuToggle.cloneNode(true);
+                menuToggle.parentNode.replaceChild(newMenuToggle, menuToggle);
+
+                // Add click event listener to toggle navigation
+                newMenuToggle.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navLinks.classList.toggle('show');
+                    console.log('Menu toggle clicked');
+                });
+
+                // Close menu when clicking outside
+                document.addEventListener('click', function (e) {
+                    if (navLinks.classList.contains('show') &&
+                        !navLinks.contains(e.target) &&
+                        !newMenuToggle.contains(e.target)) {
+                        navLinks.classList.remove('show');
+                    }
+                });
+            }
+
+            // Ensure navigation links have correct styling
+            const navMenuItems = document.querySelectorAll('.nav-links ul li a');
+            navMenuItems.forEach(link => {
+                link.style.backgroundColor = '#fd2b2b';
+                link.style.color = '#ffffff';
+                link.style.display = 'block';
+                link.style.padding = '12px 20px';
+            });
+        });
+    </script>
+
+    <script>
+        // Additional fix for Chrome - force repaint of navigation elements
+        window.addEventListener('load', function () {
+            const header = document.querySelector('header');
+            if (header) {
+                header.style.opacity = '0.99';
+                setTimeout(() => { header.style.opacity = '1'; }, 10);
+            }
+
+            // Force repaint of navigation menu
+            const navMenu = document.getElementById('nav-links');
+            if (navMenu) {
+                navMenu.style.display = 'none';
+                setTimeout(() => {
+                    navMenu.style.display = '';
+                }, 20);
+            }
+        });
+    </script>
 </body>
 
 </html>
