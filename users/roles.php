@@ -252,6 +252,56 @@ if ($user_id) {
             color: #fd2b2b;
             text-decoration: none;
         }
+
+        .pay-details-container {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .pay-detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+            color: #333;
+        }
+
+        .pay-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+            min-width: 90px;
+        }
+
+        .pay-value {
+            font-weight: normal;
+        }
+
+        .time-range {
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .pay-detail i {
+            color: #fd2b2b;
+            font-size: 1.1em;
+        }
+
+        /* When the screen gets smaller, adjust spacing */
+        @media (max-width: 600px) {
+            .pay-detail {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
+            }
+
+            .pay-label {
+                min-width: auto;
+            }
+        }
     </style>
 </head>
 
@@ -289,15 +339,31 @@ if ($user_id) {
                     <div class="role-card">
                         <div class="role-details">
                             <div class="role-name"><?php echo htmlspecialchars($role['name']); ?></div>
-                            <div class="role-pay">Base Pay: £<?php echo number_format($role['base_pay'], 2); ?> per hour</div>
 
-                            <?php if ($role['has_night_pay']): ?>
-                                <div class="role-night">
-                                    Night Pay: £<?php echo number_format($role['night_shift_pay'], 2); ?> per hour
-                                    (<?php echo date("g:i A", strtotime($role['night_start_time'])); ?> -
-                                    <?php echo date("g:i A", strtotime($role['night_end_time'])); ?>)
+                            <!-- Pay Details Section -->
+                            <div class="pay-details-container">
+                                <!-- Base Pay -->
+                                <div class="pay-detail">
+                                    <div class="pay-label"><i class="fa fa-money"></i> Base Pay:</div>
+                                    <div class="pay-value">£<?php echo number_format($role['base_pay'], 2); ?> per hour</div>
                                 </div>
-                            <?php endif; ?>
+
+                                <!-- Night Shift Pay (if applicable) -->
+                                <?php if ($role['has_night_pay']): ?>
+                                    <div class="pay-detail">
+                                        <div class="pay-label"><i class="fa fa-moon-o"></i> Night Pay:</div>
+                                        <div class="pay-value">£<?php echo number_format($role['night_shift_pay'], 2); ?> per hour
+                                        </div>
+                                    </div>
+                                    <div class="pay-detail time-range">
+                                        <div class="pay-label"><i class="fa fa-clock-o"></i> Night Hours:</div>
+                                        <div class="pay-value">
+                                            <?php echo date("g:i A", strtotime($role['night_start_time'])); ?> -
+                                            <?php echo date("g:i A", strtotime($role['night_end_time'])); ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <div class="role-actions">
                             <button class="action-btn edit-btn" onclick="editRole(<?php echo $role['id']; ?>)">
