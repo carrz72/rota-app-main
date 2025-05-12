@@ -136,7 +136,568 @@ foreach ($days_result as $day) {
     <link rel="manifest" href="/rota-app-main/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <title>Dashboard - Open Rota</title>
+    <style>
+        /* Enhanced dashboard styles */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
+        @media (min-width: 992px) {
+            .dashboard-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Ensure consistent nav menu styling with shifts page */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: transparent;
+            color: #000;
+            position: relative;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+
+        .nav-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-toggle {
+            font-size: 1.8em;
+            cursor: pointer;
+            display: block;
+            z-index: 1001;
+            padding: 5px;
+        }
+
+        .menu-toggle:hover {
+            transition: 0.4s;
+            transform: translateX(2px);
+        }
+
+        /* Navigation Menu - consistent with shifts page */
+        .nav-links {
+            display: none;
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: #ffffff;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .nav-links.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .nav-links ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-links ul li {
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-links ul li a {
+            display: block;
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            white-space: nowrap;
+            border-bottom: 1px solid #eee;
+        }
+
+        .nav-links ul li:last-child a {
+            border-bottom: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Welcome card adjustments */
+        .welcome-card {
+            background: linear-gradient(145deg, #fd2b2b, #c82333);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            grid-column: 1 / -1;
+        }
+
+        .welcome-text h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .welcome-text p {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .welcome-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .welcome-actions a {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .welcome-actions a:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            grid-column: 1 / -1;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #fd2b2b;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin: 0;
+        }
+
+        .dashboard-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .dashboard-card h3 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1.2rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .dashboard-card h3 i {
+            color: #fd2b2b;
+        }
+
+        .next-shift-details {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .next-shift-date {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .next-shift-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .next-shift-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .next-shift-meta i {
+            color: #fd2b2b;
+            font-size: 0.9rem;
+        }
+
+        .next-shift-meta span {
+            font-size: 0.95rem;
+            color: #444;
+        }
+
+        .overlap-info {
+            background-color: #f0f7ff;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+        }
+
+        .overlap-info h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #2980b9;
+            font-size: 1rem;
+        }
+
+        .colleague-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .colleague-item {
+            background-color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .period-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .period-selector label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .period-selector select {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            background-color: white;
+        }
+
+        .upcoming-shifts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .upcoming-shifts-table th {
+            background-color: #f5f5f5;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #eee;
+        }
+
+        .upcoming-shifts-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .earnings-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .earnings-stat-box {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .earnings-stat-value {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #fd2b2b;
+            margin: 5px 0;
+        }
+
+        .earnings-stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .day-badge {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            border-radius: 50%;
+            background-color: #fd2b2b;
+            color: white;
+            margin-right: 5px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .time-badge {
+            background-color: #333;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        /* Improved mobile responsiveness */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 10px;
+                gap: 12px;
+            }
+
+            .welcome-card {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 15px;
+            }
+
+            .welcome-text h1 {
+                font-size: 1.5rem;
+            }
+
+            .welcome-actions {
+                margin-top: 15px;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .welcome-actions a {
+                font-size: 0.85rem;
+                padding: 8px 12px;
+            }
+
+            .quick-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .stat-card {
+                padding: 12px 8px;
+            }
+
+            .stat-number {
+                font-size: 1.5rem;
+            }
+
+            .dashboard-card {
+                padding: 15px;
+            }
+
+            .earnings-stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .next-shift-info {
+                grid-template-columns: 1fr;
+            }
+
+            .upcoming-shifts-table {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .quick-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .welcome-actions {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .welcome-actions a {
+                flex: 1 0 calc(50% - 6px);
+                text-align: center;
+                font-size: 0.8rem;
+                padding: 8px 5px;
+            }
+
+            .dashboard-card h3 {
+                font-size: 1.1rem;
+            }
+
+            .next-shift-date {
+                font-size: 1.1rem;
+            }
+
+            .colleague-list {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+
+        /* Safari-specific fixes */
+        /* This targets Safari only using a hack */
+        @supports (-webkit-touch-callout: none) {
+
+            /* iOS Safari specific styles go here */
+            .dashboard-container {
+                /* Fix for Safari grid issues */
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: flex;
+                -webkit-flex-wrap: wrap;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+
+            .dashboard-card,
+            .welcome-card,
+            .quick-stats {
+                /* Fix for Safari full width handling */
+                width: 100%;
+                -webkit-box-sizing: border-box;
+                box-sizing: border-box;
+            }
+
+            @media (min-width: 992px) {
+                .dashboard-card {
+                    width: calc(50% - 10px);
+                    /* Accounting for gap */
+                }
+
+                .dashboard-card[style*="grid-column: 1 / -1"] {
+                    width: 100%;
+                }
+            }
+
+            /* Fix Safari form elements */
+            select {
+                -webkit-appearance: none;
+                background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+                background-repeat: no-repeat;
+                background-position: right 8px center;
+                padding-right: 30px !important;
+            }
+
+            /* Fix for Safari flexbox alignment */
+            .welcome-actions,
+            .next-shift-meta,
+            .colleague-list {
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: flex;
+            }
+
+            /* Fix for Safari table display issues */
+            .responsive-table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Fix navigation menu positioning in Safari */
+            .nav-links {
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            }
+
+            /* Fix animation for Safari */
+            @-webkit-keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    -webkit-transform: translateY(-10px);
+                    transform: translateY(-10px);
+                }
+
+                to {
+                    opacity: 1;
+                    -webkit-transform: translateY(0);
+                    transform: translateY(0);
+                }
+            }
+        }
+
+        /* Additional responsive fixes for all browsers including Safari */
+        @media (max-width: 768px) {
+
+            /* Wrap table in a scrollable container */
+            .upcoming-shifts-table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Ensure proper touch behavior on mobile Safari */
+            .nav-links ul li a {
+                padding: 14px 20px;
+                /* Slightly larger touch target for Safari */
+            }
+
+            /* Better handling of fixed position elements in Safari */
+            .notification-dropdown {
+                position: absolute;
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            }
+        }
+    </style>
 </head>
 
 <body>
