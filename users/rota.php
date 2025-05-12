@@ -64,10 +64,9 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Full Rota</title>
-    <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/rota.css">
     <style>
-        /* Navigation menu styling specific to rota page */
+        /* Navigation menu styling to match other pages */
         .nav-links {
             display: none;
             position: absolute;
@@ -106,10 +105,17 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
             white-space: nowrap;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 14px;
+            transition: background-color 0.3s ease;
         }
 
         .nav-links ul li:last-child a {
             border-bottom: none;
+        }
+
+        .nav-links ul li a:hover {
+            background-color: #c82333 !important;
+            transform: translateY(0);
+            box-shadow: none;
         }
 
         /* Safari-specific fixes */
@@ -122,6 +128,20 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
             .nav-links ul li a {
                 -webkit-appearance: none;
                 padding: 12px 20px !important;
+            }
+
+            @-webkit-keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    -webkit-transform: translateY(-10px);
+                    transform: translateY(-10px);
+                }
+
+                to {
+                    opacity: 1;
+                    -webkit-transform: translateY(0);
+                    transform: translateY(0);
+                }
             }
         }
 
@@ -250,6 +270,26 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <?php endif; ?>
     </div>
 
+    <script>
+        // Page-specific navigation fix
+        document.addEventListener('DOMContentLoaded', function () {
+            // Fix navigation menu links
+            const navLinks = document.querySelectorAll('.nav-links ul li a');
+            navLinks.forEach(link => {
+                link.style.backgroundColor = '#fd2b2b';
+                link.style.color = '#ffffff';
+            });
+
+            // Ensure menu toggle works properly
+            const menuToggle = document.getElementById('menu-toggle');
+            const navMenu = document.getElementById('nav-links');
+            if (menuToggle && navMenu) {
+                menuToggle.addEventListener('click', function () {
+                    navMenu.classList.toggle('show');
+                });
+            }
+        });
+    </script>
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
