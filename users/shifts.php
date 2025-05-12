@@ -419,316 +419,316 @@ if ($user_id) {
             <div class="period-navigation">
                 <?php if ($period == 'week'): ?>
                     <?php $weekEnd = date('Y-m-d', strtotime($weekStart . ' +6 days')); ?>
-                    <p>Week of <?php echo date('j M', strtotime($weekStart)); ?> -
-                        <?php echo date('j M Y', strtotime($weekEnd)); ?>
-                    </p>
+                    <p>Week of <?php echo date('j M', strtotime($weekStart)); ?> - 
+                       <?php echo date('j M Y', strtotime($weekEnd)); ?></p>
                     <div class="nav-links">
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>"
-                            class="btn"><i class="fa fa-chevron-left"></i> Previous</a>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>"
-                            class="btn">Next <i class="fa fa-chevron-right"></i></a>
-                    </div>
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>" 
+                           class="btn"><i class="fa fa-chevron-left"></i> Previous</a>time($weekStart . ' -7 days')); ?>"
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>" 
+                           class="btn">Next <i class="fa fa-chevron-right"></i></a>rtotime($weekStart . ' +7 days')); ?>"
+                    </div>  class="btn">Next <i class="fa fa-chevron-right"></i></a>
                 <?php elseif ($period == 'month'): ?>
                     <p><?php echo date('F Y', mktime(0, 0, 0, $month, 1, $year)); ?></p>
-                    <div class="nav-links">
-                        <?php
+                    <div class="nav-links">', mktime(0, 0, 0, $month, 1, $year)); ?></p>
+                        <?phps="nav-links">
                         $prevMonth = $month - 1;
-                        $prevYear = $year;
+                        $prevYear = $year;h - 1;
                         if ($prevMonth < 1) {
-                            $prevMonth = 12;
-                            $prevYear -= 1;
-                        }
+                            $prevMonth = 12;{
+                            $prevYear -= 1;;
+                        }   $prevYear -= 1;
                         $nextMonth = $month + 1;
-                        $nextYear = $year;
+                        $nextYear = $year;h + 1;
                         if ($nextMonth > 12) {
-                            $nextMonth = 1;
+                            $nextMonth = 1;) {
                             $nextYear += 1;
-                        }
+                        }   $nextYear += 1;
                         ?>
-                        <a href="?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="btn"><i
-                                class="fa fa-chevron-left"></i> Previous</a>
-                        <a href="?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>"
-                            class="btn">Next <i class="fa fa-chevron-right"></i></a>
-                    </div>
+                        <a href="?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" 
+                           class="btn"><i class="fa fa-chevron-left"></i> Previous</a>php echo $prevYear; ?>" class="btn"><i
+                        <a href="?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" 
+                           class="btn">Next <i class="fa fa-chevron-right"></i></a>=<?php echo $nextYear; ?>"
+                    </div>  class="btn">Next <i class="fa fa-chevron-right"></i></a>
                 <?php else: ?>
                     <p><?php echo $year; ?></p>
-                    <div class="nav-links">
-                        <a href="?period=year&year=<?php echo $year - 1; ?>" class="btn"><i class="fa fa-chevron-left"></i>
-                            Previous</a>
-                        <a href="?period=year&year=<?php echo $year + 1; ?>" class="btn">Next <i
-                                class="fa fa-chevron-right"></i></a>
-                    </div>
+                    <div class="nav-links"></p>
+                        <a href="?period=year&year=<?php echo $year - 1; ?>" 
+                           class="btn"><i class="fa fa-chevron-left"></i> Previous</a>n"><i class="fa fa-chevron-left"></i>
+                        <a href="?period=year&year=<?php echo $year + 1; ?>" 
+                           class="btn">Next <i class="fa fa-chevron-right"></i></a>"btn">Next <i
+                    </div>      class="fa fa-chevron-right"></i></a>
                 <?php endif; ?>
-            </div>
+            </div>php endif; ?>
+        </div>div>
         </div>
-
         <!-- Shift Management Card -->
-        <div class="card">
+        <div class="card">ent Card -->
             <div class="card-header">
                 <h3><i class="fa fa-list"></i> Shift Management</h3>
                 <button id="toggleAddShiftBtn" class="btn"><i class="fa fa-plus-circle"></i> Add New Shift</button>
+            </div>utton id="toggleAddShiftBtn" class="btn"><i class="fa fa-plus-circle"></i> Add New Shift</button>
             </div>
-
             <!-- Add Shift Form (Hidden by Default) -->
             <div id="addShiftSection" style="display:none;" class="add-shift-section">
                 <form id="addShiftForm" method="POST" action="../functions/add_shift.php">
-                    <div class="add-shift-form">
+                    <div class="add-shift-form">POST" action="../functions/add_shift.php">
                         <div class="form-group">
                             <label for="shift_date"><i class="fa fa-calendar-o"></i> Date:</label>
-                            <input type="date" id="shift_date" name="shift_date" required />
+                            <input type="date" id="shift_date" name="shift_date" required />label>
+                        </div>nput type="date" id="shift_date" name="shift_date" required />
                         </div>
-
                         <div class="form-group">
                             <label for="role_id"><i class="fa fa-briefcase"></i> Role:</label>
-                            <select name="role_id" id="role_id" required>
+                            <select name="role_id" id="role_id" required>e"></i> Role:</label>
                                 <option value="">-- Select Role --</option>
-                                <?php foreach ($roles as $role): ?>
+                                <?php foreach ($roles as $role): ?>/option>
                                     <option value="<?php echo $role['id']; ?>">
                                         <?php echo htmlspecialchars($role['name']); ?>
-                                    </option>
+                                    </option> echo htmlspecialchars($role['name']); ?>
                                 <?php endforeach; ?>
-                            </select>
+                            </select> endforeach; ?>
+                        </div>select>
                         </div>
-
                         <div class="form-group">
                             <label for="start_time"><i class="fa fa-clock-o"></i> Start Time:</label>
-                            <input type="time" id="start_time" name="start_time" required />
+                            <input type="time" id="start_time" name="start_time" required />:</label>
+                        </div>nput type="time" id="start_time" name="start_time" required />
                         </div>
-
                         <div class="form-group">
                             <label for="end_time"><i class="fa fa-clock-o"></i> End Time:</label>
-                            <input type="time" id="end_time" name="end_time" required />
+                            <input type="time" id="end_time" name="end_time" required />:</label>
+                        </div>nput type="time" id="end_time" name="end_time" required />
                         </div>
-
                         <div class="form-group">
                             <label for="location"><i class="fa fa-map-marker"></i> Location:</label>
-                            <input type="text" id="location" name="location" required
-                                placeholder="Enter work location" />
-                        </div>
+                            <input type="text" id="location" name="location" requiredcation:</label>
+                                placeholder="Enter work location" />ocation" required
+                        </div>  placeholder="Enter work location" />
+                    </div>div>
                     </div>
-
                     <button class="btn save-shift-btn" type="submit"><i class="fa fa-save"></i> Save Shift</button>
-                </form>
+                </form>tton class="btn save-shift-btn" type="submit"><i class="fa fa-save"></i> Save Shift</button>
+            </div>form>
             </div>
-
             <!-- Shifts Table -->
             <div class="responsive-table">
                 <?php if (count($shifts) > 0): ?>
-                    <table>
+                    <table>ount($shifts) > 0): ?>
                         <thead>
                             <tr>
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Role</th>
                                 <th>Location</th>
-                                <th>Pay</th>
+                                <th>Pay</th></th>
                                 <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                            </tr>th>Actions</th>
+                        </thead>>
+                        <tbody>>
                             <?php foreach ($shifts as $shift): ?>
-                                <?php
+                                <?phpeach ($shifts as $shift): ?>
                                 $formattedDate = date("D, j M Y", strtotime($shift['shift_date']));
-                                $formattedStart = date("g:i A", strtotime($shift['start_time']));
+                                $formattedStart = date("g:i A", strtotime($shift['start_time'])););
+                                $formattedEnd = date("g:i A", strtotime($shift['end_time']));]));
                                 $formattedEnd = date("g:i A", strtotime($shift['end_time']));
-
                                 // Check if this is a night shift
-                                $isNightShift = false;
+                                $isNightShift = false;night shift
                                 if ($shift['has_night_pay'] && !empty($shift['night_start_time']) && !empty($shift['night_end_time'])) {
-                                    $shiftStart = strtotime($shift['start_time']);
-                                    $shiftEnd = strtotime($shift['end_time']);
+                                    $shiftStart = strtotime($shift['start_time']);t_start_time']) && !empty($shift['night_end_time'])) {
+                                    $shiftEnd = strtotime($shift['end_time']);']);
                                     $nightStart = strtotime($shift['night_start_time']);
+                                    $nightEnd = strtotime($shift['night_end_time']);']);
                                     $nightEnd = strtotime($shift['night_end_time']);
-
                                     // Check if shift overlaps with night hours
-                                    if (
+                                    if (heck if shift overlaps with night hours
                                         ($shiftStart >= $nightStart) || ($shiftEnd <= $nightEnd) ||
-                                        ($shiftStart <= $nightStart && $shiftEnd >= $nightEnd)
-                                    ) {
+                                        ($shiftStart <= $nightStart && $shiftEnd >= $nightEnd)d) ||
+                                    ) { ($shiftStart <= $nightStart && $shiftEnd >= $nightEnd)
                                         $isNightShift = true;
-                                    }
-                                }
+                                    }   $isNightShift = true;
+                                }   }
                                 ?>
                                 <tr class="<?php echo $isNightShift ? 'night-shift' : ''; ?>">
-                                    <!-- Shift Date -->
+                                    <!-- Shift Date -->isNightShift ? 'night-shift' : ''; ?>">
                                     <td data-raw-date="<?php echo $shift['shift_date']; ?>">
-                                        <?php echo $formattedDate; ?>
+                                        <?php echo $formattedDate; ?>ift['shift_date']; ?>">
+                                    </td>?php echo $formattedDate; ?>
                                     </td>
-
                                     <!-- Times -->
                                     <td data-raw-start="<?php echo $shift['start_time']; ?>"
-                                        data-raw-end="<?php echo $shift['end_time']; ?>">
+                                        data-raw-end="<?php echo $shift['end_time']; ?>">?>"
                                         <?php echo $formattedStart; ?> - <?php echo $formattedEnd; ?>
+                                    </td>?php echo $formattedStart; ?> - <?php echo $formattedEnd; ?>
                                     </td>
-
                                     <!-- Role -->
                                     <td data-raw-role="<?php echo $shift['role_id']; ?>">
-                                        <?php echo htmlspecialchars($shift['role']); ?>
+                                        <?php echo htmlspecialchars($shift['role']); ?>">
+                                    </td>?php echo htmlspecialchars($shift['role']); ?>
                                     </td>
-
                                     <!-- Location -->
                                     <td data-raw-location="<?php echo htmlspecialchars($shift['location']); ?>">
-                                        <?php echo htmlspecialchars($shift['location']); ?>
+                                        <?php echo htmlspecialchars($shift['location']); ?>ft['location']); ?>">
+                                    </td>?php echo htmlspecialchars($shift['location']); ?>
                                     </td>
-
                                     <!-- Pay -->
-                                    <td>
+                                    <td> Pay -->
                                         <strong>£<?php echo number_format($shift['pay'], 2); ?></strong>
+                                    </td>strong>£<?php echo number_format($shift['pay'], 2); ?></strong>
                                     </td>
-
                                     <!-- Actions -->
-                                    <td>
+                                    <td> Actions -->
                                         <div class="shift-actions">
                                             <button class="editBtn" data-id="<?php echo $shift['id']; ?>">
-                                                <i class="fa fa-pencil"></i> Edit
-                                            </button>
+                                                <i class="fa fa-pencil"></i> Editp echo $shift['id']; ?>">
+                                            </button>ass="fa fa-pencil"></i> Edit
                                             <button class="deleteBtn" data-id="<?php echo $shift['id']; ?>">
-                                                <i class="fa fa-trash"></i> Delete
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                                <i class="fa fa-trash"></i> Deletehp echo $shift['id']; ?>">
+                                            </button>ass="fa fa-trash"></i> Delete
+                                        </div>button>
+                                    </td>/div>
+                                </tr>/td>
                             <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                        </tbody>p endforeach; ?>
+                    </table>ody>
                 <?php else: ?>
                     <div class="no-shifts">
                         <p>No shifts found for the selected period.</p>
-                        <p>Click "Add New Shift" to get started.</p>
-                    </div>
+                        <p>Click "Add New Shift" to get started.</p>/p>
+                    </div>>Click "Add New Shift" to get started.</p>
                 <?php endif; ?>
-            </div>
+            </div>php endif; ?>
+        </div>div>
         </div>
-
         <!-- Edit Shift Modal -->
         <div id="editShiftModal" class="modal">
-            <div class="modal-content">
+            <div class="modal-content">"modal">
                 <div class="modal-header">
                     <h3><i class="fa fa-pencil"></i> Edit Shift</h3>
-                    <span class="close-modal">&times;</span>
+                    <span class="close-modal">&times;</span>ift</h3>
+                </div>pan class="close-modal">&times;</span>
                 </div>
-
                 <form id="editShiftForm" method="POST" action="../functions/edit_shift.php">
-                    <input type="hidden" name="shift_id" id="edit_shift_id">
-                    <div class="add-shift-form">
+                    <input type="hidden" name="shift_id" id="edit_shift_id">edit_shift.php">
+                    <div class="add-shift-form">hift_id" id="edit_shift_id">
                         <div class="form-group">
                             <label for="edit_shift_date"><i class="fa fa-calendar-o"></i> Date:</label>
-                            <input type="date" name="shift_date" id="edit_shift_date" required />
+                            <input type="date" name="shift_date" id="edit_shift_date" required />label>
+                        </div>nput type="date" name="shift_date" id="edit_shift_date" required />
                         </div>
-
                         <div class="form-group">
                             <label for="edit_role_id"><i class="fa fa-briefcase"></i> Role:</label>
-                            <select name="role_id" id="edit_role_id" required>
-                                <?php foreach ($roles as $role): ?>
+                            <select name="role_id" id="edit_role_id" required>e"></i> Role:</label>
+                                <?php foreach ($roles as $role): ?>" required>
                                     <option value="<?php echo $role['id']; ?>">
                                         <?php echo htmlspecialchars($role['name']); ?>
-                                    </option>
+                                    </option> echo htmlspecialchars($role['name']); ?>
                                 <?php endforeach; ?>
-                            </select>
+                            </select> endforeach; ?>
+                        </div>select>
                         </div>
-
                         <div class="form-group">
                             <label for="edit_start_time"><i class="fa fa-clock-o"></i> Start Time:</label>
-                            <input type="time" name="start_time" id="edit_start_time" required />
+                            <input type="time" name="start_time" id="edit_start_time" required />:</label>
+                        </div>nput type="time" name="start_time" id="edit_start_time" required />
                         </div>
-
                         <div class="form-group">
                             <label for="edit_end_time"><i class="fa fa-clock-o"></i> End Time:</label>
-                            <input type="time" name="end_time" id="edit_end_time" required />
+                            <input type="time" name="end_time" id="edit_end_time" required />:</label>
+                        </div>nput type="time" name="end_time" id="edit_end_time" required />
                         </div>
-
                         <div class="form-group">
                             <label for="edit_location"><i class="fa fa-map-marker"></i> Location:</label>
-                            <input type="text" name="location" id="edit_location" required />
-                        </div>
+                            <input type="text" name="location" id="edit_location" required />ion:</label>
+                        </div>nput type="text" name="location" id="edit_location" required />
+                    </div>div>
                     </div>
-
                     <button type="submit" class="btn save-shift-btn"><i class="fa fa-save"></i> Update Shift</button>
-                </form>
-            </div>
-        </div>
+                </form>tton type="submit" class="btn save-shift-btn"><i class="fa fa-save"></i> Update Shift</button>
+            </div>form>
+        </div>div>
+    </div>div>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Toggle add shift form
+            // Toggle add shift formOMContentLoaded', function () {
             const toggleBtn = document.getElementById("toggleAddShiftBtn");
+            const addSection = document.getElementById("addShiftSection");;
             const addSection = document.getElementById("addShiftSection");
-
             toggleBtn.addEventListener("click", function () {
                 const isVisible = addSection.style.display !== "none";
                 addSection.style.display = isVisible ? "none" : "block";
-                toggleBtn.innerHTML = isVisible ?
+                toggleBtn.innerHTML = isVisible ?ble ? "none" : "block";
                     '<i class="fa fa-plus-circle"></i> Add New Shift' :
-                    '<i class="fa fa-minus-circle"></i> Cancel';
+                    '<i class="fa fa-minus-circle"></i> Cancel';hift' :
+            });     '<i class="fa fa-minus-circle"></i> Cancel';
             });
-
             // Set today's date as default for new shift
             document.getElementById("shift_date").valueAsDate = new Date();
-
+            document.getElementById("shift_date").valueAsDate = new Date();
             // Edit shift functionality
             const editBtns = document.querySelectorAll(".editBtn");
             const editModal = document.getElementById("editShiftModal");
+            const closeModal = document.querySelector(".close-modal"););
             const closeModal = document.querySelector(".close-modal");
-
             editBtns.forEach(btn => {
                 btn.addEventListener("click", function () {
-                    const row = this.closest("tr");
+                    const row = this.closest("tr");ion () {
                     document.getElementById("edit_shift_id").value = this.dataset.id;
                     document.getElementById("edit_shift_date").value = row.querySelector("td:nth-child(1)").dataset.rawDate;
                     document.getElementById("edit_start_time").value = row.querySelector("td:nth-child(2)").dataset.rawStart;
-                    document.getElementById("edit_end_time").value = row.querySelector("td:nth-child(2)").dataset.rawEnd;
+                    document.getElementById("edit_end_time").value = row.querySelector("td:nth-child(2)").dataset.rawEnd;art;
                     document.getElementById("edit_location").value = row.querySelector("td:nth-child(4)").dataset.rawLocation;
+                    document.getElementById("edit_role_id").value = row.querySelector("td:nth-child(3)").dataset.rawRole;tion;
                     document.getElementById("edit_role_id").value = row.querySelector("td:nth-child(3)").dataset.rawRole;
-
                     // Show the modal
                     editModal.style.display = "block";
-                });
+                }); editModal.style.display = "block";
+            }); });
             });
-
             // Close modal when clicking the X
             closeModal.addEventListener("click", function () {
-                editModal.style.display = "none";
+                editModal.style.display = "none";function () {
+            }); editModal.style.display = "none";
             });
-
             // Close modal when clicking outside of it
             window.addEventListener("click", function (event) {
-                if (event.target === editModal) {
+                if (event.target === editModal) {tion (event) {
                     editModal.style.display = "none";
-                }
+                }   editModal.style.display = "none";
+            }); }
             });
-
             // Handle delete buttons
             const deleteBtns = document.querySelectorAll(".deleteBtn");
-            deleteBtns.forEach(btn => {
+            deleteBtns.forEach(btn => {.querySelectorAll(".deleteBtn");
                 btn.addEventListener("click", function () {
-                    const shiftId = this.dataset.id;
+                    const shiftId = this.dataset.id;on () {
                     if (confirm("Are you sure you want to delete this shift?")) {
-                        // Use fetch API instead of jQuery
+                        // Use fetch API instead of jQuerydelete this shift?")) {
                         fetch('../functions/delete_shift.php', {
-                            method: 'POST',
-                            headers: {
+                            method: 'POST',/delete_shift.php', {
+                            headers: {OST',
                                 'Content-Type': 'application/x-www-form-urlencoded',
-                            },
+                            },  'Content-Type': 'application/x-www-form-urlencoded',
                             body: `shift_id=${shiftId}`
-                        })
+                        })  body: `shift_id=${shiftId}`
                             .then(response => response.text())
-                            .then(data => {
+                            .then(data => {=> response.text())
                                 alert(data);
                                 location.reload();
-                            })
+                            })  location.reload();
                             .catch(error => {
                                 alert("An error occurred: " + error);
-                            });
-                    }
-                });
-            });
-        });
+                            }); alert("An error occurred: " + error);
+                    }       });
+                }); }
+            }); });
+        }); });
     </script>
-
+    </script>
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
-    <script src="/rota-app-main/js/links.js"></script>
+    <script src="/rota-app-main/js/links.js"></script>ipt>
+</body>ript src="/rota-app-main/js/links.js"></script>
 </body>
-
+</html>
 </html>
