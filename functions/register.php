@@ -260,6 +260,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         /* Safari-specific fixes */
         @supports (-webkit-touch-callout: none) {
+
             input,
             button {
                 -webkit-appearance: none;
@@ -316,7 +317,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <label for="confirm_password">Confirm Password</label>
                 <div class="input-with-icon">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
+                    <input type="password" id="confirm_password" name="confirm_password"
+                        placeholder="Confirm your password" required>
                 </div>
             </div>
 

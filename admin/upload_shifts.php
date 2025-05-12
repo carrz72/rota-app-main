@@ -623,33 +623,265 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     <link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">
     <link rel="manifest" href="/rota-app-main/manifest.json">
     <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
-    <title>Upload Shifts</title>
-    <link rel="stylesheet" href="../css/upload_shift.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>Upload Shifts - Admin</title>
+    <style>
+        @font-face {
+            font-family: 'newFont';
+            src: url('../fonts/CooperHewitt-Book.otf');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            font-family: 'newFont', Arial, sans-serif;
+            background: url('../images/backg3.jpg') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f4f4f4;
+            padding-bottom: 15px;
+        }
+
+        h1 {
+            color: #fd2b2b;
+            margin: 0;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #555;
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .action-button:hover {
+            background-color: #444;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        form {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #444;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        button {
+            background-color: #fd2b2b;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background-color: #e61919;
+            transform: translateY(-2px);
+        }
+
+        .template-info {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .template-info h3 {
+            color: #17a2b8;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .template-info ul {
+            margin: 15px 0 0 0;
+            padding-left: 20px;
+        }
+
+        .template-info li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .debug-output {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px dashed #ccc;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .debug-output h3 {
+            color: #6c757d;
+            margin-top: 0;
+            font-size: 1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .debug-output ul {
+            margin: 0;
+            padding-left: 15px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .debug-output li {
+            margin-bottom: 3px;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            form {
+                padding: 15px;
+                margin: 20px auto;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Upload Shifts</h1>
-        <a href="admin_dashboard.php" class="action-button">Back to Dashboard</a>
+        <div class="header">
+            <h1><i class="fas fa-upload"></i> Upload Shifts</h1>
+            <a href="admin_dashboard.php" class="action-button">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
 
         <?php if (isset($installation_message)): ?>
-            <div class="error-message"><?php echo $installation_message; ?></div>
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <?php echo $installation_message; ?>
+            </div>
         <?php else: ?>
             <?php if (!empty($message)): ?>
                 <div class="success-message">
+                    <i class="fas fa-check-circle"></i>
                     <p><?php echo htmlspecialchars($message); ?></p>
                 </div>
             <?php endif; ?>
 
             <?php if (!empty($error)): ?>
                 <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
                     <p><?php echo htmlspecialchars($error); ?></p>
                 </div>
             <?php endif; ?>
 
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="shift_file"><i class="fas fa-file-excel"></i> Select Excel File:</label>
+                    <input type="file" name="shift_file" id="shift_file" accept=".xls,.xlsx" required>
+                </div>
+                <button type="submit">
+                    <i class="fas fa-cloud-upload-alt"></i> Upload Shifts
+                </button>
+            </form>
+
+            <div class="template-info">
+                <h3><i class="fas fa-info-circle"></i> File Format Requirements</h3>
+                <ul>
+                    <li><strong>File Type:</strong> Excel file (.xls or .xlsx)</li>
+                    <li><strong>Header Format:</strong> Cell A1 must contain the week start date in format "W/C dd/mm/yyyy"</li>
+                    <li><strong>Days:</strong> Row 2, columns B-H should contain the days of the week</li>
+                    <li><strong>Employee Format:</strong> Column A should list employees as "LastInitial, FirstName - Role" (e.g., "B, Christine - Manager")</li>
+                    <li><strong>Shift Format:</strong> Shifts should be listed as "HH:MM - HH:MM (Location)" (e.g., "09:00 - 17:00 (Main Office)")</li>
+                </ul>
+            </div>
+
             <?php if (!empty($debug)): ?>
                 <div class="debug-output">
-                    <h3>Debug Details</h3>
+                    <h3><i class="fas fa-bug"></i> Debug Details</h3>
                     <ul>
                         <?php foreach ($debug as $line): ?>
                             <li><?php echo htmlspecialchars($line); ?></li>
@@ -657,28 +889,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                     </ul>
                 </div>
             <?php endif; ?>
-
-            <form method="POST" enctype="multipart/form-data">
-                <p>
-                    <label for="shift_file">Select Excel File:</label>
-                    <input type="file" name="shift_file" id="shift_file" accept=".xls,.xlsx" required>
-                </p>
-                <p>
-                    <button type="submit">Upload Shifts</button>
-                </p>
-                <div class="template-info">
-                    <h3>File Format Requirements</h3>
-                    <ul>
-                        <li>Excel file (.xls or .xlsx) with the week start date in cell A1 (format: "W/C dd/mm/yyyy")</li>
-                        <li>Days of the week in row 2, columns B-H</li>
-                        <li>Employee names in column A in format "LastInitial, FirstName - Role" (e.g., "B, Christine -
-                            Manager")</li>
-                        <li>Shifts in format "HH:MM - HH:MM (Location)" (e.g., "09:00 - 17:00 (Main Office)")</li>
-                    </ul>
-                </div>
-            </form>
         <?php endif; ?>
     </div>
+    <script src="/rota-app-main/js/pwa-debug.js"></script>
+    <script src="/rota-app-main/js/links.js"></script>
 </body>
 
 </html>
