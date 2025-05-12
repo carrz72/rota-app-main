@@ -63,6 +63,7 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Full Rota</title>
+    <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/rota.css">
 </head>
 <body>
@@ -165,5 +166,9 @@ $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <p class="no-shifts">No shifts scheduled for the selected period.</p>
 <?php endif; ?>
     </div>
+    
+    <script src="/rota-app-main/js/menu.js"></script>
+    <script src="/rota-app-main/js/pwa-debug.js"></script>
+    <script src="/rota-app-main/js/links.js"></script>
 </body>
 </html>

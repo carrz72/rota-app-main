@@ -114,11 +114,6 @@ header {
   cursor: pointer;
 }
 
-.notification-icon:hover {
-  transition: 0.4s;
-  transform: scale(1.2);
-}
-
 .notification-badge {
   position: absolute;
   top: -5px;
@@ -144,41 +139,11 @@ header {
   z-index: 1000;
 }
 
-.notification-item {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-}
-
-.notification-item:last-child {
-  border-bottom: none;
-}
-
-.notification-item p {
-  margin: 0;
-}
-
-.shit-invt {
-  display: flex;
-  padding: 14px;
-  background-color: black;
-  color: #ffffff;
-  text-decoration: none;
-  font-size: 16px;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.close-btn {
-  float: right;
-  cursor: pointer;
-  font-size: 16px;
-  margin-left: 10px;
-}
-
 /* Safari-specific fixes */
 @supports (-webkit-touch-callout: none) {
   /* Fix for Safari headers */
   header {
-    opacity: 1;
+    opacity: 1 !important;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
   }
@@ -189,19 +154,19 @@ header {
     transform: translateZ(0);
     background-color: #fd2b2b !important;
   }
-
+  
   .nav-links ul li a {
     color: #ffffff !important;
     background-color: #fd2b2b !important;
     -webkit-appearance: none;
     border-radius: 0;
   }
-
+  
   .nav-links ul {
     display: block;
     -webkit-padding-start: 0;
   }
-
+  
   /* Fix animation for Safari */
   @-webkit-keyframes fadeIn {
     from {
@@ -222,13 +187,13 @@ header {
   header {
     padding: 10px 15px;
   }
-
+  
   .nav-links {
     right: 0;
     top: 50px;
     width: 200px;
   }
-
+  
   .notification-dropdown {
     width: 280px;
   }
