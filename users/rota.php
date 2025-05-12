@@ -334,6 +334,8 @@ if ($period === 'week') {
             grid-template-columns: repeat(7, 1fr);
             gap: 10px;
             margin-top: 20px;
+            width: 100%;
+            overflow-x: hidden;
         }
 
         .calendar-day {
@@ -341,17 +343,91 @@ if ($period === 'week') {
             border-radius: 5px;
             padding: 10px;
             min-height: 120px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
+            overflow-y: auto;
+            max-height: 250px;
         }
 
-        .calendar-day-header {
-            background-color: #f5f5f5;
+        /* Fix for calendar overflow at specific breakpoints */
+        @media (min-width: 993px) and (max-width: 1200px) {
+            .calendar-view {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 992px) {
+            .calendar-view {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .calendar-view {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .filter-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            /* Improved filter buttons for small screens */
+            .filter-row > div {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 5px;
+            }
+            
+            .filter-row a.btn {
+                flex: 1 1 auto;
+                white-space: nowrap;
+                text-align: center;
+                min-width: auto;
+                padding: 8px 10px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-view {
+                grid-template-columns: 1fr;
+            }
+            
+            /* Additional filter button improvements for very small screens */
+            .filter-row > div {
+                flex-direction: column;
+            }
+            
+            .filter-row a.btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .filter-group {
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Ensure calendar container has proper padding on all screen sizes */
+        #calendar-view {
+            padding: 0 5px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        
+        /* Shift card with proper overflow handling */
+        .shift-card {
+            background-color: #f8f8f8;
+            border-left: 3px solid #fd2b2b;
             padding: 8px;
-            border-radius: 5px 5px 0 0;
-            margin: -10px -10px 10px -10px;
-            text-align: center;
-            font-weight: bold;
+            margin-bottom: 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         /* Improved responsive adjustments */
@@ -361,28 +437,6 @@ if ($period === 'week') {
             }
         }
 
-        @media (max-width: 768px) {
-            .filter-row {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .calendar-view {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .calendar-view {
-                grid-template-columns: 1fr;
-            }
-
-            .calendar-day {
-                min-height: 100px;
-            }
-        }
-
-        /* Responsive Adjustments */
         @media (max-width: 768px) {
             .filter-row {
                 flex-direction: column;
@@ -477,6 +531,8 @@ if ($period === 'week') {
 </head>
 
 <body>
+    <?php include '../includes/header.php'; ?>
+    
     <div class="container">
         <h1>Full Rota</h1>
 
@@ -730,7 +786,60 @@ if ($period === 'week') {
         // Removed printRota() function
         // Removed exportToCSV() function
     </script>
-
+    
+    <script>
+        // Chrome-specific navigation fix - must be before other scripts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get navigation elements with explicit selectors
+            const menuToggle = document.querySelector('#menu-toggle');
+            const navLinks = document.querySelector('#nav-links');
+            
+            if (menuToggle && navLinks) {
+                console.log('Menu elements found, attaching event listeners');
+                
+                // Remove any existing event handlers to avoid conflicts
+                const newMenuToggle = menuToggle.cloneNode(true);
+                menuToggle.parentNode.replaceChild(newMenuToggle, menuToggle);
+                
+                // Add click handler with debugging
+                newMenuToggle.addEventListener('click', function(e) {
+                    console.log('Menu toggle clicked');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (navLinks.classList.contains('show')) {
+                        navLinks.classList.remove('show');
+                        console.log('Menu hidden');
+                    } else {
+                        navLinks.classList.add('show');
+                        console.log('Menu shown');
+                    }
+                });
+                
+                // Close menu when clicking elsewhere
+                document.addEventListener('click', function(e) {
+                    if (navLinks.classList.contains('show') && 
+                        !navLinks.contains(e.target) && 
+                        !newMenuToggle.contains(e.target)) {
+                        navLinks.classList.remove('show');
+                        console.log('Menu closed by outside click');
+                    }
+                });
+                
+                // Apply consistent styling
+                const links = navLinks.querySelectorAll('a');
+                links.forEach(link => {
+                    link.style.backgroundColor = '#fd2b2b';
+                    link.style.color = '#ffffff';
+                    link.style.padding = '12px 20px';
+                });
+            } else {
+                console.error('Navigation menu elements not found!');
+                console.log('MenuToggle found:', !!menuToggle);
+                console.log('NavLinks found:', !!navLinks);
+            }
+        });
+    </script>
+    
     <script src="/rota-app-main/js/menu.js"></script>
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
