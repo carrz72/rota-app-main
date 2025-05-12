@@ -1,6 +1,21 @@
 <?php
+// Start output buffering early to prevent any whitespace issues
+ob_start();
 session_start();
-require_once '../includes/db.php';
+
+// Clear any previous session data on login page access
+if (!isset($_POST['email'])) {
+    // Only clear when not submitting the form (first page load)
+    $_SESSION = array();
+}
+
+// Include DB connection with error handling
+try {
+    require_once '../includes/db.php';
+} catch (Exception $e) {
+    error_log("Database connection error: " . $e->getMessage());
+    $error = "Unable to connect to database. Please try again later.";
+}
 
 // If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
@@ -28,41 +43,50 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             setcookie('remember_email', "", time() - 3600, "/"); // Delete cookie
         }
 
+        // Verify connection is still active
+        if (!$conn || !($conn instanceof PDO)) {
+            throw new Exception("Database connection lost");
+        }
+
         $stmt = $conn->prepare("SELECT id, username, password, role FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
+            // Clear and recreate session to prevent session fixation
+            session_regenerate_id(true);
+
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
+            $_SESSION['login_time'] = time();
 
-            // Record login for history
-            $ip = $_SERVER['REMOTE_ADDR'];
-            $user_agent = $_SERVER['HTTP_USER_AGENT'];
-            $stmt = $conn->prepare("INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
-            $stmt->execute([$user['id'], $ip, $user_agent]);
-
-            // Use an absolute path for redirect and ensure no output before this
-            $redirect_url = "../users/dashboard.php";
+            try {
+                // Record login for history - in a separate try block to avoid login failure
+                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+                $stmt = $conn->prepare("INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
+                $stmt->execute([$user['id'], $ip, $user_agent]);
+            } catch (Exception $logError) {
+                // Just log it, don't prevent login
+                error_log("Login history recording error: " . $logError->getMessage());
+            }
 
             // Make sure nothing has been output yet
             if (!headers_sent()) {
-                header("Location: $redirect_url");
+                header("Location: ../users/dashboard.php");
                 exit;
             } else {
-                // JavaScript fallback redirect if headers already sent
-                echo "<script>window.location.href = '$redirect_url';</script>";
-                echo "If you are not redirected, <a href='$redirect_url'>click here</a>";
+                echo "<script>window.location.href = '../users/dashboard.php';</script>";
+                echo "If you are not redirected, <a href='../users/dashboard.php'>click here</a>";
                 exit;
             }
         } else {
             $error = "Invalid email or password.";
         }
     } catch (Exception $e) {
+        error_log("Login process error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
         $error = "A system error occurred. Please try again later.";
-        // Log the actual error for admins
-        error_log("Login error: " . $e->getMessage());
     }
 }
 

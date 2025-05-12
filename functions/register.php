@@ -1,6 +1,10 @@
 <?php
+// Start output buffering early to prevent any whitespace issues
+ob_start();
 session_start();
 require '../includes/db.php';
+
+$errors = [];
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST['username']);
@@ -9,8 +13,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $confirm_password = $_POST['confirm_password'];
 
     // Validation
-    $errors = [];
-
     // Check if passwords match
     if ($password !== $confirm_password) {
         $errors['password'] = "Passwords do not match!";
@@ -37,36 +39,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // If no errors, proceed with registration
     if (empty($errors)) {
-        // Check if the email already exists.
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
+        try {
+            // Check if the email already exists.
+            $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
 
-        if ($stmt->rowCount() > 0) {
-            $errors['email'] = "Email already registered!";
-        } else {
-            // Hash the password and insert the new user with email_verified set to 1.
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("INSERT INTO users (username, email, password, role, email_verified) VALUES (?, ?, ?, 'user', 1)");
-            if ($stmt->execute([$username, $email, $hashedPassword])) {
-                // Get the new user's ID
-                $user_id = $conn->lastInsertId();
-
-                // Auto-login the user
-                $_SESSION['user_id'] = $user_id;
-                $_SESSION['username'] = $username;
-                $_SESSION['role'] = 'user';
-
-                // Record initial login
-                $ip = $_SERVER['REMOTE_ADDR'];
-                $user_agent = $_SERVER['HTTP_USER_AGENT'];
-                $stmt = $conn->prepare("INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
-                $stmt->execute([$user_id, $ip, $user_agent]);
-
-                header("Location: ../users/dashboard.php");
-                exit;
+            if ($stmt->rowCount() > 0) {
+                $errors['email'] = "Email already registered!";
             } else {
-                $errors['general'] = "An error occurred while registering. Please try again.";
+                // Hash the password and insert the new user with email_verified set to 1.
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("INSERT INTO users (username, email, password, role, email_verified) VALUES (?, ?, ?, 'user', 1)");
+                if ($stmt->execute([$username, $email, $hashedPassword])) {
+                    // Get the new user's ID
+                    $user_id = $conn->lastInsertId();
+
+                    // Auto-login the user
+                    $_SESSION['user_id'] = $user_id;
+                    $_SESSION['username'] = $username;
+                    $_SESSION['role'] = 'user';
+                    $_SESSION['login_time'] = time(); // Add login timestamp
+
+                    // Record initial login
+                    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+                    $stmt = $conn->prepare("INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
+                    $stmt->execute([$user_id, $ip, $user_agent]);
+
+                    $redirect_url = "../users/dashboard.php";
+
+                    // Make sure nothing has been output yet
+                    if (!headers_sent()) {
+                        header("Location: $redirect_url");
+                        exit;
+                    } else {
+                        // JavaScript fallback redirect if headers already sent
+                        echo "<script>window.location.href = '$redirect_url';</script>";
+                        echo "If you are not redirected, <a href='$redirect_url'>click here</a>";
+                        exit;
+                    }
+                } else {
+                    $errors['general'] = "An error occurred while registering. Please try again.";
+                }
             }
+        } catch (Exception $e) {
+            error_log("Registration error: " . $e->getMessage());
+            $errors['general'] = "A system error occurred. Please try again later.";
         }
     }
 }
@@ -596,3 +614,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </body>
 
 </html>
+
+<?php
+// End output buffering and send all output to browser
+ob_end_flush();
+?>
