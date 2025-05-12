@@ -202,6 +202,56 @@ if ($user_id) {
                 justify-content: flex-end;
             }
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 80%;
+            max-width: 600px;
+            animation: modalFadeIn 0.3s;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: #fd2b2b;
+            text-decoration: none;
+        }
     </style>
 </head>
 
@@ -326,8 +376,66 @@ if ($user_id) {
         </div>
     </div>
 
+    <!-- Edit Role Modal -->
+    <div id="editRoleModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2><i class="fa fa-edit"></i> Edit Role</h2>
+            <form id="editRoleForm">
+                <input type="hidden" id="edit_role_id" name="edit_role_id">
+
+                <div class="form-group">
+                    <label for="edit_name">Role Name:</label>
+                    <input type="text" id="edit_name" name="edit_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_base_pay">Base Pay Rate (£):</label>
+                    <input type="number" step="0.01" min="0" id="edit_base_pay" name="edit_base_pay" required>
+                </div>
+
+                <div class="form-group">
+                    <div class="toggle-container">
+                        <label for="edit_has_night_pay">Enable Night Shift Pay:</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="edit_has_night_pay" name="edit_has_night_pay"
+                                onclick="toggleEditNightPayFields()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="edit_night_pay_fields" style="display: none; margin-top: 20px;">
+                    <h3>Night Shift Settings</h3>
+                    <div class="night-pay-grid">
+                        <div class="form-group">
+                            <label for="edit_night_shift_pay">Night Shift Pay Rate (£):</label>
+                            <input type="number" step="0.01" min="0" id="edit_night_shift_pay"
+                                name="edit_night_shift_pay">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit_night_start_time">Night Shift Starts At:</label>
+                            <input type="time" id="edit_night_start_time" name="edit_night_start_time">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit_night_end_time">Night Shift Ends At:</label>
+                            <input type="time" id="edit_night_end_time" name="edit_night_end_time">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-footer">
+                    <button type="button" class="action-btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="action-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // Function to toggle night pay fields
+        // Function to toggle night pay fields in add form
         function toggleNightPayFields() {
             const checkbox = document.getElementById("has_night_pay");
             const container = document.getElementById("night_pay_fields");
@@ -340,17 +448,112 @@ if ($user_id) {
             });
         }
 
+        // Function to toggle night pay fields in edit form
+        function toggleEditNightPayFields() {
+            const checkbox = document.getElementById("edit_has_night_pay");
+            const container = document.getElementById("edit_night_pay_fields");
+            container.style.display = checkbox.checked ? "block" : "none";
+
+            // Make fields required or not based on checkbox
+            const nightFields = ['edit_night_shift_pay', 'edit_night_start_time', 'edit_night_end_time'];
+            nightFields.forEach(id => {
+                document.getElementById(id).required = checkbox.checked;
+            });
+        }
+
         // Reset form function
         function resetForm() {
             document.getElementById("roleForm").reset();
             toggleNightPayFields();
         }
 
-        // Edit role function (placeholder - implement as needed)
-        function editRole(roleId) {
-            // Redirect to edit page or show modal
-            alert("Edit functionality will be implemented here for role ID: " + roleId);
+        // Modal functions
+        function openModal() {
+            document.getElementById("editRoleModal").style.display = "block";
         }
+
+        function closeModal() {
+            document.getElementById("editRoleModal").style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function (event) {
+            const modal = document.getElementById("editRoleModal");
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+
+        // Edit role function
+        function editRole(roleId) {
+            // Get role data from server
+            fetch(`../functions/get_role.php?id=${roleId}`)
+                .then(response => response.json())
+                .then(role => {
+                    // Populate the edit form
+                    document.getElementById("edit_role_id").value = role.id;
+                    document.getElementById("edit_name").value = role.name;
+                    document.getElementById("edit_base_pay").value = role.base_pay;
+
+                    // Handle night shift settings
+                    document.getElementById("edit_has_night_pay").checked = role.has_night_pay == 1;
+                    if (role.has_night_pay == 1) {
+                        document.getElementById("edit_night_shift_pay").value = role.night_shift_pay;
+                        document.getElementById("edit_night_start_time").value = role.night_start_time;
+                        document.getElementById("edit_night_end_time").value = role.night_end_time;
+                    }
+
+                    // Toggle display of night fields
+                    toggleEditNightPayFields();
+
+                    // Show the modal
+                    openModal();
+                })
+                .catch(error => {
+                    console.error('Error fetching role:', error);
+                    alert("Error loading role data. Please try again.");
+                });
+        }
+
+        // Handle edit form submission
+        document.getElementById("editRoleForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            // Create data object from form
+            const roleData = {
+                id: document.getElementById("edit_role_id").value,
+                name: document.getElementById("edit_name").value,
+                base_pay: document.getElementById("edit_base_pay").value,
+                has_night_pay: document.getElementById("edit_has_night_pay").checked ? 1 : 0
+            };
+
+            // Add night shift data if enabled
+            if (roleData.has_night_pay) {
+                roleData.night_shift_pay = document.getElementById("edit_night_shift_pay").value;
+                roleData.night_start_time = document.getElementById("edit_night_start_time").value;
+                roleData.night_end_time = document.getElementById("edit_night_end_time").value;
+            }
+
+            // Send update to server
+            fetch('../functions/edit_role.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(roleData),
+            })
+                .then(response => response.text())
+                .then(result => {
+                    alert("Role updated successfully!");
+                    closeModal();
+                    // Reload page to show updated data
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Error updating role:', error);
+                    alert("Error updating role. Please try again.");
+                });
+        });
 
         // Delete confirmation
         function confirmDelete(roleId, roleName) {
@@ -363,6 +566,9 @@ if ($user_id) {
         // Ensure the correct display on page load
         document.addEventListener("DOMContentLoaded", function () {
             toggleNightPayFields();
+
+            // Set up close button functionality
+            document.querySelector(".close-modal").addEventListener("click", closeModal);
         });
     </script>
 
