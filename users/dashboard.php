@@ -589,6 +589,114 @@ foreach ($days_result as $day) {
                 gap: 5px;
             }
         }
+
+        /* Safari-specific fixes */
+        /* This targets Safari only using a hack */
+        @supports (-webkit-touch-callout: none) {
+
+            /* iOS Safari specific styles go here */
+            .dashboard-container {
+                /* Fix for Safari grid issues */
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: flex;
+                -webkit-flex-wrap: wrap;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+
+            .dashboard-card,
+            .welcome-card,
+            .quick-stats {
+                /* Fix for Safari full width handling */
+                width: 100%;
+                -webkit-box-sizing: border-box;
+                box-sizing: border-box;
+            }
+
+            @media (min-width: 992px) {
+                .dashboard-card {
+                    width: calc(50% - 10px);
+                    /* Accounting for gap */
+                }
+
+                .dashboard-card[style*="grid-column: 1 / -1"] {
+                    width: 100%;
+                }
+            }
+
+            /* Fix Safari form elements */
+            select {
+                -webkit-appearance: none;
+                background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+                background-repeat: no-repeat;
+                background-position: right 8px center;
+                padding-right: 30px !important;
+            }
+
+            /* Fix for Safari flexbox alignment */
+            .welcome-actions,
+            .next-shift-meta,
+            .colleague-list {
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: flex;
+            }
+
+            /* Fix for Safari table display issues */
+            .responsive-table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Fix navigation menu positioning in Safari */
+            .nav-links {
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            }
+
+            /* Fix animation for Safari */
+            @-webkit-keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    -webkit-transform: translateY(-10px);
+                    transform: translateY(-10px);
+                }
+
+                to {
+                    opacity: 1;
+                    -webkit-transform: translateY(0);
+                    transform: translateY(0);
+                }
+            }
+        }
+
+        /* Additional responsive fixes for all browsers including Safari */
+        @media (max-width: 768px) {
+
+            /* Wrap table in a scrollable container */
+            .upcoming-shifts-table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Ensure proper touch behavior on mobile Safari */
+            .nav-links ul li a {
+                padding: 14px 20px;
+                /* Slightly larger touch target for Safari */
+            }
+
+            /* Better handling of fixed position elements in Safari */
+            .notification-dropdown {
+                position: absolute;
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            }
+        }
     </style>
 </head>
 

@@ -618,3 +618,65 @@ ul li a {
     padding: 5px 8px;
   }
 }
+
+/* Safari-specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari viewport height fix */
+  html,
+  body {
+    /* Prevents the 100vh issue in mobile Safari */
+    height: -webkit-fill-available;
+  }
+
+  /* Fix table scrolling in Safari */
+  table {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Fix flexbox behavior in Safari */
+  .container,
+  .add-shift-form,
+  .period-navigation,
+  header,
+  .nav-group,
+  .notification-container {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+  }
+
+  /* Fix Safari form inputs */
+  input[type="date"],
+  input[type="time"],
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 6px;
+  }
+
+  /* Fix Safari box shadow rendering */
+  .container,
+  .card,
+  button,
+  a {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* Additional responsive improvements */
+@media (max-width: 768px) {
+  /* Responsive table for both Safari and other browsers */
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Wrap the tables for better mobile Safari experience */
+  table {
+    width: 100%;
+    min-width: 500px; /* Ensures it requires scrolling on mobile */
+  }
+}
