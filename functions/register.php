@@ -90,6 +90,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         input {
+            width: 100%;
             padding: 10px;
             margin-bottom: 15px;
             box-sizing: border-box;
