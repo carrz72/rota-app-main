@@ -28,6 +28,7 @@ $default_location = 'Main Office';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -207,6 +208,7 @@ $default_location = 'Main Office';
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -218,18 +220,18 @@ $default_location = 'Main Office';
 
         <?php if (isset($_SESSION['error_message'])): ?>
             <div class="error-message">
-                <?php 
-                    echo $_SESSION['error_message']; 
-                    unset($_SESSION['error_message']);
+                <?php
+                echo $_SESSION['error_message'];
+                unset($_SESSION['error_message']);
                 ?>
             </div>
         <?php endif; ?>
 
         <?php if (isset($_SESSION['success_message'])): ?>
             <div class="success-message">
-                <?php 
-                    echo $_SESSION['success_message']; 
-                    unset($_SESSION['success_message']);
+                <?php
+                echo $_SESSION['success_message'];
+                unset($_SESSION['success_message']);
                 ?>
             </div>
         <?php endif; ?>
@@ -237,14 +239,13 @@ $default_location = 'Main Office';
         <form action="../functions/add_shift.php" method="POST">
             <input type="hidden" name="admin_mode" value="1">
             <input type="hidden" name="return_url" value="<?php echo htmlspecialchars($return_url); ?>">
-            
+
             <div class="form-grid">
                 <div class="form-group">
                     <label for="user_id">Assign To User:</label>
                     <select name="user_id" id="user_id" class="form-control" required>
                         <?php foreach ($users as $user): ?>
-                            <option value="<?php echo $user['id']; ?>" 
-                                <?php echo (isset($user_id) && $user_id == $user['id']) ? 'selected' : ''; ?>>
+                            <option value="<?php echo $user['id']; ?>" <?php echo (isset($user_id) && $user_id == $user['id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($user['username']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -264,14 +265,14 @@ $default_location = 'Main Office';
 
                 <div class="form-group">
                     <label for="shift_date">Date:</label>
-                    <input type="date" name="shift_date" id="shift_date" class="form-control" 
-                           value="<?php echo $default_date; ?>" required>
+                    <input type="date" name="shift_date" id="shift_date" class="form-control"
+                        value="<?php echo $default_date; ?>" required>
                 </div>
 
                 <div class="form-group">
                     <label for="location">Location:</label>
-                    <input type="text" name="location" id="location" class="form-control" 
-                           value="<?php echo $default_location; ?>" required>
+                    <input type="text" name="location" id="location" class="form-control"
+                        value="<?php echo $default_location; ?>" required>
                 </div>
 
                 <div class="form-group">
@@ -285,8 +286,8 @@ $default_location = 'Main Office';
                 </div>
 
                 <div class="form-buttons">
-                    <button type="button" class="btn btn-secondary" 
-                            onclick="location.href='<?php echo htmlspecialchars($return_url); ?>'">Cancel</button>
+                    <button type="button" class="btn btn-secondary"
+                        onclick="location.href='<?php echo htmlspecialchars($return_url); ?>'">Cancel</button>
                     <button type="submit" class="btn btn-primary">Add Shift</button>
                 </div>
             </div>
@@ -296,4 +297,5 @@ $default_location = 'Main Office';
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
 </body>
+
 </html>
