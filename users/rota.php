@@ -844,43 +844,7 @@ if ($period === 'week') {
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
 
-    <script>
-        // Special fix for dashboard link in Chrome
-        document.addEventListener('DOMContentLoaded', function() {
-            // Fix the dashboard link specifically
-            const navLinks = document.querySelectorAll('.nav-links ul li a');
-            
-            navLinks.forEach(link => {
-                if (link.textContent.trim() === 'Dashboard' || link.href.includes('dashboard.php')) {
-                    // Create new link with absolute path
-                    const newLink = document.createElement('a');
-                    newLink.href = "/rota-app-main/users/dashboard.php";
-                    newLink.textContent = "Dashboard";
-                    newLink.style.backgroundColor = '#fd2b2b';
-                    newLink.style.color = '#ffffff';
-                    newLink.style.display = 'block';
-                    newLink.style.padding = '12px 20px';
-                    newLink.style.textDecoration = 'none';
-                    newLink.style.whiteSpace = 'nowrap';
-                    newLink.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
-                    newLink.style.fontSize = '14px';
-                    
-                    // Add direct click handler
-                    newLink.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.location.href = "/rota-app-main/users/dashboard.php";
-                    });
-                    
-                    // Replace the old link
-                    link.parentNode.replaceChild(newLink, link);
-                }
-            });
-
-            // Page-specific navigation fix - unchanged
-            // ...existing code...
-        });
-    </script>
+   
 </body>
 
 </html>
