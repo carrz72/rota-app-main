@@ -21,7 +21,6 @@ if ($user_id) {
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
     <link rel="manifest" href="/rota-app-main/manifest.json">
-    <link rel="stylesheet" href="/rota-app-main/css/navigation.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
