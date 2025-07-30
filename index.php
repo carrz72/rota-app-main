@@ -165,9 +165,16 @@ if (isset($_SESSION['user_id'])) {
             <h1>Manage Your Work Schedule</h1>
             <p>The easiest way to track shifts, calculate earnings, and organize your work life in one place.</p>
 
+            <?php if (isset($_GET['registered']) && $_GET['registered'] == '1'): ?>
+                <div class="success-message"
+                    style="background: #c6f6d5; border: 1px solid #9ae6b4; color: #276749; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; font-weight: bold;">
+                    🎉 Welcome to Rota App! Your account has been created successfully. You can now log in below.
+                </div>
+            <?php endif; ?>
+
             <div class="cta-buttons">
                 <a href="functions/login.php" class="btn">Log In</a>
-                <a href="functions/register.php" class="btn btn-secondary">Sign Up</a>
+                <a href="register_with_otp.php" class="btn btn-secondary">Sign Up</a>
             </div>
         </section>
 

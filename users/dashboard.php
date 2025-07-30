@@ -1,5 +1,5 @@
 <?php
-require '../includes/auth.php';
+require_once '../includes/auth.php';
 requireLogin(); // Only logged-in users can access
 
 include __DIR__ . '/../includes/header.php';
@@ -714,6 +714,8 @@ foreach ($days_result as $day) {
             <div class="welcome-actions">
                 <a href="shifts.php"><i class="fas fa-calendar"></i> My Shifts</a>
                 <a href="rota.php"><i class="fas fa-users"></i> Rota</a>
+                <a href="payroll.php"><i class="fas fa-money-bill-wave"></i> Payroll</a>
+                <a href="coverage_requests.php"><i class="fas fa-exchange-alt"></i> Coverage Requests</a>
                 <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
                 <?php if ($_SESSION['role'] === 'admin'): ?>
                     <a href="../admin/admin_dashboard.php"><i class="fas fa-shield-alt"></i> Admin</a>

@@ -14,18 +14,28 @@ if (!$data) {
 
 $id = $data['id'] ?? '';
 $name = $data['name'] ?? '';
-$base_pay = $data['base_pay'] ?? '';
+$employment_type = $data['employment_type'] ?? 'hourly';
+$base_pay = $employment_type === 'hourly' ? ($data['base_pay'] ?? '') : null;
+$monthly_salary = $employment_type === 'salaried' ? ($data['monthly_salary'] ?? '') : null;
 $has_night_pay = $data['has_night_pay'] ?? 0;
 $user_id = $_SESSION['user_id'];
 
 // Basic validation
-if (empty($id) || empty($name) || empty($base_pay)) {
+if (empty($id) || empty($name)) {
     die(json_encode(['error' => 'Missing required fields']));
 }
 
+if ($employment_type === 'hourly' && (empty($base_pay) || !is_numeric($base_pay) || $base_pay < 0)) {
+    die(json_encode(['error' => 'Invalid hourly rate']));
+}
+
+if ($employment_type === 'salaried' && (empty($monthly_salary) || !is_numeric($monthly_salary) || $monthly_salary < 0)) {
+    die(json_encode(['error' => 'Invalid monthly salary']));
+}
+
 // Update basic role information
-$stmt = $conn->prepare("UPDATE roles SET name = ?, base_pay = ?, has_night_pay = ? WHERE id = ?");
-if ($stmt->execute([$name, $base_pay, $has_night_pay, $id])) {
+$stmt = $conn->prepare("UPDATE roles SET name = ?, employment_type = ?, base_pay = ?, monthly_salary = ?, has_night_pay = ? WHERE id = ?");
+if ($stmt->execute([$name, $employment_type, $base_pay, $monthly_salary, $has_night_pay, $id])) {
     $message = "Role updated successfully!";
     $status = 'success';
 } else {

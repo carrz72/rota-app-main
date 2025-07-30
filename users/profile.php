@@ -1,11 +1,10 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-require '../includes/auth.php';
+require_once '../includes/error_handler.php';
+require_once '../includes/auth.php';
+
+// Require login using the enhanced session management
 requireLogin();
+
 require_once '../includes/db.php';
 
 $user_id = $_SESSION['user_id'];
@@ -13,8 +12,7 @@ $stmt = $conn->prepare("SELECT username, email FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$user) {
-    echo "User not found.";
-    exit;
+    handleApplicationError('404', "User account not found.");
 }
 ?>
 <!DOCTYPE html>

@@ -147,6 +147,7 @@ if ($period === 'week') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Full Rota</title>
     <link rel="stylesheet" href="../css/rota.css">
+    <link rel="stylesheet" href="../css/navigation.css">
     <link rel="manifest" href="/rota-app-main/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -743,23 +744,14 @@ if ($period === 'week') {
     </div>
 
     <script>
-        // Page-specific navigation fix
+        // Page-specific styling fix
         document.addEventListener('DOMContentLoaded', function () {
-            // Fix navigation menu links
+            // Fix navigation menu links styling
             const navLinks = document.querySelectorAll('.nav-links ul li a');
             navLinks.forEach(link => {
                 link.style.backgroundColor = '#fd2b2b';
                 link.style.color = '#ffffff';
             });
-
-            // Ensure menu toggle works properly
-            const menuToggle = document.getElementById('menu-toggle');
-            const navMenu = document.getElementById('nav-links');
-            if (menuToggle && navMenu) {
-                menuToggle.addEventListener('click', function () {
-                    navMenu.classList.toggle('show');
-                });
-            }
         });
 
         // Switch between list and calendar views
@@ -785,59 +777,6 @@ if ($period === 'week') {
 
         // Removed printRota() function
         // Removed exportToCSV() function
-    </script>
-    
-    <script>
-        // Chrome-specific navigation fix - must be before other scripts
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get navigation elements with explicit selectors
-            const menuToggle = document.querySelector('#menu-toggle');
-            const navLinks = document.querySelector('#nav-links');
-            
-            if (menuToggle && navLinks) {
-                console.log('Menu elements found, attaching event listeners');
-                
-                // Remove any existing event handlers to avoid conflicts
-                const newMenuToggle = menuToggle.cloneNode(true);
-                menuToggle.parentNode.replaceChild(newMenuToggle, menuToggle);
-                
-                // Add click handler with debugging
-                newMenuToggle.addEventListener('click', function(e) {
-                    console.log('Menu toggle clicked');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (navLinks.classList.contains('show')) {
-                        navLinks.classList.remove('show');
-                        console.log('Menu hidden');
-                    } else {
-                        navLinks.classList.add('show');
-                        console.log('Menu shown');
-                    }
-                });
-                
-                // Close menu when clicking elsewhere
-                document.addEventListener('click', function(e) {
-                    if (navLinks.classList.contains('show') && 
-                        !navLinks.contains(e.target) && 
-                        !newMenuToggle.contains(e.target)) {
-                        navLinks.classList.remove('show');
-                        console.log('Menu closed by outside click');
-                    }
-                });
-                
-                // Apply consistent styling
-                const links = navLinks.querySelectorAll('a');
-                links.forEach(link => {
-                    link.style.backgroundColor = '#fd2b2b';
-                    link.style.color = '#ffffff';
-                    link.style.padding = '12px 20px';
-                });
-            } else {
-                console.error('Navigation menu elements not found!');
-                console.log('MenuToggle found:', !!menuToggle);
-                console.log('NavLinks found:', !!navLinks);
-            }
-        });
     </script>
     
     <script src="/rota-app-main/js/menu.js"></script>

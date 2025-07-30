@@ -1,28 +1,106 @@
 <?php
-require '../includes/auth.php';
+require_once '../includes/auth.php';
 requireAdmin(); // Only admins can access
+require_once '../functions/branch_functions.php';
+require_once '../includes/super_admin.php';
 
-// Fetch total users
-$totalUsers = $conn->query("SELECT COUNT(*) FROM users")->fetchColumn();
-// Fetch total shifts
-$totalShifts = $conn->query("SELECT COUNT(*) FROM shifts")->fetchColumn();
-// Fetch role distribution
-$roles = $conn->query("SELECT role, COUNT(*) as count FROM users GROUP BY role")->fetchAll(PDO::FETCH_ASSOC);
-// Fetch shifts per day
-$shiftsPerDay = $conn->query("
-    SELECT shift_date, COUNT(*) as count
-    FROM shifts
-    GROUP BY shift_date
-    ORDER BY shift_date DESC
-    LIMIT 10
-")->fetchAll(PDO::FETCH_ASSOC);
+// Get current admin user's branch
+$currentUserId = $_SESSION['user_id'];
+$stmt = $conn->prepare("SELECT branch_id FROM users WHERE id = ?");
+$stmt->execute([$currentUserId]);
+$adminUser = $stmt->fetch(PDO::FETCH_ASSOC);
+$adminBranchId = $adminUser['branch_id'];
 
-// Fetch all users with their roles
-$users = $conn->query("
-    SELECT id, username, email, role, created_at 
-    FROM users 
-    ORDER BY id
-")->fetchAll(PDO::FETCH_ASSOC);
+// Check if user is super admin
+$isSuperAdmin = isSuperAdmin($currentUserId, $conn);
+
+// Fetch total users (all for super admin, branch-specific for regular admin)
+$userCountQuery = "SELECT COUNT(*) FROM users";
+$userCountParams = [];
+if (!$isSuperAdmin && $adminBranchId) {
+    $userCountQuery .= " WHERE branch_id = ?";
+    $userCountParams[] = $adminBranchId;
+}
+$stmt = $conn->prepare($userCountQuery);
+$stmt->execute($userCountParams);
+$totalUsers = $stmt->fetchColumn();
+
+// Fetch total shifts (all for super admin, branch-specific for regular admin)
+$shiftCountQuery = "SELECT COUNT(*) FROM shifts s JOIN users u ON s.user_id = u.id";
+$shiftCountParams = [];
+if (!$isSuperAdmin && $adminBranchId) {
+    $shiftCountQuery .= " WHERE u.branch_id = ?";
+    $shiftCountParams[] = $adminBranchId;
+}
+$stmt = $conn->prepare($shiftCountQuery);
+$stmt->execute($shiftCountParams);
+$totalShifts = $stmt->fetchColumn();
+
+// Fetch role distribution (all for super admin, branch-specific for regular admin)
+$roleQuery = "SELECT role, COUNT(*) as count FROM users";
+$roleParams = [];
+if (!$isSuperAdmin && $adminBranchId) {
+    $roleQuery .= " WHERE branch_id = ?";
+    $roleParams[] = $adminBranchId;
+}
+$roleQuery .= " GROUP BY role";
+$stmt = $conn->prepare($roleQuery);
+$stmt->execute($roleParams);
+$roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Fetch shifts per day (only from admin's branch)
+$shiftsPerDayQuery = "
+    SELECT s.shift_date, COUNT(*) as count
+    FROM shifts s 
+    JOIN users u ON s.user_id = u.id";
+$shiftsPerDayParams = [];
+if ($adminBranchId) {
+    $shiftsPerDayQuery .= " WHERE u.branch_id = ?";
+    $shiftsPerDayParams[] = $adminBranchId;
+}
+$shiftsPerDayQuery .= " GROUP BY s.shift_date ORDER BY s.shift_date DESC LIMIT 10";
+$stmt = $conn->prepare($shiftsPerDayQuery);
+$stmt->execute($shiftsPerDayParams);
+$shiftsPerDay = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get branch filter parameter (super admins can filter, regular admins see only their branch)
+$branchFilter = $_GET['branch_filter'] ?? 'all';
+
+// Fetch users (all for super admin, branch-specific for regular admin)
+$whereClause = '';
+$params = [];
+if ($isSuperAdmin) {
+    // Super admin can see all users and filter by branch
+    if ($branchFilter !== 'all') {
+        if ($branchFilter === 'none') {
+            $whereClause = 'WHERE u.branch_id IS NULL';
+        } else {
+            $whereClause = 'WHERE u.branch_id = ?';
+            $params[] = $branchFilter;
+        }
+    }
+} else {
+    // Regular admin sees only their branch users
+    if ($adminBranchId) {
+        $whereClause = 'WHERE u.branch_id = ?';
+        $params[] = $adminBranchId;
+    } else {
+        $whereClause = 'WHERE u.branch_id IS NULL';
+    }
+}
+
+$stmt = $conn->prepare("
+    SELECT u.id, u.username, u.email, u.role, u.created_at, u.branch_id,
+           b.name as branch_name, b.code as branch_code
+    FROM users u
+    LEFT JOIN branches b ON u.branch_id = b.id
+    $whereClause
+    ORDER BY u.id
+");
+$stmt->execute($params);
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch branches (all branches for both super admin and regular admin for filtering)
+$branches = $conn->query("SELECT id, name, code FROM branches WHERE status = 'active' ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
 // Handle role update if submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
@@ -31,10 +109,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
 
     $stmt = $conn->prepare("UPDATE users SET role = ? WHERE id = ?");
     if ($stmt->execute([$newRole, $userId])) {
-        $successMessage = "User role updated successfully";
+        $_SESSION['success_message'] = "User role updated successfully";
     } else {
-        $errorMessage = "Error updating user role";
+        $_SESSION['error_message'] = "Error updating user role";
     }
+    header("Location: admin_dashboard.php");
+    exit();
+}
+
+// Handle branch assignment if submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_branch'])) {
+    $userId = $_POST['user_id'];
+    $newBranchId = $_POST['branch_id'] === '' ? null : $_POST['branch_id'];
+
+    // Super admins can assign to any branch, regular admins only to their own branch
+    if (!$isSuperAdmin && $newBranchId && $newBranchId != $adminBranchId) {
+        $_SESSION['error_message'] = "You can only assign users to your own branch";
+    } else {
+        $stmt = $conn->prepare("UPDATE users SET branch_id = ? WHERE id = ?");
+        if ($stmt->execute([$newBranchId, $userId])) {
+            $_SESSION['success_message'] = "User branch assignment updated successfully";
+        } else {
+            $_SESSION['error_message'] = "Error updating user branch assignment";
+        }
+    }
+    header("Location: admin_dashboard.php");
+    exit();
+}
+
+// Check for messages from other operations (like user deletion)
+if (isset($_SESSION['success_message'])) {
+    $successMessage = $_SESSION['success_message'];
+    unset($_SESSION['success_message']);
+}
+if (isset($_SESSION['error_message'])) {
+    $errorMessage = $_SESSION['error_message'];
+    unset($_SESSION['error_message']);
 }
 
 // Determine view type (week or day)
@@ -50,28 +160,42 @@ $nextWeekStart = date('Y-m-d', strtotime('+1 week', strtotime($currentWeekStart)
 $prevDay = date('Y-m-d', strtotime('-1 day', strtotime($currentDay)));
 $nextDay = date('Y-m-d', strtotime('+1 day', strtotime($currentDay)));
 
-// Get all shifts with user and role info based on view type
+// Get all shifts with user and role info based on view type (only from admin's branch)
 if ($viewType === 'week') {
-    $stmt = $conn->prepare("
+    $weekQuery = "
         SELECT s.*, u.username, r.name as role_name
         FROM shifts s
         JOIN users u ON s.user_id = u.id
         JOIN roles r ON s.role_id = r.id
-        WHERE s.shift_date BETWEEN ? AND DATE_ADD(?, INTERVAL 6 DAY)
-        ORDER BY s.shift_date, s.start_time
-    ");
-    $stmt->execute([$currentWeekStart, $currentWeekStart]);
+        WHERE s.shift_date BETWEEN ? AND DATE_ADD(?, INTERVAL 6 DAY)";
+    $weekParams = [$currentWeekStart, $currentWeekStart];
+    
+    if ($adminBranchId) {
+        $weekQuery .= " AND u.branch_id = ?";
+        $weekParams[] = $adminBranchId;
+    }
+    
+    $weekQuery .= " ORDER BY s.shift_date, s.start_time";
+    $stmt = $conn->prepare($weekQuery);
+    $stmt->execute($weekParams);
     $allShifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else { // day view
-    $stmt = $conn->prepare("
+    $dayQuery = "
         SELECT s.*, u.username, r.name as role_name
         FROM shifts s
         JOIN users u ON s.user_id = u.id
         JOIN roles r ON s.role_id = r.id
-        WHERE s.shift_date = ?
-        ORDER BY s.start_time
-    ");
-    $stmt->execute([$currentDay]);
+        WHERE s.shift_date = ?";
+    $dayParams = [$currentDay];
+    
+    if ($adminBranchId) {
+        $dayQuery .= " AND u.branch_id = ?";
+        $dayParams[] = $adminBranchId;
+    }
+    
+    $dayQuery .= " ORDER BY s.start_time";
+    $stmt = $conn->prepare($dayQuery);
+    $stmt->execute($dayParams);
     $allShifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
@@ -350,6 +474,87 @@ if ($viewType === 'week') {
                 align-items: flex-start;
             }
         }
+
+        /* Branch-related styles */
+        .branch-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .branch-badge small {
+            color: #666;
+            font-weight: normal;
+        }
+
+        .no-branch {
+            color: #999;
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        .admin-form {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .admin-form select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            min-width: 120px;
+        }
+
+        .admin-form button {
+            padding: 4px 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .admin-form button:hover {
+            background: #0056b3;
+        }
+
+        .actions {
+            min-width: 300px;
+        }
+
+        .panel-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .super-admin-badge {
+            background: #dc3545;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .admin-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
     </style>
 </head>
 
@@ -371,6 +576,15 @@ if ($viewType === 'week') {
                 </a>
                 <a href="manage_shifts.php" class="admin-btn">
                     <i class="fas fa-calendar-alt"></i> Manage Shifts
+                </a>
+                <a href="branch_management.php" class="admin-btn">
+                    <i class="fas fa-building"></i> Branch Management
+                </a>
+                <a href="cross_branch_requests.php" class="admin-btn">
+                    <i class="fas fa-exchange-alt"></i> Cross-Branch Requests
+                </a>
+                <a href="payroll_management.php" class="admin-btn">
+                    <i class="fas fa-money-bill-wave"></i> Payroll Management
                 </a>
             </div>
         </div>
@@ -420,6 +634,26 @@ if ($viewType === 'week') {
         <div class="admin-panel">
             <div class="admin-panel-header">
                 <h2><i class="fas fa-users-cog"></i> User Management</h2>
+                <div class="panel-info">
+                    <?php if ($isSuperAdmin): ?>
+                        <div class="panel-controls">
+                            <form method="GET" style="display: inline-block;">
+                                <select name="branch_filter" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                                    <option value="all" <?php echo $branchFilter === 'all' ? 'selected' : ''; ?>>All Users</option>
+                                    <option value="none" <?php echo $branchFilter === 'none' ? 'selected' : ''; ?>>No Branch Assigned</option>
+                                    <?php foreach ($branches as $branch): ?>
+                                        <option value="<?php echo $branch['id']; ?>" <?php echo $branchFilter == $branch['id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($branch['name']); ?> (<?php echo htmlspecialchars($branch['code']); ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </form>
+                            <span class="super-admin-badge">Super Admin</span>
+                        </div>
+                    <?php else: ?>
+                        <small>Managing users for your branch</small>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="admin-panel-body">
                 <table class="admin-table">
@@ -429,6 +663,7 @@ if ($viewType === 'week') {
                             <th>Username</th>
                             <th>Email</th>
                             <th>Role</th>
+                            <th>Branch</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -443,8 +678,19 @@ if ($viewType === 'week') {
                                         <?php echo ucfirst(htmlspecialchars($user['role'])); ?>
                                     </span>
                                 </td>
+                                <td>
+                                    <?php if ($user['branch_name']): ?>
+                                        <span class="branch-badge">
+                                            <?php echo htmlspecialchars($user['branch_name']); ?>
+                                            <small>(<?php echo htmlspecialchars($user['branch_code']); ?>)</small>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="no-branch">No Branch Assigned</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="actions">
-                                    <form method="POST" class="admin-form">
+                                    <!-- Role Update Form -->
+                                    <form method="POST" class="admin-form" style="margin-bottom: 10px;">
                                         <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                         <select name="role">
                                             <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>
@@ -452,11 +698,38 @@ if ($viewType === 'week') {
                                             <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>
                                                 Admin</option>
                                         </select>
-                                        <button type="submit" name="update_role">Update</button>
+                                        <button type="submit" name="update_role">Update Role</button>
                                     </form>
+                                    
+                                    <!-- Branch Assignment Form -->
+                                    <form method="POST" class="admin-form" style="margin-bottom: 10px;">
+                                        <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                        <select name="branch_id">
+                                            <option value="">No Branch</option>
+                                            <?php foreach ($branches as $branch): ?>
+                                                <option value="<?php echo $branch['id']; ?>" 
+                                                    <?php echo $user['branch_id'] == $branch['id'] ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($branch['name']); ?> (<?php echo htmlspecialchars($branch['code']); ?>)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <button type="submit" name="update_branch">Update Branch</button>
+                                    </form>
+                                    
                                     <a href="manage_shifts.php?user_id=<?php echo $user['id']; ?>" class="admin-btn">
                                         <i class="fas fa-calendar"></i> Shifts
                                     </a>
+                                    <?php if ($user['id'] != $_SESSION['user_id']): // Don't allow deleting own account ?>
+                                        <a href="../functions/delete_user.php?id=<?php echo $user['id']; ?>"
+                                            class="admin-btn delete-btn"
+                                            onclick="return confirm('Are you sure you want to delete user \'<?php echo htmlspecialchars($user['username']); ?>\'? This action cannot be undone and will also delete all their shifts and payroll data.');">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="admin-btn disabled" title="You cannot delete your own account">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

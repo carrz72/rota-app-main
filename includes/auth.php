@@ -1,25 +1,33 @@
 <?php
-session_start();
-require 'db.php';
+require_once __DIR__ . '/session_manager.php';
+require_once __DIR__ . '/db.php';
 
-function isAdmin() {
-    return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
-}
-
-function requireLogin() {
-    if (!isset($_SESSION['user_id'])) {
-        header("Location: /rota-app/functions/login.php");
-        exit;
+if (!function_exists('isAdmin')) {
+    function isAdmin()
+    {
+        return isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'super_admin']);
     }
 }
 
-function requireAdmin() {
-    requireLogin();
-    if (!isAdmin()) {
-        header("Location: /rota-app/users/dashboard.php"); // Redirect non-admins
-        exit;
+if (!function_exists('requireLogin')) {
+    function requireLogin()
+    {
+        validateSession(true, false);
+    }
+}
+
+if (!function_exists('requireAdmin')) {
+    function requireAdmin()
+    {
+        validateSession(true, true);
+    }
+}
+
+// Legacy compatibility functions
+if (!function_exists('checkLogin')) {
+    function checkLogin()
+    {
+        return validateSession(false, false);
     }
 }
 ?>
-
-

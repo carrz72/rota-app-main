@@ -1,8 +1,8 @@
 <?php
-require '../includes/auth.php';
+require_once '../includes/auth.php';
 requireLogin();
 require_once '../includes/db.php';
-require_once '../functions/calculate_pay.php';
+require_once '../functions/payroll_functions.php';
 
 $user_id = $_SESSION['user_id'];
 
@@ -57,25 +57,82 @@ $stmtShifts = $conn->prepare(
 $stmtShifts->execute(['user_id' => $user_id]);
 $shifts = $stmtShifts->fetchAll(PDO::FETCH_ASSOC);
 
-// Calculate pay for each shift
+// Calculate pay using new payroll system
+$total_hours = 0;
+$total_earnings = 0;
+$individual_shift_pay = [];
+
+// Get user's role information
+$stmt_user_role = $conn->prepare("
+    SELECT r.* 
+    FROM users u 
+    LEFT JOIN roles r ON u.role_id = r.id 
+    WHERE u.id = ? 
+    LIMIT 1
+");
+$stmt_user_role->execute([$user_id]);
+$user_role = $stmt_user_role->fetch(PDO::FETCH_ASSOC);
+
+// Calculate pay for each shift using improved logic
 foreach ($shifts as &$shift) {
-    $shift['pay'] = calculatePay($conn, $shift['id']);
+    $start_time = strtotime($shift['start_time']);
+    $end_time = strtotime($shift['end_time']);
+
+    // Handle shifts crossing midnight
+    if ($end_time < $start_time) {
+        $end_time += 86400;
+    }
+
+    $hours = ($end_time - $start_time) / 3600;
+    $total_hours += $hours;
+
+    // Calculate pay based on employment type
+    if ($user_role && ($user_role['employment_type'] ?? 'hourly') === 'salaried') {
+        // For salaried employees, show pro-rated amount per shift
+        $monthly_salary = $user_role['monthly_salary'] ?? 0;
+        $working_days_per_month = 22; // Average working days
+        $shift['pay'] = ($monthly_salary / $working_days_per_month) * ($hours / 8); // Assuming 8-hour standard day
+    } else {
+        // For hourly employees, use detailed calculation
+        $base_rate = $user_role['base_pay'] ?? 10; // Default rate if not set
+        $night_rate = $user_role['night_shift_pay'] ?? $base_rate;
+
+        $regular_pay = 0;
+        $night_pay = 0;
+
+        if ($user_role['has_night_pay'] && $user_role['night_start_time'] && $user_role['night_end_time']) {
+            $night_start = strtotime($user_role['night_start_time']);
+            $night_end = strtotime($user_role['night_end_time']);
+
+            // Handle night period crossing midnight
+            if ($night_end < $night_start) {
+                $night_end += 86400;
+            }
+
+            // Calculate overlap with night hours
+            $overlap_start = max($start_time, $night_start);
+            $overlap_end = min($end_time, $night_end);
+
+            if ($overlap_start < $overlap_end) {
+                $night_hours = ($overlap_end - $overlap_start) / 3600;
+                $regular_hours = $hours - $night_hours;
+
+                $night_pay = $night_hours * $night_rate;
+                $regular_pay = $regular_hours * $base_rate;
+            } else {
+                $regular_pay = $hours * $base_rate;
+            }
+        } else {
+            $regular_pay = $hours * $base_rate;
+        }
+
+        $shift['pay'] = $regular_pay + $night_pay;
+    }
+
+    $total_earnings += $shift['pay'];
 }
 unset($shift);
 
-// Sum totals
-$total_hours = 0;
-$total_earnings = 0;
-foreach ($shifts as $shift) {
-    $start_time = strtotime($shift['start_time']);
-    $end_time = strtotime($shift['end_time']);
-    $hours = ($end_time - $start_time) / 3600;
-    if ($hours < 0) {
-        $hours += 24;
-    }
-    $total_hours += $hours;
-    $total_earnings += (float) $shift['pay'];
-}
 $whole_hours = floor($total_hours);
 $minutes = round(($total_hours - $whole_hours) * 60);
 $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
@@ -490,6 +547,19 @@ if ($user_id) {
                 <div class="summary-box">
                     <h4>Total Earnings</h4>
                     <div class="summary-value">£<?php echo number_format($total_earnings, 2); ?></div>
+                    <?php if ($user_role): ?>
+                        <div class="summary-note">
+                            <?php
+                            $employment_type = $user_role['employment_type'] ?? 'hourly';
+                            echo ucfirst($employment_type) . ' Employee';
+                            if ($employment_type === 'salaried') {
+                                echo '<br><small>Pro-rated from monthly salary</small>';
+                            } else if ($user_role['has_night_pay']) {
+                                echo '<br><small>Includes night shift premium</small>';
+                            }
+                            ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 

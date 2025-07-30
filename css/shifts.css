@@ -231,6 +231,7 @@ header {
 
   .nav-links ul li a {
     -webkit-appearance: none;
+    appearance: none;
     padding: 12px 20px !important;
   }
 
@@ -495,6 +496,7 @@ ul li a {
 
   .nav-links ul li a {
     -webkit-appearance: none;
+    appearance: none;
     padding: 12px 20px !important;
   }
 
@@ -804,6 +806,18 @@ ul li a {
   font-size: 1.8rem;
   font-weight: bold;
   color: #fd2b2b;
+}
+
+.summary-note {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 5px;
+  text-align: center;
+}
+
+.summary-note small {
+  font-size: 0.8rem;
+  color: #888;
 }
 
 .period-navigation {

@@ -1,0 +1,436 @@
+@font-face {
+  font-family: "newFont";
+  src: url("../fonts/CooperHewitt-Book.otf");
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: "newFont";
+  margin: 0;
+  padding: 20px;
+  background: url("../images/backg3.jpg") no-repeat center center fixed;
+  background-size: cover;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  transition: 0.3s;
+}
+
+.page-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.page-header h1 {
+  margin: 0;
+  color: #fd2b2b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.8rem;
+}
+
+.controls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.control-group label {
+  font-weight: bold;
+  color: #333;
+}
+
+.control-group select {
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  font-family: "newFont";
+  transition: 0.3s;
+}
+
+.control-group select:focus {
+  border-color: #fd2b2b;
+  outline: none;
+  box-shadow: 0 0 5px rgba(253, 43, 43, 0.3);
+}
+
+.btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: "newFont";
+  transition: 0.3s;
+}
+
+.btn-primary {
+  background: #fd2b2b;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #e02020;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(253, 43, 43, 0.3);
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(108, 117, 125, 0.3);
+}
+
+.period-info {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  transition: 0.3s;
+}
+
+.period-info:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.period-info h3 {
+  margin: 0 0 15px 0;
+  color: #fd2b2b;
+  font-size: 1.4rem;
+}
+
+.period-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.period-detail {
+  background: rgba(248, 249, 250, 0.9);
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #fd2b2b;
+  transition: 0.3s;
+}
+
+.period-detail:hover {
+  background: rgba(253, 43, 43, 0.1);
+  transform: translateX(5px);
+}
+
+.period-detail-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.period-detail-value {
+  font-weight: bold;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.status-pending {
+  background: #ffc107;
+  color: #000;
+}
+
+.status-processed {
+  background: #28a745;
+  color: white;
+}
+
+.status-paid {
+  background: #17a2b8;
+  color: white;
+}
+
+.employment-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.employment-badge.hourly {
+  background: #007bff;
+  color: white;
+}
+
+.employment-badge.salaried {
+  background: #28a745;
+  color: white;
+}
+
+.payroll-table {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: 0.3s;
+}
+
+.payroll-table:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.table-header {
+  background: linear-gradient(135deg, #fd2b2b, #e02020);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.total-payroll {
+  font-size: 1.4rem;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 15px 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  background: rgba(248, 249, 250, 0.9);
+  font-weight: bold;
+  color: #333;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+tbody tr {
+  transition: 0.2s;
+}
+
+tbody tr:hover {
+  background: rgba(253, 43, 43, 0.05);
+  transform: scale(1.01);
+}
+
+tbody tr:nth-child(even) {
+  background: rgba(248, 249, 250, 0.5);
+}
+
+tbody tr:nth-child(even):hover {
+  background: rgba(253, 43, 43, 0.05);
+}
+
+.success-message {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  color: #155724;
+  padding: 15px 20px;
+  border: 1px solid #c3e6cb;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(21, 87, 36, 0.1);
+  transition: 0.3s;
+}
+
+.success-message:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(21, 87, 36, 0.15);
+}
+
+.no-data {
+  text-align: center;
+  color: #666;
+  padding: 60px;
+  font-style: italic;
+  font-size: 1.1rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .control-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+
+  .period-details {
+    grid-template-columns: 1fr;
+  }
+
+  .table-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .total-payroll {
+    font-size: 1.2rem;
+  }
+
+  th,
+  td {
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .btn {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .period-info h3 {
+    font-size: 1.2rem;
+  }
+
+  .table-header h3 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Loading and animation states */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.table-container {
+  position: relative;
+}
+
+.table-container.loading::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Custom scrollbar for table */
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #fd2b2b;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #e02020;
+}

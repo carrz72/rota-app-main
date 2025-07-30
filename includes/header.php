@@ -2,6 +2,7 @@
 // Assuming $conn is available here (or include db.php if needed)
 require_once '../includes/db.php';
 require_once '../includes/notifications.php';
+require_once '../includes/session_config.php';
 
 // Retrieve the notification count from the database
 $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
@@ -72,6 +73,7 @@ if ($user_id) {
                     <li><a href="shifts.php">My Shifts</a></li>
                     <li><a href="rota.php">Rota</a></li>
                     <li><a href="roles.php">Roles</a></li>
+                    <li><a href="payroll.php">Payroll</a></li>
                     <li><a href="../users/settings.php">Settings</a></li>
                     <li><a href="../functions/logout.php">Logout</a></li>
                 </ul>
@@ -80,7 +82,6 @@ if ($user_id) {
         </div>
 
     </header>
-    <script src="../js/menu.js"></script>
     <script>
         // Ensure the DOM is fully loaded before attaching the event listener
         document.addEventListener('DOMContentLoaded', function () {
@@ -147,7 +148,20 @@ if ($user_id) {
                 .catch(error => console.error('Error:', error));
         }
     </script>
+    <!-- Session Management Scripts -->
+    <script src="../js/session-timeout.js"></script>
+    <script src="../js/session-protection.js"></script>
+
     <script>
+        // Initialize session configuration
+        const sessionConfig = {
+            timeoutDuration: <?php echo (SESSION_TIMEOUT_DURATION ?? 7200) * 1000; ?>, // Convert to milliseconds
+            warningTime: <?php echo (SESSION_WARNING_TIME ?? 600) * 1000; ?>,
+            checkInterval: <?php echo (SESSION_CHECK_INTERVAL ?? 60) * 1000; ?>,
+            loginUrl: '../functions/login.php',
+            showDetailedErrors: <?php echo SHOW_DETAILED_ERRORS ? 'true' : 'false'; ?>
+        };
+
         function isStandalone() {
             return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         }

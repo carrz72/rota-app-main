@@ -1,0 +1,354 @@
+@font-face {
+  font-family: "newFont";
+  src: url("../fonts/CooperHewitt-Book.otf");
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: "newFont";
+  margin: 0;
+  padding: 20px;
+  background: url("../images/backg3.jpg") no-repeat center center fixed;
+  background-size: cover;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 25px;
+  transition: 0.3s;
+}
+
+.page-header:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.page-header h1 {
+  margin: 0;
+  color: #fd2b2b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 2rem;
+}
+
+.page-header .subtitle {
+  color: #666;
+  margin-top: 8px;
+  font-size: 1rem;
+  font-style: italic;
+}
+
+.payroll-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-bottom: 25px;
+}
+
+.payroll-card {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.payroll-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #fd2b2b, #e02020);
+  transition: 0.3s;
+}
+
+.payroll-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.payroll-card:hover::before {
+  height: 6px;
+}
+
+.payroll-card h3 {
+  margin: 0 0 18px 0;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.3rem;
+}
+
+.current-period {
+  border-left: 5px solid #fd2b2b;
+}
+
+.current-period::before {
+  background: linear-gradient(90deg, #fd2b2b, #e02020);
+}
+
+.next-period {
+  border-left: 5px solid #28a745;
+}
+
+.next-period::before {
+  background: linear-gradient(90deg, #28a745, #218838);
+}
+
+.pay-amount {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #fd2b2b;
+  margin: 15px 0;
+  text-shadow: 0 2px 4px rgba(253, 43, 43, 0.2);
+}
+
+.pay-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pay-detail-item {
+  padding: 12px;
+  background: rgba(248, 249, 250, 0.8);
+  border-radius: 8px;
+  text-align: center;
+  transition: 0.3s;
+  border: 1px solid rgba(253, 43, 43, 0.1);
+}
+
+.pay-detail-item:hover {
+  background: rgba(253, 43, 43, 0.05);
+  transform: scale(1.02);
+}
+
+.pay-detail-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.pay-detail-value {
+  font-weight: bold;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.period-info {
+  background: rgba(233, 236, 239, 0.9);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  border-left: 4px solid #fd2b2b;
+}
+
+.employment-badge {
+  display: inline-block;
+  background: #fd2b2b;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(253, 43, 43, 0.3);
+}
+
+.employment-badge.hourly {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.employment-badge.salaried {
+  background: linear-gradient(135deg, #28a745, #1e7e34);
+}
+
+.upcoming-payments {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 25px;
+  transition: 0.3s;
+}
+
+.upcoming-payments:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.upcoming-payments h3 {
+  margin: 0 0 20px 0;
+  color: #fd2b2b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.4rem;
+}
+
+.payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(238, 238, 238, 0.7);
+  transition: 0.3s;
+}
+
+.payment-item:last-child {
+  border-bottom: none;
+}
+
+.payment-item:hover {
+  background: rgba(253, 43, 43, 0.03);
+  margin: 0 -10px;
+  padding: 15px 10px;
+  border-radius: 8px;
+}
+
+.payment-date {
+  font-weight: bold;
+  color: #fd2b2b;
+  font-size: 1.1rem;
+}
+
+.payment-period {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.payment-type {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.payment-type.hourly {
+  background: rgba(0, 123, 255, 0.1);
+  color: #007bff;
+}
+
+.payment-type.salaried {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.no-data {
+  text-align: center;
+  color: #666;
+  padding: 40px;
+  font-style: italic;
+  font-size: 1.1rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  body {
+    padding: 15px;
+  }
+
+  .payroll-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .pay-amount {
+    font-size: 2rem;
+  }
+
+  .pay-details {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .payment-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .upcoming-payments h3 {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: 20px;
+  }
+
+  .payroll-card {
+    padding: 20px;
+  }
+
+  .upcoming-payments {
+    padding: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 1.4rem;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .pay-amount {
+    font-size: 1.8rem;
+  }
+}
+
+/* Animation for loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 37%, #f0f0f0 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Enhanced focus states for accessibility */
+.payroll-card:focus-within {
+  outline: 2px solid #fd2b2b;
+  outline-offset: 2px;
+}
+
+.payment-item:focus-within {
+  background: rgba(253, 43, 43, 0.05);
+  border-radius: 8px;
+}

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Error - Open Rota</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .error-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .error-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+        }
+
+        .icon {
+            font-size: 80px;
+            color: #ff6b6b;
+            margin-bottom: 30px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .error-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .error-message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+        }
+
+        .countdown {
+            margin-top: 30px;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        .countdown strong {
+            color: #e74c3c;
+        }
+
+        @media (max-width: 480px) {
+            .error-container {
+                padding: 40px 20px;
+            }
+
+            .error-title {
+                font-size: 24px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="error-container">
+        <i class="fas fa-clock icon"></i>
+        <h1 class="error-title">Session Expired</h1>
+        <p class="error-message">
+            Your session has expired due to inactivity. For security reasons, you need to log in again to continue.
+            <br><br>
+            Don't worry - your work is safe and you'll be returned to where you left off after logging in.
+        </p>
+
+        <div class="button-group">
+            <a href="login.php" class="btn btn-primary" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i>
+                Log In Again
+            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Go Back
+            </button>
+        </div>
+
+        <div class="countdown" id="countdown">
+            <strong>Auto-redirecting to login in <span id="timer">10</span> seconds...</strong>
+            <br>
+            <small>Click anywhere to cancel auto-redirect</small>
+        </div>
+    </div>
+
+    <script>
+        // Auto-redirect countdown
+        let timeLeft = 10;
+        let redirectCancelled = false;
+
+        const timerElement = document.getElementById('timer');
+        const countdownElement = document.getElementById('countdown');
+        const loginBtn = document.getElementById('loginBtn');
+
+        // Get return URL from current page or URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return') || window.location.pathname;
+
+        // Update login button href to include return URL
+        if (returnUrl && returnUrl !== '/') {
+            loginBtn.href = `login.php?return=${encodeURIComponent(returnUrl)}`;
+        }
+
+        // Countdown timer
+        const countdown = setInterval(() => {
+            if (redirectCancelled) {
+                clearInterval(countdown);
+                return;
+            }
+
+            timeLeft--;
+            timerElement.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                window.location.href = loginBtn.href;
+            }
+        }, 1000);
+
+        // Cancel auto-redirect on any user interaction
+        document.addEventListener('click', () => {
+            if (!redirectCancelled) {
+                redirectCancelled = true;
+                countdownElement.innerHTML = '<small style="color: #27ae60;"><i class="fas fa-check"></i> Auto-redirect cancelled</small>';
+            }
+        });
+
+        document.addEventListener('keydown', () => {
+            if (!redirectCancelled) {
+                redirectCancelled = true;
+                countdownElement.innerHTML = '<small style="color: #27ae60;"><i class="fas fa-check"></i> Auto-redirect cancelled</small>';
+            }
+        });
+
+        // Handle visibility change (user returns to tab)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !redirectCancelled) {
+                // Reset countdown when user returns to tab
+                timeLeft = Math.max(timeLeft, 3);
+            }
+        });
+    </script>
+</body>
+
+</html>

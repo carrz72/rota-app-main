@@ -6,7 +6,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once '../includes/db.php';
-require '../includes/auth.php';
+require_once '../includes/auth.php';
 require_once '../includes/notifications.php';
 
 // Fetch all roles globally for every user
@@ -76,14 +76,31 @@ if ($user_id) {
 
                             <!-- Pay Details Section -->
                             <div class="pay-details-container">
-                                <!-- Base Pay -->
+                                <!-- Employment Type -->
                                 <div class="pay-detail">
-                                    <div class="pay-label"><i class="fa fa-money"></i> Base Pay:</div>
-                                    <div class="pay-value">£<?php echo number_format($role['base_pay'], 2); ?> per hour</div>
+                                    <div class="pay-label"><i class="fa fa-user"></i> Type:</div>
+                                    <div class="pay-value">
+                                        <?php echo ucfirst($role['employment_type'] ?? 'hourly'); ?> Staff
+                                    </div>
                                 </div>
 
-                                <!-- Night Shift Pay (if applicable) -->
-                                <?php if ($role['has_night_pay']): ?>
+                                <?php if (($role['employment_type'] ?? 'hourly') === 'hourly'): ?>
+                                    <!-- Hourly Pay -->
+                                    <div class="pay-detail">
+                                        <div class="pay-label"><i class="fa fa-money"></i> Hourly Rate:</div>
+                                        <div class="pay-value">£<?php echo number_format($role['base_pay'], 2); ?> per hour</div>
+                                    </div>
+                                <?php else: ?>
+                                    <!-- Monthly Salary -->
+                                    <div class="pay-detail">
+                                        <div class="pay-label"><i class="fa fa-money"></i> Monthly Salary:</div>
+                                        <div class="pay-value">£<?php echo number_format($role['monthly_salary'], 2); ?> per month
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Night Shift Pay (if applicable and hourly) -->
+                                <?php if ($role['has_night_pay'] && ($role['employment_type'] ?? 'hourly') === 'hourly'): ?>
                                     <div class="pay-detail">
                                         <div class="pay-label"><i class="fa fa-moon-o"></i> Night Pay:</div>
                                         <div class="pay-value">£<?php echo number_format($role['night_shift_pay'], 2); ?> per hour
@@ -126,14 +143,27 @@ if ($user_id) {
                     </div>
 
                     <div class="form-group">
-                        <label for="base_pay">Base Pay Rate (£):</label>
-                        <input type="number" step="0.01" min="0" id="base_pay" name="base_pay" required
-                            placeholder="e.g. 10.50">
+                        <label for="employment_type">Employment Type:</label>
+                        <select id="employment_type" name="employment_type" onchange="togglePayFields()" required>
+                            <option value="hourly">Hourly Staff</option>
+                            <option value="salaried">Salaried Staff</option>
+                        </select>
                     </div>
 
-                    <div class="form-full-width">
+                    <div class="form-group" id="hourly_pay_group">
+                        <label for="base_pay">Hourly Rate (£):</label>
+                        <input type="number" step="0.01" min="0" id="base_pay" name="base_pay" placeholder="e.g. 10.50">
+                    </div>
+
+                    <div class="form-group" id="salary_pay_group" style="display: none;">
+                        <label for="monthly_salary">Monthly Salary (£):</label>
+                        <input type="number" step="0.01" min="0" id="monthly_salary" name="monthly_salary"
+                            placeholder="e.g. 2500.00">
+                    </div>
+
+                    <div class="form-full-width" id="night_pay_toggle">
                         <div class="toggle-container">
-                            <label for="has_night_pay">Enable Night Shift Pay:</label>
+                            <label for="has_night_pay">Enable Night Shift Pay (Hourly Only):</label>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="has_night_pay" name="has_night_pay"
                                     onclick="toggleNightPayFields()">
@@ -190,11 +220,25 @@ if ($user_id) {
                 </div>
 
                 <div class="form-group">
-                    <label for="edit_base_pay">Base Pay Rate (£):</label>
-                    <input type="number" step="0.01" min="0" id="edit_base_pay" name="edit_base_pay" required>
+                    <label for="edit_employment_type">Employment Type:</label>
+                    <select id="edit_employment_type" name="edit_employment_type" onchange="toggleEditPayFields()"
+                        required>
+                        <option value="hourly">Hourly Paid</option>
+                        <option value="salaried">Salaried</option>
+                    </select>
                 </div>
 
-                <div class="form-group">
+                <div id="edit_hourly_pay_group" class="form-group">
+                    <label for="edit_base_pay">Hourly Pay Rate (£):</label>
+                    <input type="number" step="0.01" min="0" id="edit_base_pay" name="edit_base_pay">
+                </div>
+
+                <div id="edit_salary_pay_group" class="form-group" style="display: none;">
+                    <label for="edit_monthly_salary">Monthly Salary (£):</label>
+                    <input type="number" step="0.01" min="0" id="edit_monthly_salary" name="edit_monthly_salary">
+                </div>
+
+                <div id="edit_night_pay_toggle" class="form-group">
                     <div class="toggle-container">
                         <label for="edit_has_night_pay">Enable Night Shift Pay:</label>
                         <label class="toggle-switch">
@@ -235,6 +279,36 @@ if ($user_id) {
     </div>
 
     <script>
+        // Function to toggle pay fields based on employment type
+        function togglePayFields() {
+            const employmentType = document.getElementById("employment_type").value;
+            const hourlyGroup = document.getElementById("hourly_pay_group");
+            const salaryGroup = document.getElementById("salary_pay_group");
+            const nightPayToggle = document.getElementById("night_pay_toggle");
+            const nightPayFields = document.getElementById("night_pay_fields");
+            const hasNightPay = document.getElementById("has_night_pay");
+
+            if (employmentType === 'salaried') {
+                hourlyGroup.style.display = 'none';
+                salaryGroup.style.display = 'block';
+                nightPayToggle.style.display = 'none';
+                nightPayFields.style.display = 'none';
+                hasNightPay.checked = false;
+
+                // Make salary required, hourly not required
+                document.getElementById("monthly_salary").required = true;
+                document.getElementById("base_pay").required = false;
+            } else {
+                hourlyGroup.style.display = 'block';
+                salaryGroup.style.display = 'none';
+                nightPayToggle.style.display = 'block';
+
+                // Make hourly required, salary not required
+                document.getElementById("base_pay").required = true;
+                document.getElementById("monthly_salary").required = false;
+            }
+        }
+
         // Function to toggle night pay fields in add form
         function toggleNightPayFields() {
             const checkbox = document.getElementById("has_night_pay");
@@ -244,7 +318,10 @@ if ($user_id) {
             // Make fields required or not based on checkbox
             const nightFields = ['night_shift_pay', 'night_start_time', 'night_end_time'];
             nightFields.forEach(id => {
-                document.getElementById(id).required = checkbox.checked;
+                const field = document.getElementById(id);
+                if (field) {
+                    field.required = checkbox.checked;
+                }
             });
         }
 
@@ -261,6 +338,36 @@ if ($user_id) {
             });
         }
 
+        // Function to toggle pay fields based on employment type in edit form
+        function toggleEditPayFields() {
+            const employmentType = document.getElementById("edit_employment_type").value;
+            const hourlyGroup = document.getElementById("edit_hourly_pay_group");
+            const salaryGroup = document.getElementById("edit_salary_pay_group");
+            const nightPayToggle = document.getElementById("edit_night_pay_toggle");
+            const nightPayFields = document.getElementById("edit_night_pay_fields");
+            const hasNightPay = document.getElementById("edit_has_night_pay");
+
+            if (employmentType === 'salaried') {
+                hourlyGroup.style.display = 'none';
+                salaryGroup.style.display = 'block';
+                nightPayToggle.style.display = 'none';
+                nightPayFields.style.display = 'none';
+                hasNightPay.checked = false;
+
+                // Make salary required, hourly not required
+                document.getElementById("edit_monthly_salary").required = true;
+                document.getElementById("edit_base_pay").required = false;
+            } else {
+                hourlyGroup.style.display = 'block';
+                salaryGroup.style.display = 'none';
+                nightPayToggle.style.display = 'block';
+
+                // Make hourly required, salary not required
+                document.getElementById("edit_base_pay").required = true;
+                document.getElementById("edit_monthly_salary").required = false;
+            }
+        }
+
         // Reset form function
         function resetForm() {
             document.getElementById("roleForm").reset();
@@ -274,6 +381,8 @@ if ($user_id) {
 
         function closeModal() {
             document.getElementById("editRoleModal").style.display = "none";
+            // Reset the form to clear any data
+            document.getElementById("editRoleForm").reset();
         }
 
         // When the user clicks anywhere outside of the modal, close it
@@ -293,9 +402,18 @@ if ($user_id) {
                     // Populate the edit form
                     document.getElementById("edit_role_id").value = role.id;
                     document.getElementById("edit_name").value = role.name;
-                    document.getElementById("edit_base_pay").value = role.base_pay;
 
-                    // Handle night shift settings
+                    // Set employment type and related fields
+                    const employmentType = role.employment_type || 'hourly';
+                    document.getElementById("edit_employment_type").value = employmentType;
+
+                    if (employmentType === 'hourly') {
+                        document.getElementById("edit_base_pay").value = role.base_pay;
+                    } else {
+                        document.getElementById("edit_monthly_salary").value = role.monthly_salary;
+                    }
+
+                    // Handle night shift settings (only for hourly employees)
                     document.getElementById("edit_has_night_pay").checked = role.has_night_pay == 1;
                     if (role.has_night_pay == 1) {
                         document.getElementById("edit_night_shift_pay").value = role.night_shift_pay;
@@ -303,7 +421,8 @@ if ($user_id) {
                         document.getElementById("edit_night_end_time").value = role.night_end_time;
                     }
 
-                    // Toggle display of night fields
+                    // Toggle display of pay and night fields
+                    toggleEditPayFields();
                     toggleEditNightPayFields();
 
                     // Show the modal
@@ -319,16 +438,25 @@ if ($user_id) {
         document.getElementById("editRoleForm").addEventListener("submit", function (event) {
             event.preventDefault();
 
+            const employmentType = document.getElementById("edit_employment_type").value;
+
             // Create data object from form
             const roleData = {
                 id: document.getElementById("edit_role_id").value,
                 name: document.getElementById("edit_name").value,
-                base_pay: document.getElementById("edit_base_pay").value,
+                employment_type: employmentType,
                 has_night_pay: document.getElementById("edit_has_night_pay").checked ? 1 : 0
             };
 
-            // Add night shift data if enabled
-            if (roleData.has_night_pay) {
+            // Add pay data based on employment type
+            if (employmentType === 'hourly') {
+                roleData.base_pay = document.getElementById("edit_base_pay").value;
+            } else {
+                roleData.monthly_salary = document.getElementById("edit_monthly_salary").value;
+            }
+
+            // Add night shift data if enabled (only for hourly employees)
+            if (roleData.has_night_pay && employmentType === 'hourly') {
                 roleData.night_shift_pay = document.getElementById("edit_night_shift_pay").value;
                 roleData.night_start_time = document.getElementById("edit_night_start_time").value;
                 roleData.night_end_time = document.getElementById("edit_night_end_time").value;
@@ -364,6 +492,7 @@ if ($user_id) {
 
         // Ensure the correct display on page load
         document.addEventListener("DOMContentLoaded", function () {
+            togglePayFields();
             toggleNightPayFields();
 
             // Set up close button functionality
