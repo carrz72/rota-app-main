@@ -164,21 +164,7 @@ if ($user_id) {
             showDetailedErrors: <?php echo SHOW_DETAILED_ERRORS ? 'true' : 'false'; ?>
         };
 
-        function isStandalone() {
-            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            if (isStandalone()) {
-                const links = document.querySelectorAll('a');
-                links.forEach(link => {
-                    link.addEventListener('click', (event) => {
-                        event.preventDefault();
-                        window.open(link.href, '_blank');
-                    });
-                });
-            }
-        });
+        // Note: Navigation handling is now managed by links.js for PWA compatibility
     </script>
 </body>
 
