@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Email - Rota App</title>
+    <title>Verify Email - Open Rota</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"></script>
     <script>
@@ -447,6 +447,11 @@
 
 <body>
     <div class="verify-container">
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <div class="logo">Open Rota</div>
+        </div>
+
         <!-- Step Indicator -->
         <div class="step-indicator">
             <div class="step completed">
@@ -471,7 +476,7 @@
             <h1 class="verify-title">Check Your Email</h1>
             <p class="verify-subtitle">
                 We've sent a 6-digit verification code to your email address.
-                Enter the code below to complete your registration and join Rota App!
+                Enter the code below to complete your registration and join Open Rota!
             </p>
         </div>
 
@@ -698,7 +703,7 @@
 
                     // Send new OTP email using exact same format as working registration
                     const templateParams = {
-                        company_name: 'Rota App',
+                        company_name: 'Open Rota',
                         user_email: userEmail,
                         otp_code: otp,
                         to_email: userEmail
@@ -918,7 +923,7 @@
                 const testEmail = userEmail || 'test@example.com';
 
                 const templateParams = {
-                    company_name: 'Rota App',
+                    company_name: 'Open Rota',
                     user_email: testEmail,
                     otp_code: testOTP,
                     to_email: testEmail

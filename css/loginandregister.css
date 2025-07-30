@@ -44,6 +44,22 @@ body {
   max-width: 450px;
 }
 
+/* ========== LOGO HEADER STYLES ========== */
+.logo-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.logo-header .logo {
+  font-size: 32px;
+  font-weight: 800;
+  color: #fd2b2b;
+  font-family: "newFont", Arial, sans-serif;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  letter-spacing: -0.5px;
+}
+
 .register-container:hover,
 .login-container:hover,
 .forgot-container:hover,

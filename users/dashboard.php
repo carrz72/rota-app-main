@@ -2,7 +2,10 @@
 require_once '../includes/auth.php';
 requireLogin(); // Only logged-in users can access
 
-include __DIR__ . '/../includes/header.php';
+// Include header components
+require_once '../includes/db.php';
+require_once '../includes/notifications.php';
+require_once '../includes/session_config.php';
 
 // Include DB connection.
 require_once '../includes/db.php';
@@ -130,10 +133,11 @@ foreach ($days_result as $day) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
-    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">
+    <link rel="icon" type="image/png" href="../images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="manifest" href="/rota-app-main/manifest.json">
+    <link rel="stylesheet" href="../css/navigation.css">
+    <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <title>Dashboard - Open Rota</title>
     <style>
@@ -700,6 +704,69 @@ foreach ($days_result as $day) {
 </head>
 
 <body>
+    <!-- Header -->
+    <?php
+    // Retrieve the notification count from the database
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
+    $notifications = [];
+    $notificationCount = 0;
+    if ($user_id) {
+        $notifications = getNotifications($user_id);
+        $notificationCount = count($notifications);
+    }
+    ?>
+    <header style="opacity: 1; transition: opacity 0.5s ease;">
+        <div class="logo">Open Rota</div>
+        <div class="nav-group">
+            <div class="notification-container">
+                <!-- Bell Icon -->
+                <i class="fa fa-bell notification-icon" id="notification-icon"></i>
+                <?php if ($notificationCount > 0): ?>
+                    <span class="notification-badge"><?php echo $notificationCount; ?></span>
+                <?php endif; ?>
+
+                <!-- Notifications Dropdown -->
+                <div class="notification-dropdown" id="notification-dropdown">
+                    <?php if ($notificationCount > 0): ?>
+                        <?php foreach ($notifications as $notif): ?>
+                            <div class="notification-item notification-<?php echo $notif['type']; ?>"
+                                data-id="<?php echo $notif['id']; ?>">
+                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                <?php if ($notif['type'] === 'shift-invite' && !empty($notif['related_id'])): ?>
+                                    <a class="shit-invt"
+                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
+                                        <p><?php echo htmlspecialchars($notif['message']); ?></p>
+                                    </a>
+                                <?php else: ?>
+                                    <p><?php echo htmlspecialchars($notif['message']); ?></p>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="notification-item">
+                            <p>No notifications</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+            <nav class="nav-links" id="nav-links">
+                <ul>
+                    <li><a href="dashboard.php">Dashboard</a></li>
+                    <li><a href="shifts.php">My Shifts</a></li>
+                    <li><a href="rota.php">Rota</a></li>
+                    <li><a href="roles.php">Roles</a></li>
+                    <li><a href="payroll.php">Payroll</a></li>
+                    <li><a href="settings.php">Settings</a></li>
+                    <li><a href="../functions/logout.php">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
     <div class="dashboard-container">
         <!-- Welcome Banner -->
         <div class="welcome-card">
@@ -965,20 +1032,71 @@ foreach ($days_result as $day) {
         <?php endif; ?>
     </div>
 
-    <script src="/rota-app-main/js/menu.js"></script>
-    <script src="/rota-app-main/js/pwa-debug.js"></script>
-    <script src="/rota-app-main/js/links.js"></script>
+    <script src="../js/pwa-debug.js"></script>
+    <script src="../js/links.js"></script>
     <script>
-        // Add at the bottom of the body before the closing </body> tag
+        // Notification functionality
+        function markAsRead(element) {
+            const notificationId = element.getAttribute('data-id');
+            fetch('../functions/mark_notification.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: notificationId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    element.style.display = 'none';
+                    const remainingNotifications = document.querySelectorAll('.notification-item:not([style*="display: none"])');
+                    if (remainingNotifications.length === 0) {
+                        document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            badge.style.display = 'none';
+                        }
+                    } else {
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            badge.textContent = remainingNotifications.length;
+                        }
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Debug script to test hamburger menu
         document.addEventListener('DOMContentLoaded', function () {
+            // Notification setup
+            var notificationIcon = document.getElementById('notification-icon');
+            var dropdown = document.getElementById('notification-dropdown');
+
+            if (notificationIcon && dropdown) {
+                notificationIcon.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                if (dropdown && !dropdown.contains(e.target) && !notificationIcon.contains(e.target)) {
+                    dropdown.style.display = "none";
+                }
+            });
+
             // Fix navigation menu links specifically for Chrome
-            const navLinks = document.querySelectorAll('.nav-links ul li a');
-            navLinks.forEach(link => {
+            const navLinks2 = document.querySelectorAll('.nav-links ul li a');
+            navLinks2.forEach(link => {
                 link.style.backgroundColor = '#fd2b2b';
                 link.style.color = '#ffffff';
             });
         });
     </script>
+    <script src="../js/menu.js"></script>
+    <script src="../js/pwa-debug.js"></script>
+    <script src="../js/links.js"></script>
 </body>
 
 </html>

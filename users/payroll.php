@@ -1,12 +1,20 @@
 <?php
 require_once '../includes/auth.php';
 requireLogin();
-include_once '../includes/header.php';
 require_once '../includes/db.php';
+require_once '../includes/notifications.php';
 require_once '../functions/payroll_functions.php';
 
 $user_id = $_SESSION['user_id'];
 $is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+
+// Get user-specific data for header
+$notifications = [];
+$notificationCount = 0;
+if ($user_id) {
+    $notifications = getNotifications($user_id);
+    $notificationCount = count($notifications);
+}
 
 // Get current user's role info
 $stmt = $conn->prepare("SELECT r.*, u.username FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.id = ?");
@@ -43,9 +51,9 @@ if ($is_admin && $current_period) {
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">
-    <link rel="manifest" href="/rota-app-main/manifest.json">
-    <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
+    <link rel="icon" type="image/png" href="../images/icon.png">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../images/icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/payroll.css">
@@ -53,6 +61,52 @@ if ($is_admin && $current_period) {
 </head>
 
 <body>
+    <!-- Navigation Header -->
+    <header style="opacity: 1; transition: opacity 0.5s ease;">
+        <div class="logo">Open Rota</div>
+        <div class="nav-group">
+            <div class="notification-container">
+                <!-- Bell Icon -->
+                <i class="fa fa-bell notification-icon" id="notification-icon"></i>
+                <?php if (isset($notificationCount) && $notificationCount > 0): ?>
+                    <span class="notification-badge"><?php echo $notificationCount; ?></span>
+                <?php endif; ?>
+
+                <!-- Notifications Dropdown -->
+                <div class="notification-dropdown" id="notification-dropdown">
+                    <?php if (isset($notifications) && !empty($notifications)): ?>
+                        <?php foreach ($notifications as $notification): ?>
+                            <div class="notification-item" data-id="<?php echo $notification['id']; ?>">
+                                <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                <small><?php echo date('M j, Y g:i A', strtotime($notification['created_at'])); ?></small>
+                                <button onclick="markAsRead(this)" class="mark-read-btn">Mark as Read</button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="notification-item">
+                            <p>No notifications</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+            <nav class="nav-links" id="nav-links">
+                <ul>
+                    <li><a href="dashboard.php">Dashboard</a></li>
+                    <li><a href="shifts.php">My Shifts</a></li>
+                    <li><a href="rota.php">Rota</a></li>
+                    <li><a href="roles.php">Roles</a></li>
+                    <li><a href="payroll.php">Payroll</a></li>
+                    <li><a href="settings.php">Settings</a></li>
+                    <li><a href="../functions/logout.php">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
     <div class="container">
         <div class="page-header">
             <h1>
@@ -249,9 +303,61 @@ if ($is_admin && $current_period) {
         </div>
     </div>
 
-    <script src="/rota-app-main/js/menu.js"></script>
-    <script src="/rota-app-main/js/pwa-debug.js"></script>
-    <script src="/rota-app-main/js/links.js"></script>
+    <script>
+        // Notification functionality
+        function markAsRead(element) {
+            const notificationId = element.getAttribute('data-id');
+            fetch('../functions/mark_notification.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: notificationId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    element.style.display = 'none';
+                    const remainingNotifications = document.querySelectorAll('.notification-item:not([style*="display: none"])');
+                    if (remainingNotifications.length === 0) {
+                        document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            badge.style.display = 'none';
+                        }
+                    } else {
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            badge.textContent = remainingNotifications.length;
+                        }
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Notification setup
+            var notificationIcon = document.getElementById('notification-icon');
+            var dropdown = document.getElementById('notification-dropdown');
+
+            if (notificationIcon && dropdown) {
+                notificationIcon.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                if (dropdown && !dropdown.contains(e.target) && !notificationIcon.contains(e.target)) {
+                    dropdown.style.display = "none";
+                }
+            });
+        });
+    </script>
+    <script src="../js/menu.js"></script>
+    <script src="../js/pwa-debug.js"></script>
+    <script src="../js/links.js"></script>
 </body>
 
 </html>

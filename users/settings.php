@@ -229,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - Rota App</title>
+    <title>Settings - Open Rota</title>
     <link rel="stylesheet" href="../css/settings.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -654,7 +654,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-    <?php include '../includes/header.php'; ?>
+    <!-- Header -->
+    <header style="opacity: 1; transition: opacity 0.5s ease;">
+        <div class="logo">Open Rota</div>
+        <div class="nav-group">
+            <div class="notification-container">
+                <!-- Bell Icon -->
+                <i class="fa fa-bell notification-icon" id="notification-icon"></i>
+                <?php if ($notificationCount > 0): ?>
+                    <span class="notification-badge"><?php echo $notificationCount; ?></span>
+                <?php endif; ?>
+                
+                <!-- Notification Dropdown -->
+                <div class="notification-dropdown" id="notification-dropdown">
+                    <?php if (!empty($notifications)): ?>
+                        <?php foreach ($notifications as $notification): ?>
+                            <div class="notification-item" data-id="<?php echo $notification['id']; ?>">
+                                <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                <small><?php echo date('M j, Y g:i A', strtotime($notification['created_at'])); ?></small>
+                                <button onclick="markAsRead(this)" class="mark-read-btn">Mark as Read</button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="notification-item">
+                            <p>No notifications</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Hamburger Menu -->
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="nav-links" id="nav-links">
+            <ul>
+                <li><a href="dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="shifts.php"><i class="fa fa-calendar-alt"></i> My Shifts</a></li>
+                <li><a href="rota.php"><i class="fa fa-calendar"></i> Rota</a></li>
+                <li><a href="roles.php"><i class="fa fa-briefcase"></i> Roles</a></li>
+                <li><a href="payroll.php"><i class="fa fa-money-bill-wave"></i> Payroll</a></li>
+                <li><a href="settings.php"><i class="fa fa-cogs"></i> Settings</a></li>
+                <li><a href="../functions/logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+    </header>
 
     <div class="settings-container">
         <!-- Page Header -->
@@ -856,12 +904,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <i class="fas fa-home"></i>
                 <h4>Dashboard</h4>
                 <p>Return to your main dashboard</p>
-            </a>
-
-            <a href="profile.php" class="action-card">
-                <i class="fas fa-user-edit"></i>
-                <h4>Edit Profile</h4>
-                <p>Update your personal details</p>
             </a>
 
             <a href="../functions/change_password.php" class="action-card">

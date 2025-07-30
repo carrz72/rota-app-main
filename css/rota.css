@@ -43,6 +43,9 @@ header {
   font-size: 1.8em;
   cursor: pointer;
   display: block;
+  z-index: 1002;
+  padding: 5px;
+  position: relative;
 }
 
 .menu-toggle:hover {

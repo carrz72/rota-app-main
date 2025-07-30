@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <title>Reset Password - Rota App</title>
+    <title>Reset Password - Open Rota</title>
     <style>
         @font-face {
             font-family: "newFont";
@@ -178,6 +178,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <body>
     <div class="auth-container">
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <div class="logo">Open Rota</div>
+        </div>
+
         <div class="forgot-header">
             <h1><i class="fas fa-key"></i> Reset Password</h1>
             <p>Enter your new password below</p>

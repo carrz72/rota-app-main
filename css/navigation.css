@@ -17,8 +17,11 @@ header {
 
 .logo {
   font-size: 24px;
-  font-weight: bold;
+  font-weight: 800;
   color: #fd2b2b;
+  font-family: "newFont", Arial, sans-serif;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  letter-spacing: -0.5px;
 }
 
 .nav-group {

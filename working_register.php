@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Rota App</title>
+    <title>Register - Open Rota</title>
     <link rel="stylesheet" href="css/loginandregister.css">
     <style>
         .working-form {
@@ -218,10 +218,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body style="background: url('images/backg3.jpg') no-repeat center center fixed; background-size: cover;">
     <div class="register-container">
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <div class="logo">Open Rota</div>
+        </div>
+
         <div class="working-form">
             <div class="form-header">
                 <h2>🚀 Create Account</h2>
-                <div class="subtitle">Join Rota App and manage your shifts easily</div>
+                <div class="subtitle">Join Open Rota and manage your shifts easily</div>
             </div>
 
             <div class="notice">

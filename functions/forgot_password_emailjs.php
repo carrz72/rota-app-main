@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password - Rota App</title>
+    <title>Forgot Password - Open Rota</title>
     <link rel="stylesheet" href="../css/loginandregister.css">
     <link rel="stylesheet" href="../css/forgot_password.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -95,6 +95,11 @@
 
 <body>
     <div class="auth-container">
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <div class="logo">Open Rota</div>
+        </div>
+
         <div class="forgot-header">
             <h1><i class="fas fa-unlock-alt"></i> Forgot Password</h1>
             <p>Reset your password using email verification</p>
@@ -195,7 +200,7 @@
                 const templateParams = {
                     to_email: email,
                     otp_code: otp,
-                    company_name: 'Rota App'
+                    company_name: 'Open Rota'
                 };
 
                 const response = await emailjs.send(

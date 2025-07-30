@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Rota App</title>
+    <title>Register - Open Rota</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         @font-face {
@@ -253,9 +253,14 @@
 
 <body style="background: url('images/backg3.jpg') no-repeat center center fixed; background-size: cover;">
     <div class="register-container">
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <div class="logo">Open Rota</div>
+        </div>
+
         <div class="form-header">
             <h2><i class="fas fa-user-plus"></i> Create Your Account</h2>
-            <p>Join Rota App and start managing your shifts</p>
+            <p>Join Open Rota and start managing your shifts</p>
         </div>
 
         <div id="alertContainer"></div>
@@ -268,7 +273,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="username">Username *</label>
+                    <label for="username">Username * (Firstname space Lastname)</label>
                     <input type="text" id="username" name="username" class="form-control" required
                         placeholder="Enter your username" pattern="[A-Za-z0-9\s]{3,50}"
                         title="Username should be 3-50 characters">
@@ -500,7 +505,7 @@
 
                 // Use EXACT same parameters and method as working raw test
                 const templateParams = {
-                    company_name: 'Rota App',
+                    company_name: 'Open Rota',
                     user_email: email,
                     otp_code: otp,
                     to_email: email

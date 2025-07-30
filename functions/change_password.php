@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Change Password - Rota App</title>
+    <title>Change Password - Open Rota</title>
     <link rel="stylesheet" href="../css/loginandregister.css">
     <link rel="stylesheet" href="../css/change_Password.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -67,6 +67,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <body>
     <div class="auth-container">
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <div class="logo">Open Rota</div>
+        </div>
+
         <div class="forgot-header">
             <h1><i class="fas fa-key"></i> Change Password</h1>
             <p>Update your account password</p>

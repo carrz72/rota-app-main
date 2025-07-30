@@ -1,8 +1,17 @@
 <?php
 require_once '../includes/auth.php';
 requireLogin();
-include_once '../includes/header.php';
 require_once '../includes/db.php';
+require_once '../includes/notifications.php';
+
+// Get user-specific data for header
+$user_id = $_SESSION['user_id'];
+$notifications = [];
+$notificationCount = 0;
+if ($user_id) {
+    $notifications = getNotifications($user_id);
+    $notificationCount = count($notifications);
+}
 
 // Determine filtering period from GET parameters (default to week)
 $period = $_GET['period'] ?? 'week';
@@ -142,13 +151,13 @@ if ($period === 'week') {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
-    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">
+    <link rel="icon" type="image/png" href="../images/icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Full Rota</title>
     <link rel="stylesheet" href="../css/rota.css">
     <link rel="stylesheet" href="../css/navigation.css">
-    <link rel="manifest" href="/rota-app-main/manifest.json">
+    <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         /* Navigation menu styling specific to rota page */
@@ -533,6 +542,52 @@ if ($period === 'week') {
 </head>
 
 <body>
+    <!-- Header -->
+    <header style="opacity: 1; transition: opacity 0.5s ease;">
+        <div class="logo">Open Rota</div>
+        <div class="nav-group">
+            <div class="notification-container">
+                <!-- Bell Icon -->
+                <i class="fa fa-bell notification-icon" id="notification-icon"></i>
+                <?php if ($notificationCount > 0): ?>
+                    <span class="notification-badge"><?php echo $notificationCount; ?></span>
+                <?php endif; ?>
+
+                <!-- Notifications Dropdown -->
+                <div class="notification-dropdown" id="notification-dropdown">
+                    <?php if (!empty($notifications)): ?>
+                        <?php foreach ($notifications as $notification): ?>
+                            <div class="notification-item" data-id="<?php echo $notification['id']; ?>">
+                                <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                <small><?php echo date('M j, Y g:i A', strtotime($notification['created_at'])); ?></small>
+                                <button onclick="markAsRead(this)" class="mark-read-btn">Mark as Read</button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="notification-item">
+                            <p>No notifications</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+        </div>
+        
+        <nav class="nav-links" id="nav-links">
+            <ul>
+                <li><a href="dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="shifts.php"><i class="fa fa-calendar-alt"></i> My Shifts</a></li>
+                <li><a href="rota.php"><i class="fa fa-calendar"></i> Rota</a></li>
+                <li><a href="roles.php"><i class="fa fa-briefcase"></i> Roles</a></li>
+                <li><a href="payroll.php"><i class="fa fa-money-bill-wave"></i> Payroll</a></li>
+                <li><a href="settings.php"><i class="fa fa-cogs"></i> Settings</a></li>
+                <li><a href="../functions/logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </nav>
+    </header>
     
     <div class="container">
         <h1>Full Rota</h1>
@@ -744,8 +799,57 @@ if ($period === 'week') {
     </div>
 
     <script>
+        // Notification functionality
+        function markAsRead(element) {
+            const notificationId = element.getAttribute('data-id');
+            fetch('../functions/mark_notification.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: notificationId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    element.style.display = 'none';
+                    const remainingNotifications = document.querySelectorAll('.notification-item:not([style*="display: none"])');
+                    if (remainingNotifications.length === 0) {
+                        document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            badge.style.display = 'none';
+                        }
+                    } else {
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            badge.textContent = remainingNotifications.length;
+                        }
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
         // Page-specific styling fix
         document.addEventListener('DOMContentLoaded', function () {
+            // Notification setup
+            var notificationIcon = document.getElementById('notification-icon');
+            var dropdown = document.getElementById('notification-dropdown');
+
+            if (notificationIcon && dropdown) {
+                notificationIcon.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                if (dropdown && !dropdown.contains(e.target) && !notificationIcon.contains(e.target)) {
+                    dropdown.style.display = "none";
+                }
+            });
+
             // Fix navigation menu links styling
             const navLinks = document.querySelectorAll('.nav-links ul li a');
             navLinks.forEach(link => {
@@ -779,9 +883,9 @@ if ($period === 'week') {
         // Removed exportToCSV() function
     </script>
     
-    <script src="/rota-app-main/js/menu.js"></script>
-    <script src="/rota-app-main/js/pwa-debug.js"></script>
-    <script src="/rota-app-main/js/links.js"></script>
+    <script src="../js/menu.js"></script>
+    <script src="../js/pwa-debug.js"></script>
+    <script src="../js/links.js"></script>
 
    
 </body>

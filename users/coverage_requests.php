@@ -123,8 +123,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coverage Requests - Rota System</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Open Rota">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <link rel="icon" type="image/png" href="../images/icon.png">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../images/icon.png">
+    <title>Coverage Requests - Open Rota</title>
+    <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -316,6 +323,35 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 </head>
 
 <body>
+    <!-- Navigation Header -->
+    <div class="logo">
+        <img src="../images/logo.png" alt="Open Rota Logo">
+        <span>Open Rota</span>
+    </div>
+    
+    <div class="nav-group">
+        <div class="notification-icon" id="notification-icon">
+            <i class="fa fa-bell"></i>
+        </div>
+        
+        <div class="menu-toggle" id="menu-toggle">
+            ☰
+        </div>
+    </div>
+    
+    <!-- Navigation Menu -->
+    <nav class="nav-links" id="nav-links">
+        <ul>
+            <li><a href="dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="shifts.php"><i class="fa fa-calendar-alt"></i> My Shifts</a></li>
+            <li><a href="rota.php"><i class="fa fa-calendar"></i> Rota</a></li>
+            <li><a href="roles.php"><i class="fa fa-briefcase"></i> Roles</a></li>
+            <li><a href="coverage_requests.php"><i class="fa fa-exchange-alt"></i> Coverage</a></li>
+            <li><a href="settings.php"><i class="fa fa-cogs"></i> Settings</a></li>
+            <li><a href="../functions/logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </nav>
+
     <div class="container">
         <h1><i class="fas fa-exchange-alt"></i> Shift Coverage</h1>
         <p>Your branch: <strong><?php echo htmlspecialchars($user_branch['name']); ?></strong></p>
@@ -561,6 +597,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             event.target.classList.add('active');
         }
     </script>
+    <script src="../js/menu.js"></script>
 </body>
 
 </html>

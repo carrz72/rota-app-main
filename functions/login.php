@@ -379,6 +379,11 @@ ob_start();
 
     <body>
         <div class="login-container">
+            <!-- Logo Header -->
+            <div class="logo-header">
+                <div class="logo">Open Rota</div>
+            </div>
+
             <div class="login-header">
                 <h2><i class="fas fa-sign-in-alt"></i> Welcome Back</h2>
                 <p>Sign in to manage your shifts and schedule</p>
