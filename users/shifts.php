@@ -161,7 +161,6 @@ if ($user_id) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>Your Shifts - Open Rota</title>
     <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/shifts.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <style>
         .card {
