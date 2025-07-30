@@ -170,12 +170,16 @@ function handleFormSubmit(event) {
                 if (response.redirected) {
                     logPWA(`Server redirected to: ${response.url}`);
                     // Handle redirects by navigating to the new URL
-                    window.location.href = response.url;
+                    if (isIOS()) {
+                        window.location.replace(response.url);
+                    } else {
+                        window.location.href = response.url;
+                    }
                     return null;
-                } else if (response.status >= 400) {
+                } else if (!response.ok) {
                     // Handle error responses
-                    logPWA(`Server error: ${response.status}`);
-                    throw new Error(`Server responded with ${response.status}`);
+                    logPWA(`Server error: ${response.status} ${response.statusText}`);
+                    throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
                 } else {
                     return response.text();
                 }
@@ -198,7 +202,11 @@ function handleFormSubmit(event) {
                             // Check if it's JSON
                             const jsonData = JSON.parse(html);
                             if (jsonData.redirect) {
-                                window.location.href = jsonData.redirect;
+                                if (isIOS()) {
+                                    window.location.replace(jsonData.redirect);
+                                } else {
+                                    window.location.href = jsonData.redirect;
+                                }
                             } else if (jsonData.success) {
                                 // Reload the current page to show the updated state
                                 window.location.reload();
@@ -213,10 +221,25 @@ function handleFormSubmit(event) {
             })
             .catch(error => {
                 logPWA(`Error during fetch: ${error.message}`);
-                // Fall back to regular form submission
-                const tempForm = this.cloneNode(true);
-                document.body.appendChild(tempForm);
-                tempForm.submit();
+                
+                // Don't fall back to regular form submission immediately
+                // Instead, show an error message and let user retry
+                console.error('PWA Navigation Error:', error);
+                
+                // For critical errors, fall back to regular form submission
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    logPWA('Network error detected - attempting regular form submission');
+                    // Create a temporary form and submit it normally
+                    const tempForm = this.cloneNode(true);
+                    tempForm.removeAttribute('data-standalone-handled');
+                    document.body.appendChild(tempForm);
+                    tempForm.submit();
+                    document.body.removeChild(tempForm);
+                } else {
+                    // For other errors, try to reload the page
+                    logPWA('Non-network error - reloading page');
+                    window.location.reload();
+                }
             });
     }
 }
