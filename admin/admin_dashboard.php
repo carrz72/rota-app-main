@@ -25,17 +25,6 @@ $stmt = $conn->prepare($userCountQuery);
 $stmt->execute($userCountParams);
 $totalUsers = $stmt->fetchColumn();
 
-// Fetch total shifts (all for super admin, branch-specific for regular admin)
-$shiftCountQuery = "SELECT COUNT(*) FROM shifts s JOIN users u ON s.user_id = u.id";
-$shiftCountParams = [];
-if (!$isSuperAdmin && $adminBranchId) {
-    $shiftCountQuery .= " WHERE u.branch_id = ?";
-    $shiftCountParams[] = $adminBranchId;
-}
-$stmt = $conn->prepare($shiftCountQuery);
-$stmt->execute($shiftCountParams);
-$totalShifts = $stmt->fetchColumn();
-
 // Fetch role distribution (all for super admin, branch-specific for regular admin)
 $roleQuery = "SELECT role, COUNT(*) as count FROM users";
 $roleParams = [];
@@ -47,20 +36,6 @@ $roleQuery .= " GROUP BY role";
 $stmt = $conn->prepare($roleQuery);
 $stmt->execute($roleParams);
 $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-// Fetch shifts per day (only from admin's branch)
-$shiftsPerDayQuery = "
-    SELECT s.shift_date, COUNT(*) as count
-    FROM shifts s 
-    JOIN users u ON s.user_id = u.id";
-$shiftsPerDayParams = [];
-if ($adminBranchId) {
-    $shiftsPerDayQuery .= " WHERE u.branch_id = ?";
-    $shiftsPerDayParams[] = $adminBranchId;
-}
-$shiftsPerDayQuery .= " GROUP BY s.shift_date ORDER BY s.shift_date DESC LIMIT 10";
-$stmt = $conn->prepare($shiftsPerDayQuery);
-$stmt->execute($shiftsPerDayParams);
-$shiftsPerDay = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get branch filter parameter (super admins can filter, regular admins see only their branch)
 $branchFilter = $_GET['branch_filter'] ?? 'all';
@@ -213,378 +188,63 @@ if ($viewType === 'week') {
     <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Admin Dashboard - Open Rota</title>
-    <link rel="stylesheet" href="../css/admin_dashboard.css">
+        <link rel="stylesheet" href="../css/admin_dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        /* Enhanced Admin Dashboard Styles */
-        body {
-            font-family: 'newFont', Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: url('../images/backg3.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: #333;
-        }
 
-        .admin-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .admin-title h1 {
-            color: #fd2b2b;
-            font-size: 1.8rem;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .admin-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .admin-btn {
-            padding: 8px 15px;
-            background-color: #fd2b2b;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.9rem;
-            transition: background-color 0.3s, transform 0.2s;
-        }
-
-        .admin-btn:hover {
-            background-color: #e61919;
-            transform: translateY(-2px);
-        }
-
-        .admin-btn.secondary {
-            background-color: #555;
-        }
-
-        .admin-btn.secondary:hover {
-            background-color: #444;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #fd2b2b;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .admin-panel {
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .admin-panel-header {
-            padding: 15px 20px;
-            background-color: #fd2b2b;
-            color: white;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .admin-panel-body {
-            padding: 20px;
-        }
-
-        .admin-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .admin-table th {
-            background-color: #f4f4f4;
-            padding: 12px 15px;
-            text-align: left;
-            color: #333;
-            font-weight: 600;
-            border-bottom: 2px solid #ddd;
-        }
-
-        .admin-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .admin-table tr:hover {
-            background-color: #f9f9f9;
-        }
-
-        .admin-table .actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .admin-form {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .admin-form select {
-            padding: 6px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: white;
-        }
-
-        .admin-form button {
-            padding: 6px 10px;
-            background-color: #fd2b2b;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .view-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .view-navigation {
-            display: flex;
-            gap: 10px;
-        }
-
-        .view-toggle {
-            display: flex;
-            gap: 5px;
-        }
-
-        .view-toggle a {
-            padding: 6px 12px;
-            background-color: #eee;
-            color: #333;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-
-        .view-toggle a.active {
-            background-color: #fd2b2b;
-            color: white;
-        }
-
-        .day-header {
-            background-color: #f0f0f0;
-            font-weight: bold;
-            color: #333;
-            text-align: center;
-        }
-
-        .success-message {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            border-left: 4px solid #28a745;
-        }
-
-        .error-message {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            border-left: 4px solid #dc3545;
-        }
-
-        @media (max-width: 768px) {
-            .admin-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-
-            .admin-actions {
-                width: 100%;
-                justify-content: flex-start;
-                overflow-x: auto;
-                padding-bottom: 5px;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            }
-
-            .admin-table {
-                display: block;
-                overflow-x: auto;
-            }
-
-            .view-controls {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-
-        /* Branch-related styles */
-        .branch-badge {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            display: inline-block;
-        }
-
-        .branch-badge small {
-            color: #666;
-            font-weight: normal;
-        }
-
-        .no-branch {
-            color: #999;
-            font-style: italic;
-            font-size: 12px;
-        }
-
-        .admin-form {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .admin-form select {
-            padding: 4px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 12px;
-            min-width: 120px;
-        }
-
-        .admin-form button {
-            padding: 4px 12px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            white-space: nowrap;
-        }
-
-        .admin-form button:hover {
-            background: #0056b3;
-        }
-
-        .actions {
-            min-width: 300px;
-        }
-
-        .panel-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .super-admin-badge {
-            background: #dc3545;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
-        .admin-panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #ddd;
-        }
-    </style>
 </head>
 
 <body>
     <div class="admin-container">
         <div class="admin-header">
             <div class="admin-title">
-                <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
+                <h1><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
+                <div class="admin-subtitle">
+                    <?php if ($isSuperAdmin): ?>
+                        <span class="super-admin-badge"><i class="fas fa-crown"></i> Super Admin</span>
+                    <?php else: ?>
+                        <span class="branch-info">Managing: 
+                            <?php 
+                            $branchName = 'Default Branch';
+                            foreach ($branches as $branch) {
+                                if ($branch['id'] == $adminBranchId) {
+                                    $branchName = $branch['name'];
+                                    break;
+                                }
+                            }
+                            echo htmlspecialchars($branchName);
+                            ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
             </div>
-            <div class="admin-actions">
-                <a href="../users/dashboard.php" class="admin-btn secondary">
-                    <i class="fas fa-arrow-left"></i> Return to Dashboard
+            <div class="admin-nav-grid">
+                <a href="../users/dashboard.php" class="admin-nav-card" title="Return to main dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
                 </a>
-                <a href="../functions/shift_invitation_sender.php" class="admin-btn">
-                    <i class="fas fa-paper-plane"></i> Send Shift Invitations
+                <a href="manage_shifts.php" class="admin-nav-card primary" title="View and manage all shifts">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Manage Shifts</span>
                 </a>
-                <a href="upload_shifts.php" class="admin-btn">
-                    <i class="fas fa-upload"></i> Upload Shifts
+                <a href="../functions/shift_invitation_sender.php" class="admin-nav-card" title="Send shift invitations to users">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Send Invitations</span>
                 </a>
-                <a href="manage_shifts.php" class="admin-btn">
-                    <i class="fas fa-calendar-alt"></i> Manage Shifts
+                <a href="upload_shifts.php" class="admin-nav-card" title="Bulk upload shifts from file">
+                    <i class="fas fa-upload"></i>
+                    <span>Upload Shifts</span>
                 </a>
-                <a href="branch_management.php" class="admin-btn">
-                    <i class="fas fa-building"></i> Branch Management
+                <a href="branch_management.php" class="admin-nav-card" title="Manage branches and locations">
+                    <i class="fas fa-building"></i>
+                    <span>Branches</span>
                 </a>
-                <a href="cross_branch_requests.php" class="admin-btn">
-                    <i class="fas fa-exchange-alt"></i> Cross-Branch Requests
+                <a href="cross_branch_requests.php" class="admin-nav-card" title="Handle cross-branch coverage requests">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Cross-Branch</span>
                 </a>
-                <a href="payroll_management.php" class="admin-btn">
-                    <i class="fas fa-money-bill-wave"></i> Payroll Management
+                <a href="payroll_management.php" class="admin-nav-card" title="Manage payroll and payments">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Payroll</span>
                 </a>
             </div>
         </div>
@@ -602,44 +262,90 @@ if ($viewType === 'week') {
         <?php endif; ?>
 
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value"><?php echo $totalUsers; ?></div>
-                <div class="stat-label">Total Users</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value"><?php echo $totalShifts; ?></div>
-                <div class="stat-label">Total Shifts</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value"><?php echo count($shiftsPerDay) ? $shiftsPerDay[0]['count'] : 0; ?></div>
-                <div class="stat-label">Shifts Today</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">
-                    <?php
-                    $adminCount = 0;
-                    foreach ($roles as $role) {
-                        if ($role['role'] === 'admin') {
-                            $adminCount = $role['count'];
-                            break;
-                        }
-                    }
-                    echo $adminCount;
-                    ?>
+            <div class="stat-card users">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
                 </div>
-                <div class="stat-label">Admin Users</div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo $totalUsers; ?></div>
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-trend">
+                        <?php if ($isSuperAdmin): ?>
+                            <small>Across all branches</small>
+                        <?php else: ?>
+                            <small>In your branch</small>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card admins">
+                <div class="stat-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">
+                        <?php
+                        $adminCount = 0;
+                        foreach ($roles as $role) {
+                            if ($role['role'] === 'admin') {
+                                $adminCount = $role['count'];
+                                break;
+                            }
+                        }
+                        echo $adminCount;
+                        ?>
+                    </div>
+                    <div class="stat-label">Admin Users</div>
+                    <div class="stat-trend">
+                        <small><?php echo round(($adminCount / max($totalUsers, 1)) * 100, 1); ?>% of total</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card shifts">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo count($allShifts); ?></div>
+                    <div class="stat-label">
+                        <?php echo $viewType === 'week' ? 'This Week' : 'Today'; ?> Shifts
+                    </div>
+                    <div class="stat-trend">
+                        <small><?php echo $viewType === 'week' ? 'Week of ' . date('M j', strtotime($currentWeekStart)) : date('M j, Y', strtotime($currentDay)); ?></small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card branches">
+                <div class="stat-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo count($branches); ?></div>
+                    <div class="stat-label">Active Branches</div>
+                    <div class="stat-trend">
+                        <?php if ($isSuperAdmin): ?>
+                            <small>System-wide</small>
+                        <?php else: ?>
+                            <small>Your access level</small>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="admin-panel">
             <div class="admin-panel-header">
                 <h2><i class="fas fa-users-cog"></i> User Management</h2>
-                <div class="panel-info">
+                <div class="panel-controls">
                     <?php if ($isSuperAdmin): ?>
-                        <div class="panel-controls">
+                        <div class="filter-group">
+                            <label for="branch-filter">Filter by Branch:</label>
                             <form method="GET" style="display: inline-block;">
-                                <select name="branch_filter" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
-                                    <option value="all" <?php echo $branchFilter === 'all' ? 'selected' : ''; ?>>All Users</option>
+                                <select name="branch_filter" id="branch-filter" onchange="this.form.submit()" class="form-control-inline">
+                                    <option value="all" <?php echo $branchFilter === 'all' ? 'selected' : ''; ?>>All Branches</option>
                                     <option value="none" <?php echo $branchFilter === 'none' ? 'selected' : ''; ?>>No Branch Assigned</option>
                                     <?php foreach ($branches as $branch): ?>
                                         <option value="<?php echo $branch['id']; ?>" <?php echo $branchFilter == $branch['id'] ? 'selected' : ''; ?>>
@@ -648,93 +354,142 @@ if ($viewType === 'week') {
                                     <?php endforeach; ?>
                                 </select>
                             </form>
-                            <span class="super-admin-badge">Super Admin</span>
                         </div>
                     <?php else: ?>
-                        <small>Managing users for your branch</small>
+                        <div class="branch-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Managing users for your branch only</span>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
+            
             <div class="admin-panel-body">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Branch</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <?php if (empty($users)): ?>
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h3>No Users Found</h3>
+                        <p>No users found for the selected criteria.</p>
+                        <?php if ($isSuperAdmin && $branchFilter !== 'all'): ?>
+                            <a href="?branch_filter=all" class="admin-btn">View All Users</a>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-hashtag"></i> ID</th>
+                                    <th><i class="fas fa-user"></i> Username</th>
+                                    <th><i class="fas fa-envelope"></i> Email</th>
+                                    <th><i class="fas fa-user-tag"></i> Role</th>
+                                    <th><i class="fas fa-building"></i> Branch</th>
+                                    <th><i class="fas fa-cogs"></i> Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                         <?php foreach ($users as $user): ?>
-                            <tr>
-                                <td><?php echo $user['id']; ?></td>
-                                <td><?php echo htmlspecialchars($user['username']); ?></td>
-                                <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                <td>
-                                    <span class="role-badge <?php echo $user['role']; ?>">
-                                        <?php echo ucfirst(htmlspecialchars($user['role'])); ?>
-                                    </span>
+                            <tr class="user-row">
+                                <td data-label="ID">
+                                    <span class="user-id">#<?php echo $user['id']; ?></span>
                                 </td>
-                                <td>
-                                    <?php if ($user['branch_name']): ?>
-                                        <span class="branch-badge">
-                                            <?php echo htmlspecialchars($user['branch_name']); ?>
-                                            <small>(<?php echo htmlspecialchars($user['branch_code']); ?>)</small>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="no-branch">No Branch Assigned</span>
-                                    <?php endif; ?>
+                                <td data-label="Username">
+                                    <div class="user-info">
+                                        <i class="fas fa-user-circle"></i>
+                                        <strong><?php echo htmlspecialchars($user['username']); ?></strong>
+                                    </div>
                                 </td>
-                                <td class="actions">
-                                    <!-- Role Update Form -->
-                                    <form method="POST" class="admin-form" style="margin-bottom: 10px;">
-                                        <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                        <select name="role">
-                                            <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>
-                                                User</option>
-                                            <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>
-                                                Admin</option>
-                                        </select>
-                                        <button type="submit" name="update_role">Update Role</button>
-                                    </form>
-                                    
-                                    <!-- Branch Assignment Form -->
-                                    <form method="POST" class="admin-form" style="margin-bottom: 10px;">
-                                        <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                        <select name="branch_id">
-                                            <option value="">No Branch</option>
-                                            <?php foreach ($branches as $branch): ?>
-                                                <option value="<?php echo $branch['id']; ?>" 
-                                                    <?php echo $user['branch_id'] == $branch['id'] ? 'selected' : ''; ?>>
-                                                    <?php echo htmlspecialchars($branch['name']); ?> (<?php echo htmlspecialchars($branch['code']); ?>)
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <button type="submit" name="update_branch">Update Branch</button>
-                                    </form>
-                                    
-                                    <a href="manage_shifts.php?user_id=<?php echo $user['id']; ?>" class="admin-btn">
-                                        <i class="fas fa-calendar"></i> Shifts
-                                    </a>
-                                    <?php if ($user['id'] != $_SESSION['user_id']): // Don't allow deleting own account ?>
-                                        <a href="../functions/delete_user.php?id=<?php echo $user['id']; ?>"
-                                            class="admin-btn delete-btn"
-                                            onclick="return confirm('Are you sure you want to delete user \'<?php echo htmlspecialchars($user['username']); ?>\'? This action cannot be undone and will also delete all their shifts and payroll data.');">
-                                            <i class="fas fa-trash"></i> Delete
+                                <td data-label="Email">
+                                    <div class="email-info">
+                                        <i class="fas fa-envelope"></i>
+                                        <a href="mailto:<?php echo htmlspecialchars($user['email']); ?>">
+                                            <?php echo htmlspecialchars($user['email']); ?>
                                         </a>
-                                    <?php else: ?>
-                                        <span class="admin-btn disabled" title="You cannot delete your own account">
-                                            <i class="fas fa-trash"></i> Delete
+                                    </div>
+                                </td>
+                                <td data-label="Role">
+                                    <div class="role-update-section">
+                                        <span class="role-badge <?php echo $user['role']; ?>">
+                                            <i class="fas fa-<?php echo $user['role'] === 'admin' ? 'user-shield' : 'user'; ?>"></i>
+                                            <?php echo ucfirst(htmlspecialchars($user['role'])); ?>
                                         </span>
-                                    <?php endif; ?>
+                                        <div class="quick-update-form">
+                                            <form method="POST" class="inline-form">
+                                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                                <select name="role" class="mini-select" onchange="this.form.submit()" title="Change user role">
+                                                    <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User</option>
+                                                    <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                                </select>
+                                                <button type="submit" name="update_role" class="mini-btn" title="Update role">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Branch">
+                                    <div class="branch-update-section">
+                                        <?php if ($user['branch_name']): ?>
+                                            <span class="branch-badge">
+                                                <i class="fas fa-building"></i>
+                                                <?php echo htmlspecialchars($user['branch_name']); ?>
+                                                <small>(<?php echo htmlspecialchars($user['branch_code']); ?>)</small>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="no-branch">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                No Branch Assigned
+                                            </span>
+                                        <?php endif; ?>
+                                        <div class="quick-update-form">
+                                            <form method="POST" class="inline-form">
+                                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                                <select name="branch_id" class="mini-select" onchange="this.form.submit()" title="Change branch assignment">
+                                                    <option value="">No Branch</option>
+                                                    <?php foreach ($branches as $branch): ?>
+                                                        <option value="<?php echo $branch['id']; ?>" 
+                                                            <?php echo $user['branch_id'] == $branch['id'] ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($branch['name']); ?> (<?php echo htmlspecialchars($branch['code']); ?>)
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <button type="submit" name="update_branch" class="mini-btn" title="Update branch">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Actions">
+                                    <div class="action-buttons">
+                                        <a href="manage_shifts.php?user_id=<?php echo $user['id']; ?>" 
+                                           class="action-btn shifts" title="View user's shifts">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span>Shifts</span>
+                                        </a>
+                                        <a href="add_shift.php?user_id=<?php echo $user['id']; ?>" 
+                                           class="action-btn add" title="Add shift for user">
+                                            <i class="fas fa-plus"></i>
+                                            <span>Add</span>
+                                        </a>
+                                        <a href="edit_user.php?id=<?php echo $user['id']; ?>" 
+                                           class="action-btn edit" title="Edit user details">
+                                            <i class="fas fa-edit"></i>
+                                            <span>Edit</span>
+                                        </a>
+                                        <button onclick="confirmDelete(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
+                                                class="action-btn delete" title="Delete user">
+                                            <i class="fas fa-trash"></i>
+                                            <span>Delete</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -743,37 +498,37 @@ if ($viewType === 'week') {
                 <h2><i class="fas fa-calendar-week"></i> All Shifts</h2>
                 <div class="view-toggle">
                     <a href="?view=week&week_start=<?php echo $currentWeekStart; ?>"
-                        class="<?php echo $viewType === 'week' ? 'active' : ''; ?>">
+                        class="admin-btn <?php echo $viewType === 'week' ? 'active' : ''; ?>">
                         <i class="fas fa-calendar-week"></i> Week
                     </a>
                     <a href="?view=day&day=<?php echo $currentDay; ?>"
-                        class="<?php echo $viewType === 'day' ? 'active' : ''; ?>">
+                        class="admin-btn <?php echo $viewType === 'day' ? 'active' : ''; ?>">
                         <i class="fas fa-calendar-day"></i> Day
                     </a>
                 </div>
             </div>
             <div class="admin-panel-body">
                 <div class="view-controls">
-                    <div class="view-navigation">
+                    <div class="period-nav-buttons">
                         <?php if ($viewType === 'week'): ?>
-                            <a href="?view=week&week_start=<?php echo $prevWeekStart; ?>" class="admin-btn">
+                            <a href="?view=week&week_start=<?php echo $prevWeekStart; ?>" class="btn">
                                 <i class="fas fa-chevron-left"></i> Previous Week
                             </a>
                             <a href="?view=week&week_start=<?php echo date('Y-m-d', strtotime('monday this week')); ?>"
-                                class="admin-btn">
+                                class="btn current">
                                 Current Week
                             </a>
-                            <a href="?view=week&week_start=<?php echo $nextWeekStart; ?>" class="admin-btn">
+                            <a href="?view=week&week_start=<?php echo $nextWeekStart; ?>" class="btn">
                                 Next Week <i class="fas fa-chevron-right"></i>
                             </a>
                         <?php else: ?>
-                            <a href="?view=day&day=<?php echo $prevDay; ?>" class="admin-btn">
+                            <a href="?view=day&day=<?php echo $prevDay; ?>" class="btn">
                                 <i class="fas fa-chevron-left"></i> Previous Day
                             </a>
-                            <a href="?view=day&day=<?php echo date('Y-m-d'); ?>" class="admin-btn">
+                            <a href="?view=day&day=<?php echo date('Y-m-d'); ?>" class="btn current">
                                 Today
                             </a>
-                            <a href="?view=day&day=<?php echo $nextDay; ?>" class="admin-btn">
+                            <a href="?view=day&day=<?php echo $nextDay; ?>" class="btn">
                                 Next Day <i class="fas fa-chevron-right"></i>
                             </a>
                         <?php endif; ?>
@@ -818,15 +573,15 @@ if ($viewType === 'week') {
                                     </tr>
                                 <?php endif; ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($shift['username']); ?></td>
-                                    <td><?php echo date("D, M j", strtotime($shift['shift_date'])); ?></td>
-                                    <td>
+                                    <td data-label="User"><?php echo htmlspecialchars($shift['username']); ?></td>
+                                    <td data-label="Date"><?php echo date("D, M j", strtotime($shift['shift_date'])); ?></td>
+                                    <td data-label="Time">
                                         <?php echo date("g:i A", strtotime($shift['start_time'])); ?> -
                                         <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
-                                    <td><?php echo htmlspecialchars($shift['location']); ?></td>
-                                    <td class="actions">
+                                    <td data-label="Role"><?php echo htmlspecialchars($shift['role_name']); ?></td>
+                                    <td data-label="Location"><?php echo htmlspecialchars($shift['location']); ?></td>
+                                    <td class="actions" data-label="Actions">
                                         <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn">
                                             <i class="fas fa-edit"></i>
                                         </a>
@@ -843,8 +598,104 @@ if ($viewType === 'week') {
             </div>
         </div>
     </div>
+
+    <script>
+        // User management functions
+        function confirmDelete(userId, username) {
+            if (confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone and will also delete all their shifts and payroll data.`)) {
+                window.location.href = `../functions/delete_user.php?id=${userId}`;
+            }
+        }
+
+        function confirmDeleteShift(shiftId, username, date) {
+            if (confirm(`Are you sure you want to delete the shift for ${username} on ${date}?`)) {
+                window.location.href = `../functions/delete_shift.php?id=${shiftId}`;
+            }
+        }
+
+        function exportUsers() {
+            // Simple CSV export functionality
+            const table = document.querySelector('.admin-table');
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = [], cols = rows[i].querySelectorAll('td, th');
+                for (let j = 0; j < cols.length - 1; j++) { // Exclude actions column
+                    if (cols[j] && cols[j].innerText) {
+                        row.push(cols[j].innerText.replace(/,/g, ';')); // Replace commas to avoid CSV issues
+                    }
+                }
+                if (row.length > 0) {
+                    csv.push(row.join(','));
+                }
+            }
+            
+            const csvFile = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const downloadLink = document.createElement('a');
+            downloadLink.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        // Enhanced form submission with loading states
+        document.querySelectorAll('.inline-form').forEach(form => {
+            form.addEventListener('submit', function() {
+                const button = this.querySelector('.mini-btn');
+                if (button) {
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    button.disabled = true;
+                }
+            });
+        });
+
+        // Auto-save functionality for quick updates
+        document.querySelectorAll('.mini-select').forEach(select => {
+            select.addEventListener('change', function() {
+                this.style.background = '#fff3cd';
+                this.style.borderColor = '#ffc107';
+                setTimeout(() => {
+                    // Show loading state
+                    const button = this.parentNode.querySelector('.mini-btn');
+                    if (button) {
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        button.disabled = true;
+                    }
+                }, 100);
+            });
+        });
+
+        // Add tooltips and better user feedback
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add hover effects to action buttons
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                btn.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+
+            // Add visual feedback for form changes
+            document.querySelectorAll('select, input').forEach(input => {
+                input.addEventListener('change', function() {
+                    this.style.boxShadow = '0 0 0 3px rgba(253, 43, 43, 0.1)';
+                    setTimeout(() => {
+                        this.style.boxShadow = '';
+                    }, 1000);
+                });
+            });
+        });
+    </script>
+
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
 </body>
+
+</html>
 
 </html>

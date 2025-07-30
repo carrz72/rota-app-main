@@ -25,14 +25,14 @@ self.addEventListener("install", event => {
 
 self.addEventListener('fetch', event => {
     console.log('[ServiceWorker] Fetch', event.request.url);
-    
+
     // Skip cross-origin requests
     if (!event.request.url.startsWith(self.location.origin)) {
         return;
     }
 
     // Skip requests that shouldn't be cached or handled by SW
-    if (event.request.url.includes('/functions/') || 
+    if (event.request.url.includes('/functions/') ||
         event.request.url.includes('logout.php') ||
         event.request.method !== 'GET') {
         return;
@@ -43,18 +43,26 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             fetch(event.request)
                 .then(response => {
-                    console.log('[ServiceWorker] Navigation fetch successful:', response.status);
+                    console.log('[ServiceWorker] Navigation fetch successful:', response?.status || 'no response');
+
+                    // Ensure we have a valid response
+                    if (!response) {
+                        throw new Error('No response received');
+                    }
+
                     // Clone the response since we might use it twice
                     const responseClone = response.clone();
-                    
+
                     // If the response is successful, cache it and return it
                     if (response.ok) {
                         caches.open(CACHE_NAME).then(cache => {
                             cache.put(event.request, responseClone);
+                        }).catch(error => {
+                            console.log('[ServiceWorker] Cache put failed:', error);
                         });
                         return response;
                     }
-                    
+
                     // For error responses, try cache as fallback
                     return caches.match(event.request).then(cachedResponse => {
                         if (cachedResponse) {
@@ -74,7 +82,9 @@ self.addEventListener('fetch', event => {
                         }
                         // Return a basic offline page if nothing else works
                         return new Response('<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>You are offline</h1><p>Please check your connection and try again.</p></body></html>', {
-                            headers: { 'Content-Type': 'text/html' }
+                            headers: { 'Content-Type': 'text/html' },
+                            status: 200,
+                            statusText: 'OK'
                         });
                     });
                 })
@@ -87,14 +97,21 @@ self.addEventListener('fetch', event => {
                     console.log('[ServiceWorker] Serving from cache:', event.request.url);
                     return response;
                 }
-                
+
                 console.log('[ServiceWorker] Fetching from network:', event.request.url);
                 return fetch(event.request).then(fetchResponse => {
+                    // Ensure we have a valid response
+                    if (!fetchResponse) {
+                        throw new Error('No response received from network');
+                    }
+
                     // Cache successful responses
                     if (fetchResponse.ok) {
                         const responseClone = fetchResponse.clone();
                         caches.open(CACHE_NAME).then(cache => {
                             cache.put(event.request, responseClone);
+                        }).catch(error => {
+                            console.log('[ServiceWorker] Cache put failed:', error);
                         });
                     }
                     return fetchResponse;
@@ -102,9 +119,18 @@ self.addEventListener('fetch', event => {
                     console.log('[ServiceWorker] Fetch failed for resource:', event.request.url, error);
                     // Return a basic response for failed resource requests
                     if (event.request.destination === 'image') {
-                        return new Response('', { status: 200, statusText: 'OK' });
+                        return new Response('', {
+                            status: 200,
+                            statusText: 'OK',
+                            headers: { 'Content-Type': 'image/png' }
+                        });
                     }
-                    throw error;
+                    // For other resources, create a minimal valid response
+                    return new Response('', {
+                        status: 404,
+                        statusText: 'Not Found',
+                        headers: { 'Content-Type': 'text/plain' }
+                    });
                 });
             })
         );

@@ -31,6 +31,7 @@ body {
   transform: translateY(-3px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
+/* Enhanced Shift Invite Styles */
 
 .page-header h1 {
   margin: 0;
@@ -299,6 +300,131 @@ body {
   .upcoming-payments h3 {
     font-size: 1.2rem;
   }
+  /* Enhanced mobile shift invite styles */
+  .shit-invt {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 8px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .shit-invt::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #fd2b2b 0%, #e02424 50%, #b91c1c 100%);
+    border-radius: 0 2px 2px 0;
+  }
+  .shit-invt:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(253, 43, 43, 0.15);
+    border-color: rgba(253, 43, 43, 0.2);
+  }
+  .shit-invt .invite-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-left: 8px;
+  }
+  .shit-invt .invite-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .shit-invt .invite-title::before {
+    content: "\f073";
+    font-family: "FontAwesome";
+    color: #fd2b2b;
+    font-size: 14px;
+  }
+  .shit-invt .invite-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-left: 8px;
+    font-size: 14px;
+    color: #6c757d;
+  }
+  .shit-invt .invite-meta .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .shit-invt .invite-meta .meta-item i {
+    color: #fd2b2b;
+    font-size: 12px;
+  }
+  .shit-invt .invite-content {
+    padding-left: 8px;
+    margin-bottom: 12px;
+  }
+  .shit-invt .invite-message {
+    background: rgba(253, 43, 43, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #495057;
+    border-left: 3px solid #fd2b2b;
+    margin-bottom: 12px;
+  }
+  .shit-invt .invite-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding-left: 8px;
+  }
+  .shit-invt .btn-accept {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .shit-invt .btn-accept:hover {
+    background: linear-gradient(135deg, #218838 0%, #1ea080 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
+  }
+  .shit-invt .btn-decline {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .shit-invt .btn-decline:hover {
+    background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
+  }
 }
 
 @media (max-width: 480px) {
@@ -323,6 +449,27 @@ body {
 
   .pay-amount {
     font-size: 1.8rem;
+  }
+  /* Extra small mobile shift invite styles */
+  .shit-invt {
+    padding: 10px;
+    margin: 4px 0;
+  }
+  .shit-invt .invite-title {
+    font-size: 14px;
+  }
+  .shit-invt .invite-meta {
+    font-size: 12px;
+    gap: 6px;
+  }
+  .shit-invt .invite-message {
+    padding: 8px;
+    font-size: 12px;
+  }
+  .shit-invt .btn-accept,
+  .shit-invt .btn-decline {
+    padding: 8px 12px;
+    font-size: 11px;
   }
 }
 

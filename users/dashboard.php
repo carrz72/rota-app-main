@@ -138,7 +138,7 @@ foreach ($days_result as $day) {
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="manifest" href="../manifest.json">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>Dashboard - Open Rota</title>
     <style>
         /* Enhanced dashboard styles */
@@ -423,15 +423,52 @@ foreach ($days_result as $day) {
         }
 
         .period-selector label {
-            font-size: 0.9rem;
-            color: #666;
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .period-selector label::before {
+            content: "\f017";
+            font-family: "Font Awesome 5 Free", "FontAwesome";
+            font-weight: 900;
+            color: #fd2b2b;
         }
 
         .period-selector select {
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             background-color: white;
+            font-family: "newFont", Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+            transition: all 0.3s ease;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='%23666' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            padding-right: 40px;
+            cursor: pointer;
+            min-width: 140px;
+            box-sizing: border-box;
+        }
+
+        .period-selector select:hover {
+            border-color: #fd2b2b;
+            box-shadow: 0 2px 8px rgba(253, 43, 43, 0.1);
+        }
+
+        .period-selector select:focus {
+            outline: none;
+            border-color: #fd2b2b;
+            box-shadow: 0 0 0 3px rgba(253, 43, 43, 0.1);
         }
 
         .upcoming-shifts-table {
@@ -755,13 +792,16 @@ foreach ($days_result as $day) {
             </div>
             <nav class="nav-links" id="nav-links">
                 <ul>
-                    <li><a href="dashboard.php">Dashboard</a></li>
-                    <li><a href="shifts.php">My Shifts</a></li>
-                    <li><a href="rota.php">Rota</a></li>
-                    <li><a href="roles.php">Roles</a></li>
-                    <li><a href="payroll.php">Payroll</a></li>
-                    <li><a href="settings.php">Settings</a></li>
-                    <li><a href="../functions/logout.php">Logout</a></li>
+                    <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
+                    <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
+                    <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
+                    <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
+                    <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                    <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+                    <?php if ($_SESSION['role'] === 'admin'): ?>
+                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                    <?php endif; ?>
+                    <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
                 </ul>
             </nav>
         </div>
@@ -779,13 +819,13 @@ foreach ($days_result as $day) {
                 </p>
             </div>
             <div class="welcome-actions">
-                <a href="shifts.php"><i class="fas fa-calendar"></i> My Shifts</a>
-                <a href="rota.php"><i class="fas fa-users"></i> Rota</a>
-                <a href="payroll.php"><i class="fas fa-money-bill-wave"></i> Payroll</a>
-                <a href="coverage_requests.php"><i class="fas fa-exchange-alt"></i> Coverage Requests</a>
-                <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                <a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a>
+                <a href="rota.php"><i class="fa fa-table"></i> Rota</a>
+                <a href="payroll.php"><i class="fa fa-money"></i> Payroll</a>
+                <a href="coverage_requests.php"><i class="fa fa-exchange"></i> Coverage Requests</a>
+                <a href="settings.php"><i class="fa fa-cog"></i> Settings</a>
                 <?php if ($_SESSION['role'] === 'admin'): ?>
-                    <a href="../admin/admin_dashboard.php"><i class="fas fa-shield-alt"></i> Admin</a>
+                    <a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -1038,6 +1078,13 @@ foreach ($days_result as $day) {
         // Notification functionality
         function markAsRead(element) {
             const notificationId = element.getAttribute('data-id');
+            console.log('Marking notification as read:', notificationId); // Debug log
+
+            if (!notificationId) {
+                console.error('No notification ID found');
+                return;
+            }
+
             fetch('../functions/mark_notification.php', {
                 method: 'POST',
                 headers: {
@@ -1045,26 +1092,51 @@ foreach ($days_result as $day) {
                 },
                 body: JSON.stringify({ id: notificationId })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    element.style.display = 'none';
-                    const remainingNotifications = document.querySelectorAll('.notification-item:not([style*="display: none"])');
-                    if (remainingNotifications.length === 0) {
-                        document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
-                        const badge = document.querySelector('.notification-badge');
-                        if (badge) {
-                            badge.style.display = 'none';
+                .then(response => {
+                    console.log('Response status:', response.status); // Debug log
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data); // Debug log
+                    if (data.success) {
+                        element.style.display = 'none';
+
+                        // Count remaining visible notifications more reliably
+                        const allNotifications = document.querySelectorAll('.notification-item[data-id]');
+                        let visibleCount = 0;
+
+                        allNotifications.forEach(notification => {
+                            const computedStyle = window.getComputedStyle(notification);
+                            if (computedStyle.display !== 'none') {
+                                visibleCount++;
+                            }
+                        });
+
+                        console.log('Total notifications with data-id:', allNotifications.length); // Debug log
+                        console.log('Visible notifications count:', visibleCount); // Debug log
+
+                        if (visibleCount === 0) {
+                            document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.style.display = 'none';
+                                console.log('Badge hidden - no notifications left'); // Debug log
+                            }
+                        } else {
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.textContent = visibleCount;
+                                badge.style.display = 'flex'; // Ensure badge is visible
+                                console.log('Badge updated to:', visibleCount); // Debug log
+                            }
                         }
                     } else {
-                        const badge = document.querySelector('.notification-badge');
-                        if (badge) {
-                            badge.textContent = remainingNotifications.length;
-                        }
+                        console.error('Failed to mark notification as read:', data.error);
                     }
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
         }
 
         // Debug script to test hamburger menu

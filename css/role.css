@@ -23,46 +23,86 @@ body {
   display: flex;
   flex-direction: column;
   margin: 40px;
-  background: rgba(245, 245, 245, 0.541);
-  padding: 20px 40px;
+  background: rgba(245, 245, 245, 0.95);
+  padding: 30px 40px;
   border-radius: 12px;
-  box-shadow: 0 6px 12px rgb(0, 0, 0);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   color: #000;
+  backdrop-filter: blur(10px);
+  min-height: calc(100vh - 140px);
 }
 
 /*----------------------------------------
     Typography
 ----------------------------------------*/
-h1,
+h1 {
+  margin-bottom: 25px;
+  color: #fd2b2b;
+  font-size: 2.2rem;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 3px solid #fd2b2b;
+  padding-bottom: 15px;
+}
+
 h2 {
-  margin-bottom: 10px;
-  color: #b43030;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h2 i {
+  color: #fd2b2b;
+  font-size: 1.3rem;
 }
 
 /*----------------------------------------
     Forms
 ----------------------------------------*/
 form {
-  background-color: transparent;
-  padding: 15px;
-  margin: 20px 40px;
-  border-radius: 5px;
-  box-shadow: 0 0 80px rgba(0, 0, 0, 0.562);
+  background-color: white;
+  padding: 25px;
+  margin: 20px 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
 }
 
 label {
   display: block;
-  margin-top: 10px;
-  font-weight: bold;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
 }
 
 input[type="text"],
 input[type="number"],
 input[type="time"] {
-  width: 50%;
-  padding: 6px;
+  width: 100%;
+  padding: 12px 15px;
   margin-top: 5px;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  background-color: #fafafa;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="time"]:focus {
+  border-color: #fd2b2b;
+  background-color: white;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(253, 43, 43, 0.1);
 }
 
 #has_night_pay {
@@ -71,16 +111,24 @@ input[type="time"] {
 
 #night_pay_fields {
   display: none;
-  margin-top: 10px;
+  margin-top: 15px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #fd2b2b;
 }
 
 /*----------------------------------------
     Tables
 ----------------------------------------*/
 table {
-  width: 70%;
-  margin: 20px 40px;
+  width: 100%;
+  margin: 20px 0;
   border-collapse: collapse;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 table thead {
@@ -88,10 +136,108 @@ table thead {
   color: #fff;
 }
 
+table th {
+  padding: 15px 10px;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid #c82333;
+}
+
 table td {
-  padding: 10px;
-  color: white;
-  background-color: #00000070;
+  padding: 12px 10px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  background-color: white;
+}
+
+table tr:last-child td {
+  border-bottom: none;
+}
+
+table tbody tr:hover {
+  background-color: #f8f9fa;
+  transition: background-color 0.2s ease;
+}
+
+/* Mobile table responsiveness */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    margin: 15px 0;
+    border-radius: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table thead,
+  table tbody,
+  table th,
+  table td,
+  table tr {
+    display: block;
+  }
+
+  table thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  table tr {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  table td {
+    border: none;
+    position: relative;
+    padding: 8px 0 8px 40%;
+    text-align: right;
+    white-space: normal;
+  }
+
+  table td:before {
+    content: attr(data-label) ": ";
+    position: absolute;
+    left: 0;
+    width: 35%;
+    padding-right: 10px;
+    white-space: nowrap;
+    text-align: left;
+    font-weight: 600;
+    color: #fd2b2b;
+  }
+
+  table td:first-child {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-radius: 6px 6px 0 0;
+  }
+
+  table td:last-child {
+    border-radius: 0 0 6px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  table tr {
+    padding: 12px;
+  }
+
+  table td {
+    padding: 6px 0 6px 35%;
+    font-size: 0.9rem;
+  }
+
+  table td:before {
+    width: 30%;
+    font-size: 0.85rem;
+  }
 }
 
 #base-pay {
@@ -691,37 +837,956 @@ input:checked + .toggle-slider:before {
   font-size: 1.1em;
 }
 
-/* When the screen gets smaller, adjust spacing */
-@media (max-width: 768px) {
+/* =======================================
+    ENHANCED MOBILE RESPONSIVENESS FOR ROLES
+    ======================================= */
+
+/* Tablet and larger mobile screens */
+@media (max-width: 992px) {
+  .container {
+    margin: 20px;
+    padding: 15px 20px;
+  }
+
   .form-grid,
   .night-pay-grid {
     grid-template-columns: 1fr;
+    gap: 15px;
   }
 
   .form-full-width {
     grid-column: span 1;
   }
+}
 
+/* Mobile screens */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    background-color: #f5f5f5;
+  }
+
+  .container {
+    margin: 8px;
+    padding: 16px;
+    border-radius: 12px;
+    background-color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 24px;
+    color: #fd2b2b;
+    font-weight: 600;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    margin-bottom: 18px;
+    color: #333;
+    font-weight: 600;
+  }
+
+  /* Enhanced role cards for mobile */
   .role-card {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    padding: 20px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+    background: white;
+    transition: all 0.3s ease;
+  }
+
+  .role-card:hover {
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+  }
+
+  .role-details {
+    margin-bottom: 16px;
+  }
+
+  .role-name {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  .role-pay {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+
+  .role-night {
+    font-size: 1rem;
+    margin-top: 8px;
   }
 
   .role-actions {
-    margin-top: 10px;
+    margin-top: 0;
     width: 100%;
-    justify-content: flex-end;
+    justify-content: stretch;
+    gap: 12px;
+  }
+
+  .role-actions .action-btn {
+    flex: 1;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    text-align: center;
+    min-height: 48px; /* Enhanced touch target */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .role-actions .edit-btn {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border: none;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  }
+
+  .role-actions .delete-btn {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    border: none;
+    color: white;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+  }
+
+  /* ENHANCED ADD ROLE FORM CARD */
+  .form-card {
+    padding: 24px;
+    margin-bottom: 24px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .form-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #fd2b2b, #ff6b6b);
+  }
+
+  .form-card h2 {
+    color: #fd2b2b;
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .form-card h2 i {
+    font-size: 1.2rem;
+    color: #fd2b2b;
+  }
+
+  .form-grid,
+  .night-pay-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="time"],
+  select {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    background-color: white;
+    color: #495057;
+  }
+
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  input[type="time"]:focus,
+  select:focus {
+    border-color: #fd2b2b;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(253, 43, 43, 0.1);
+    transform: translateY(-1px);
+  }
+
+  /* Enhanced select styling */
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 16px;
+    padding-right: 48px;
+  }
+
+  /* Enhanced buttons for mobile */
+  button,
+  .action-btn {
+    min-height: 48px;
+    padding: 14px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .form-footer .action-btn {
+    background: linear-gradient(135deg, #fd2b2b, #c82333);
+    color: white;
+    box-shadow: 0 4px 12px rgba(253, 43, 43, 0.3);
+  }
+
+  .form-footer .action-btn:first-child {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    color: white;
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+  }
+
+  button:active,
+  .action-btn:active {
+    transform: scale(0.98) translateY(1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Enhanced toggle switch */
+  .toggle-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    margin: 8px 0;
+  }
+
+  .toggle-container label {
+    margin-bottom: 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .toggle-switch {
+    width: 60px;
+    height: 32px;
+    position: relative;
+    display: inline-block;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 32px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 24px;
+    width: 24px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  input:checked + .toggle-slider {
+    background-color: #fd2b2b;
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(28px);
+  }
+
+  /* Night shift fields enhancement */
+  #night_pay_fields {
+    margin-top: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    border-left: 4px solid #fd2b2b;
+  }
+
+  #night_pay_fields h3 {
+    color: #fd2b2b;
+    margin-bottom: 16px;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  /* Form footer improvements */
+  .form-footer {
+    margin-top: 28px;
+    display: flex;
+    gap: 12px;
+    justify-content: stretch;
+  }
+
+  .form-footer .action-btn {
+    flex: 1;
+  }
+
+  /* Modal improvements for mobile */
+  .modal-content {
+    margin: 5% auto;
+    width: 95%;
+    max-width: none;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .close-modal {
+    font-size: 28px;
+    padding: 12px;
+    color: #6c757d;
+    transition: color 0.3s ease;
+  }
+
+  .close-modal:hover {
+    color: #fd2b2b;
+  }
+
+  /* Success/Error messages */
+  .success-message,
+  .error-message {
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .success-message {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+    border-left: 4px solid #28a745;
+  }
+
+  .error-message {
+    background: linear-gradient(135deg, #f8d7da, #f1b0b7);
+    color: #721c24;
+    border-left: 4px solid #dc3545;
   }
 }
 
+/* Small mobile screens */
 @media (max-width: 600px) {
+  .container {
+    margin: 4px;
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+  }
+
+  .role-card {
+    padding: 16px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+
+  .role-name {
+    font-size: 1.2rem;
+  }
+
+  .role-pay {
+    font-size: 1rem;
+  }
+
+  .role-actions {
+    gap: 10px;
+  }
+
+  .role-actions .action-btn {
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  /* Enhanced form card for small screens */
+  .form-card {
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 14px;
+  }
+
+  .form-card h2 {
+    font-size: 1.3rem;
+    margin-bottom: 18px;
+  }
+
+  .form-grid,
+  .night-pay-grid {
+    gap: 16px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="time"],
+  select {
+    padding: 12px 14px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  /* Better touch targets for small screens */
+  button,
+  .action-btn {
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+  }
+
+  .toggle-container {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .toggle-switch {
+    width: 56px;
+    height: 30px;
+  }
+
+  .toggle-slider:before {
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+  }
+
   .pay-detail {
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
+    gap: 4px;
+    padding: 8px 0;
   }
 
   .pay-label {
     min-width: auto;
+    font-size: 0.95rem;
+  }
+
+  .pay-value {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Stack form footer on very small screens */
+  .form-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .form-footer .action-btn {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Night shift fields responsive */
+  #night_pay_fields {
+    padding: 16px;
+    margin-top: 16px;
+  }
+
+  #night_pay_fields h3 {
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+  }
+
+  /* Success/Error messages adjustment */
+  .success-message,
+  .error-message {
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .container {
+    margin: 2px;
+    padding: 12px;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+  }
+
+  .role-card {
+    padding: 14px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+  }
+
+  .role-name {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+
+  .role-actions .action-btn {
+    font-size: 0.85rem;
+    padding: 10px 12px;
+    min-height: 40px;
+  }
+
+  /* Compact form for extra small screens */
+  .form-card {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+  }
+
+  .form-card h2 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+  }
+
+  .form-grid,
+  .night-pay-grid {
+    gap: 14px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="time"],
+  select {
+    padding: 10px 12px;
+    font-size: 16px; /* Maintain to prevent zoom */
+    border-radius: 8px;
+  }
+
+  button,
+  .action-btn {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    min-height: 40px;
+  }
+
+  .toggle-container {
+    padding: 12px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .toggle-container label {
+    font-size: 0.9rem;
+  }
+
+  .toggle-switch {
+    width: 52px;
+    height: 28px;
+  }
+
+  .toggle-slider:before {
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+  }
+
+  /* Night shift fields compact */
+  #night_pay_fields {
+    padding: 14px;
+    margin-top: 14px;
+  }
+
+  #night_pay_fields h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+
+  /* Compact form footer */
+  .form-footer {
+    margin-top: 20px;
+    gap: 10px;
+  }
+
+  /* Pay details compact layout */
+  .pay-detail {
+    padding: 6px 0;
+  }
+
+  .pay-label {
+    font-size: 0.9rem;
+  }
+
+  .pay-value {
+    font-size: 0.95rem;
+  }
+
+  /* Modal adjustments */
+  .modal-content {
+    margin: 2% auto;
+    width: 98%;
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .close-modal {
+    font-size: 24px;
+    padding: 8px;
+  }
+
+  /* Compact messages */
+  .success-message,
+  .error-message {
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .container {
+    margin: 5px 20px;
+  }
+
+  .role-card {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .role-details {
+    margin-bottom: 0;
+    margin-right: 15px;
+  }
+
+  .role-actions {
+    margin-top: 0;
+    width: auto;
+    flex-shrink: 0;
+  }
+}
+
+/* Touch-friendly enhancements */
+@media (hover: none) and (pointer: coarse) {
+  .action-btn,
+  button,
+  .toggle-switch {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .role-card:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+
+  .action-btn:active,
+  button:active {
+    background-color: #a91e1e;
+  }
+}
+
+/* Very small screens - Enhanced for phones under 380px */
+@media (max-width: 380px) {
+  .container {
+    margin: 1px;
+    padding: 8px;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  /* Ultra-compact form for very small screens */
+  .form-card {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .form-card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+    text-align: center;
+    color: #fd2b2b;
+  }
+
+  /* Tighter form spacing */
+  .form-grid,
+  .night-pay-grid {
+    gap: 10px;
+  }
+
+  .form-group {
+    gap: 6px;
+  }
+
+  /* Better labels for small screens */
+  label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #495057;
+  }
+
+  /* Optimized input fields */
+  input[type="text"],
+  input[type="number"],
+  input[type="time"],
+  select {
+    padding: 8px 10px;
+    font-size: 16px; /* Maintain to prevent zoom */
+    border-radius: 6px;
+    border: 1.5px solid #e9ecef;
+    min-height: 40px;
+    box-sizing: border-box;
+  }
+
+  /* Enhanced focus states for small screens */
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  input[type="time"]:focus,
+  select:focus {
+    border-color: #fd2b2b;
+    box-shadow: 0 0 0 3px rgba(253, 43, 43, 0.15);
+    transform: none; /* Remove transform on very small screens */
+  }
+
+  /* Optimized buttons for very small screens */
+  button,
+  .action-btn {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    min-height: 38px;
+    font-weight: 600;
+    border-radius: 6px;
+  }
+
+  /* Vertical button layout for very small screens */
+  .form-footer {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .form-footer .action-btn {
+    width: 100%;
+    padding: 10px;
+    min-height: 42px;
+    font-size: 0.9rem;
+  }
+
+  /* Compact toggle switch */
+  .toggle-container {
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+  }
+
+  .toggle-container label {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+
+  .toggle-switch {
+    width: 48px;
+    height: 26px;
+  }
+
+  .toggle-slider:before {
+    height: 18px;
+    width: 18px;
+    left: 4px;
+    bottom: 4px;
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+  }
+
+  /* Compact night shift fields */
+  #night_pay_fields {
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+  }
+
+  #night_pay_fields h3 {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  /* Ultra-compact role cards */
+  .role-card {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+  }
+
+  .role-name {
+    font-size: 1rem;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .role-details {
+    margin-bottom: 8px;
+  }
+
+  .role-actions {
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .role-actions .action-btn {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    min-height: 36px;
+  }
+
+  /* Improved placeholder text */
+  input::placeholder {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+
+  /* Better select styling for small screens */
+  select {
+    background-size: 14px;
+    background-position: right 10px center;
+    padding-right: 35px;
+  }
+
+  /* Success/Error messages compact */
+  .success-message,
+  .error-message {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+    border-radius: 6px;
+  }
+
+  /* Modal ultra-compact */
+  .modal-content {
+    margin: 1% auto;
+    width: 99%;
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .close-modal {
+    font-size: 20px;
+    padding: 6px;
+  }
+
+  /* Enhanced form validation styles for small screens */
+  input:invalid {
+    border-color: #dc3545;
+    background-color: #fff5f5;
+  }
+
+  input:valid {
+    border-color: #28a745;
+    background-color: #f8fff8;
+  }
+
+  /* Loading state for buttons on small screens */
+  .action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #6c757d;
+  }
+
+  /* Better visual hierarchy */
+  .form-full-width {
+    margin: 8px 0;
+  }
+
+  /* Improved spacing between form sections */
+  .form-grid + .form-full-width {
+    margin-top: 12px;
+  }
+
+  /* Better visual separation for night shift section */
+  #night_pay_fields {
+    border: 1px solid #e9ecef;
+    background: linear-gradient(135deg, #fafafa, #f5f5f5);
   }
 }

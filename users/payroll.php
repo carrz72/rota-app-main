@@ -76,10 +76,17 @@ if ($is_admin && $current_period) {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (isset($notifications) && !empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item" data-id="<?php echo $notification['id']; ?>">
-                                <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <small><?php echo date('M j, Y g:i A', strtotime($notification['created_at'])); ?></small>
-                                <button onclick="markAsRead(this)" class="mark-read-btn">Mark as Read</button>
+                            <div class="notification-item notification-<?php echo $notification['type']; ?>"
+                                data-id="<?php echo $notification['id']; ?>">
+                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                    <a class="shit-invt"
+                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                    </a>
+                                <?php else: ?>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -95,13 +102,13 @@ if ($is_admin && $current_period) {
             </div>
             <nav class="nav-links" id="nav-links">
                 <ul>
-                    <li><a href="dashboard.php">Dashboard</a></li>
-                    <li><a href="shifts.php">My Shifts</a></li>
-                    <li><a href="rota.php">Rota</a></li>
-                    <li><a href="roles.php">Roles</a></li>
-                    <li><a href="payroll.php">Payroll</a></li>
-                    <li><a href="settings.php">Settings</a></li>
-                    <li><a href="../functions/logout.php">Logout</a></li>
+                    <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
+                    <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
+                    <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
+                    <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
+                    <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                    <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+                    <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
                 </ul>
             </nav>
         </div>
@@ -314,26 +321,46 @@ if ($is_admin && $current_period) {
                 },
                 body: JSON.stringify({ id: notificationId })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    element.style.display = 'none';
-                    const remainingNotifications = document.querySelectorAll('.notification-item:not([style*="display: none"])');
-                    if (remainingNotifications.length === 0) {
-                        document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
-                        const badge = document.querySelector('.notification-badge');
-                        if (badge) {
-                            badge.style.display = 'none';
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response data:', data); // Debug log
+                    if (data.success) {
+                        element.style.display = 'none';
+
+                        // Count remaining visible notifications more reliably
+                        const allNotifications = document.querySelectorAll('.notification-item[data-id]');
+                        let visibleCount = 0;
+
+                        allNotifications.forEach(notification => {
+                            const computedStyle = window.getComputedStyle(notification);
+                            if (computedStyle.display !== 'none') {
+                                visibleCount++;
+                            }
+                        });
+
+                        console.log('Total notifications with data-id:', allNotifications.length); // Debug log
+                        console.log('Visible notifications count:', visibleCount); // Debug log
+
+                        if (visibleCount === 0) {
+                            document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.style.display = 'none';
+                                console.log('Badge hidden - no notifications left'); // Debug log
+                            }
+                        } else {
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.textContent = visibleCount;
+                                badge.style.display = 'flex'; // Ensure badge is visible
+                                console.log('Badge updated to:', visibleCount); // Debug log
+                            }
                         }
                     } else {
-                        const badge = document.querySelector('.notification-badge');
-                        if (badge) {
-                            badge.textContent = remainingNotifications.length;
-                        }
+                        console.error('Failed to mark notification as read:', data.error);
                     }
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                })
+                .catch(error => console.error('Error:', error));
         }
 
         document.addEventListener('DOMContentLoaded', function () {

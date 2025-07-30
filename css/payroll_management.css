@@ -338,25 +338,84 @@ tbody tr:nth-child(even):hover {
     padding: 10px;
   }
 
+  .container {
+    padding: 0;
+  }
+
+  .page-header {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+
+  .page-header h1 {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
   .controls {
     flex-direction: column;
     align-items: stretch;
+    gap: 15px;
   }
 
   .control-group {
     flex-direction: column;
     align-items: stretch;
     gap: 5px;
+    width: 100%;
+  }
+
+  .control-group label {
+    font-size: 0.9rem;
+  }
+
+  .control-group select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 12px 18px;
+    justify-content: center;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+  }
+
+  .period-info {
+    padding: 15px;
   }
 
   .period-details {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+  }
+
+  .action-buttons form {
+    width: 100%;
+  }
+
+  .action-buttons .btn {
+    width: 100%;
+    margin: 0;
   }
 
   .table-header {
     flex-direction: column;
     gap: 15px;
     text-align: center;
+  }
+
+  .table-header h3 {
+    font-size: 1.1rem;
   }
 
   .total-payroll {
@@ -368,27 +427,86 @@ tbody tr:nth-child(even):hover {
     padding: 10px 8px;
     font-size: 14px;
   }
-
-  .action-buttons {
-    flex-direction: column;
-  }
-
-  .btn {
-    justify-content: center;
-  }
 }
 
 @media (max-width: 480px) {
+  body {
+    padding: 5px;
+  }
+
+  .container {
+    padding: 0;
+  }
+
+  .page-header {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
   .page-header h1 {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
+    gap: 8px;
+  }
+
+  .controls {
+    gap: 10px;
+  }
+
+  .control-group {
+    gap: 3px;
+  }
+
+  .control-group label {
+    font-size: 0.8rem;
+  }
+
+  .control-group select {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .btn {
+    padding: 10px 15px;
+    font-size: 0.8rem;
+  }
+
+  .period-info {
+    padding: 10px;
   }
 
   .period-info h3 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+  }
+
+  .period-details {
+    gap: 8px;
+  }
+
+  .period-detail {
+    padding: 8px;
+  }
+
+  .action-buttons {
+    gap: 8px;
+    margin-top: 10px;
   }
 
   .table-header h3 {
+    font-size: 1rem;
+  }
+
+  .total-payroll {
     font-size: 1.1rem;
+  }
+
+  th,
+  td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  .table-container {
+    font-size: 0.8rem;
   }
 }
 

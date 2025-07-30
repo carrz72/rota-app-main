@@ -223,6 +223,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header("Location: settings.php");
     exit;
 }
+
+// Retrieve notifications for the current user
+$notifications = [];
+$notificationCount = 0;
+if ($user_id) {
+    $notifications = getNotifications($user_id);
+    $notificationCount = count($notifications);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -232,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Settings - Open Rota</title>
     <link rel="stylesheet" href="../css/settings.css">
     <link rel="stylesheet" href="../css/navigation.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
         /* Modern settings page styles matching application theme */
         body {
@@ -669,10 +677,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item" data-id="<?php echo $notification['id']; ?>">
-                                <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <small><?php echo date('M j, Y g:i A', strtotime($notification['created_at'])); ?></small>
-                                <button onclick="markAsRead(this)" class="mark-read-btn">Mark as Read</button>
+                            <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                    <a class="shit-invt" href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                    </a>
+                                <?php else: ?>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -692,13 +705,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Navigation Menu -->
         <nav class="nav-links" id="nav-links">
             <ul>
-                <li><a href="dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="shifts.php"><i class="fa fa-calendar-alt"></i> My Shifts</a></li>
-                <li><a href="rota.php"><i class="fa fa-calendar"></i> Rota</a></li>
-                <li><a href="roles.php"><i class="fa fa-briefcase"></i> Roles</a></li>
-                <li><a href="payroll.php"><i class="fa fa-money-bill-wave"></i> Payroll</a></li>
-                <li><a href="settings.php"><i class="fa fa-cogs"></i> Settings</a></li>
-                <li><a href="../functions/logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+                <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
+                <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
+                <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
+                <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
+                <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+                <?php if ($_SESSION['role'] === 'admin'): ?>
+                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                <?php endif; ?>
+                <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
     </header>
@@ -707,21 +723,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="settings-container">
         <!-- Page Header -->
         <div class="page-header">
-            <h1><i class="fas fa-cog"></i> Account Settings</h1>
+            <h1><i class="fa fa-cog"></i> Account Settings</h1>
             <p>Manage your account preferences and notification settings</p>
         </div>
 
         <!-- Display Messages -->
         <?php if ($success): ?>
             <div class="message success-message">
-                <i class="fas fa-check-circle"></i>
+                <i class="fa fa-check-circle"></i>
                 <?php echo htmlspecialchars($success); ?>
             </div>
         <?php endif; ?>
 
         <?php if ($error): ?>
             <div class="message error-message">
-                <i class="fas fa-exclamation-circle"></i>
+                <i class="fa fa-exclamation-circle"></i>
                 <?php echo htmlspecialchars($error); ?>
             </div>
         <?php endif; ?>
@@ -763,7 +779,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="settings-card">
                 <div class="card-header">
                     <div class="card-icon">
-                        <i class="fas fa-user-cog"></i>
+                        <i class="fa fa-user"></i>
                     </div>
                     <h3 class="card-title">Account Management</h3>
                 </div>
@@ -781,13 +797,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                value="<?php echo htmlspecialchars($user['email']); ?>" required>
                         <?php if (!$user['email_verified']): ?>
                             <small style="color: #dc3545;">
-                                <i class="fas fa-exclamation-triangle"></i> Email not verified
+                                <i class="fa fa-exclamation-triangle"></i> Email not verified
                             </small>
                         <?php endif; ?>
                     </div>
 
                     <button type="submit" name="update_account" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Update Account
+                        <i class="fa fa-save"></i> Update Account
                     </button>
                 </form>
             </div>
@@ -927,8 +943,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
+        // Notification functionality
+        function markAsRead(element) {
+            const notificationId = element.getAttribute('data-id');
+            console.log('Marking notification as read:', notificationId); // Debug log
+            
+            if (!notificationId) {
+                console.error('No notification ID found');
+                return;
+            }
+            
+            fetch('../functions/mark_notification.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: notificationId })
+            })
+                .then(response => {
+                    console.log('Response status:', response.status); // Debug log
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data); // Debug log
+                    if (data.success) {
+                        element.style.display = 'none';
+                        
+                        // Count remaining visible notifications more reliably
+                        const allNotifications = document.querySelectorAll('.notification-item[data-id]');
+                        let visibleCount = 0;
+                        
+                        allNotifications.forEach(notification => {
+                            const computedStyle = window.getComputedStyle(notification);
+                            if (computedStyle.display !== 'none') {
+                                visibleCount++;
+                            }
+                        });
+
+                        console.log('Total notifications with data-id:', allNotifications.length); // Debug log
+                        console.log('Visible notifications count:', visibleCount); // Debug log
+                        
+                        if (visibleCount === 0) {
+                            document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.style.display = 'none';
+                                console.log('Badge hidden - no notifications left'); // Debug log
+                            }
+                        } else {
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.textContent = visibleCount;
+                                badge.style.display = 'flex'; // Ensure badge is visible
+                                console.log('Badge updated to:', visibleCount); // Debug log
+                            }
+                        }
+                    } else {
+                        console.error('Failed to mark notification as read:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
         // Initialize settings page functionality
         document.addEventListener('DOMContentLoaded', function () {
+            // Notification functionality
+            var notificationIcon = document.getElementById('notification-icon');
+            var dropdown = document.getElementById('notification-dropdown');
+
+            if (notificationIcon && dropdown) {
+                notificationIcon.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                if (dropdown && !dropdown.contains(e.target) && !notificationIcon.contains(e.target)) {
+                    dropdown.style.display = "none";
+                }
+            });
+
+            // Add click event listeners for notification close buttons
+            const closeButtons = document.querySelectorAll('.close-btn');
+            closeButtons.forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Close button clicked'); // Debug log
+                    const notificationItem = this.closest('.notification-item');
+                    if (notificationItem) {
+                        markAsRead(notificationItem);
+                    }
+                });
+            });
+
             // Auto-hide messages after 5 seconds
             const messages = document.querySelectorAll('.message');
             messages.forEach(message => {

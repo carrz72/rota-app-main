@@ -105,7 +105,7 @@ function handleLinkNavigation(event) {
 
     // For PWA, always use location.href to stay within the app
     window.location.href = navigateUrl;
-    }
+}
 }
 
 // Handle form submissions
@@ -221,11 +221,11 @@ function handleFormSubmit(event) {
             })
             .catch(error => {
                 logPWA(`Error during fetch: ${error.message}`);
-                
+
                 // Don't fall back to regular form submission immediately
                 // Instead, show an error message and let user retry
                 console.error('PWA Navigation Error:', error);
-                
+
                 // For critical errors, fall back to regular form submission
                 if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
                     logPWA('Network error detected - attempting regular form submission');

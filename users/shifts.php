@@ -412,32 +412,315 @@ if ($user_id) {
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+
+            .card {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .card-header h3 {
+                justify-content: center;
+                margin-bottom: 10px;
+                font-size: 1.2rem;
+            }
+
+            /* Period form styling */
+            .card-header form {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                width: 100%;
+            }
+
+            .card-header form label {
+                font-weight: 600;
+                color: #333;
+                text-align: center;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+            }
+
+            .card-header form label::before {
+                content: "\f017";
+                font-family: "Font Awesome 5 Free", "FontAwesome";
+                font-weight: 900;
+                color: #fd2b2b;
+            }
+
+            .card-header form select {
+                width: 100%;
+                padding: 10px 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 1rem;
+                background: white;
+                box-sizing: border-box;
+                font-family: "newFont", Arial, sans-serif;
+                color: #333;
+                transition: all 0.3s ease;
+                appearance: none;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                background-image: url("data:image/svg+xml;utf8,<svg fill='%23666' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+                background-repeat: no-repeat;
+                background-position: right 10px center;
+                background-size: 16px;
+                padding-right: 40px;
+                cursor: pointer;
+            }
+
+            .card-header form select:hover {
+                border-color: #fd2b2b;
+                box-shadow: 0 2px 8px rgba(253, 43, 43, 0.1);
+            }
+
+            .card-header form select:focus {
+                outline: none;
+                border-color: #fd2b2b;
+                box-shadow: 0 0 0 3px rgba(253, 43, 43, 0.1);
+            }
+
             .summary-grid {
                 grid-template-columns: 1fr;
                 gap: 10px;
             }
 
+            .summary-box {
+                padding: 12px;
+            }
+
+            .summary-value {
+                font-size: 1.5rem;
+            }
+
+            .period-navigation {
+                flex-direction: column;
+                gap: 15px;
+                align-items: center;
+                text-align: center;
+            }
+
+            .period-nav-buttons {
+                width: 100%;
+                justify-content: space-between;
+                gap: 8px;
+            }
+
+            .period-nav-buttons a.btn {
+                flex: 1;
+                padding: 10px 8px;
+                font-size: 0.9rem;
+                justify-content: center;
+                min-width: 0;
+            }
+
             .add-shift-form {
                 grid-template-columns: 1fr;
+                gap: 12px;
             }
 
             .save-shift-btn {
                 grid-column: 1;
+                margin-top: 10px;
+            }
+
+            /* Table responsive design */
+            .responsive-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             table {
-                font-size: 0.9rem;
+                min-width: 600px;
+                font-size: 0.85rem;
             }
 
-            /* Make table responsive */
-            .responsive-table {
-                overflow-x: auto;
+            table th,
+            table td {
+                padding: 8px 6px;
+                white-space: nowrap;
+            }
+
+            table th {
+                font-size: 0.8rem;
+            }
+
+            /* Make Add New Shift button full width */
+            #toggleAddShiftBtn {
+                width: 100%;
+                justify-content: center;
+                padding: 12px;
+                font-size: 1rem;
+                margin-top: 10px;
+            }
+
+            .shift-actions {
+                flex-direction: column;
+                gap: 5px;
             }
 
             .editBtn,
             .deleteBtn {
-                padding: 5px 10px;
+                padding: 5px 8px;
                 font-size: 0.8rem;
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Modal responsiveness */
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+                max-width: none;
+                padding: 20px;
+            }
+
+            .modal-header h3 {
+                font-size: 1.1rem;
+            }
+
+            /* No shifts message */
+            .no-shifts {
+                padding: 20px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 5px;
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+
+            .card {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+
+            .card-header h3 {
+                font-size: 1.1rem;
+            }
+
+            .summary-box {
+                padding: 10px;
+            }
+
+            .summary-box h4 {
+                font-size: 0.9rem;
+                margin-bottom: 8px;
+            }
+
+            .summary-value {
+                font-size: 1.3rem;
+            }
+
+            .period-navigation p {
+                font-size: 0.9rem;
+            }
+
+            .period-nav-buttons a.btn {
+                padding: 8px 6px;
+                font-size: 0.8rem;
+            }
+
+            #toggleAddShiftBtn {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+
+            .form-group label {
+                font-size: 0.9rem;
+            }
+
+            .form-group input,
+            .form-group select {
+                padding: 8px;
+                font-size: 0.9rem;
+            }
+
+            table {
+                min-width: 500px;
+                font-size: 0.75rem;
+            }
+
+            table th,
+            table td {
+                padding: 6px 4px;
+            }
+
+            .editBtn,
+            .deleteBtn {
+                padding: 4px 6px;
+                font-size: 0.7rem;
+            }
+
+            .modal-content {
+                padding: 15px;
+                margin: 2% auto;
+            }
+
+            .modal-header {
+                margin-bottom: 15px;
+            }
+
+            .modal-header h3 {
+                font-size: 1rem;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 360px) {
+            .container {
+                margin: 2px;
+                padding: 8px;
+            }
+
+            .card {
+                padding: 10px;
+            }
+
+            .summary-value {
+                font-size: 1.2rem;
+            }
+
+            .period-nav-buttons a.btn {
+                padding: 6px 4px;
+                font-size: 0.75rem;
+            }
+
+            table {
+                min-width: 450px;
+                font-size: 0.7rem;
+            }
+
+            table th,
+            table td {
+                padding: 4px 3px;
             }
         }
 
@@ -461,13 +744,29 @@ if ($user_id) {
         @media (max-width: 768px) {
             .period-navigation {
                 flex-direction: column;
-                gap: 10px;
-                align-items: flex-start;
+                gap: 15px;
+                align-items: center;
+                text-align: center;
+                padding: 15px 0;
+            }
+
+            .period-navigation p {
+                margin: 0;
+                font-weight: 600;
+                color: #333;
             }
 
             .period-nav-buttons {
                 width: 100%;
                 justify-content: space-between;
+                gap: 10px;
+            }
+
+            .period-nav-buttons a.btn {
+                flex: 1;
+                text-align: center;
+                white-space: nowrap;
+                min-width: 0;
             }
         }
 
@@ -533,10 +832,17 @@ if ($user_id) {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item" data-id="<?php echo $notification['id']; ?>">
-                                <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <small><?php echo date('M j, Y g:i A', strtotime($notification['created_at'])); ?></small>
-                                <button onclick="markAsRead(this)" class="mark-read-btn">Mark as Read</button>
+                            <div class="notification-item notification-<?php echo $notification['type']; ?>"
+                                data-id="<?php echo $notification['id']; ?>">
+                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                    <a class="shit-invt"
+                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                    </a>
+                                <?php else: ?>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -551,16 +857,19 @@ if ($user_id) {
                 ☰
             </div>
         </div>
-        
+
         <nav class="nav-links" id="nav-links">
             <ul>
-                <li><a href="dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="shifts.php"><i class="fa fa-calendar-alt"></i> My Shifts</a></li>
-                <li><a href="rota.php"><i class="fa fa-calendar"></i> Rota</a></li>
-                <li><a href="roles.php"><i class="fa fa-briefcase"></i> Roles</a></li>
-                <li><a href="payroll.php"><i class="fa fa-money-bill-wave"></i> Payroll</a></li>
-                <li><a href="settings.php"><i class="fa fa-cogs"></i> Settings</a></li>
-                <li><a href="../functions/logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+                <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
+                <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
+                <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
+                <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
+                <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+                <?php if ($_SESSION['role'] === 'admin'): ?>
+                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                <?php endif; ?>
+                <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
     </header>
@@ -828,6 +1137,13 @@ if ($user_id) {
         // Notification functionality
         function markAsRead(element) {
             const notificationId = element.getAttribute('data-id');
+            console.log('Marking notification as read:', notificationId); // Debug log
+
+            if (!notificationId) {
+                console.error('No notification ID found');
+                return;
+            }
+
             fetch('../functions/mark_notification.php', {
                 method: 'POST',
                 headers: {
@@ -835,26 +1151,51 @@ if ($user_id) {
                 },
                 body: JSON.stringify({ id: notificationId })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    element.style.display = 'none';
-                    const remainingNotifications = document.querySelectorAll('.notification-item:not([style*="display: none"])');
-                    if (remainingNotifications.length === 0) {
-                        document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
-                        const badge = document.querySelector('.notification-badge');
-                        if (badge) {
-                            badge.style.display = 'none';
+                .then(response => {
+                    console.log('Response status:', response.status); // Debug log
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data); // Debug log
+                    if (data.success) {
+                        element.style.display = 'none';
+
+                        // Count remaining visible notifications more reliably
+                        const allNotifications = document.querySelectorAll('.notification-item[data-id]');
+                        let visibleCount = 0;
+
+                        allNotifications.forEach(notification => {
+                            const computedStyle = window.getComputedStyle(notification);
+                            if (computedStyle.display !== 'none') {
+                                visibleCount++;
+                            }
+                        });
+
+                        console.log('Total notifications with data-id:', allNotifications.length); // Debug log
+                        console.log('Visible notifications count:', visibleCount); // Debug log
+
+                        if (visibleCount === 0) {
+                            document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.style.display = 'none';
+                                console.log('Badge hidden - no notifications left'); // Debug log
+                            }
+                        } else {
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.textContent = visibleCount;
+                                badge.style.display = 'flex'; // Ensure badge is visible
+                                console.log('Badge updated to:', visibleCount); // Debug log
+                            }
                         }
                     } else {
-                        const badge = document.querySelector('.notification-badge');
-                        if (badge) {
-                            badge.textContent = remainingNotifications.length;
-                        }
+                        console.error('Failed to mark notification as read:', data.error);
                     }
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
         }
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -873,6 +1214,20 @@ if ($user_id) {
                 if (dropdown && !dropdown.contains(e.target) && !notificationIcon.contains(e.target)) {
                     dropdown.style.display = "none";
                 }
+            });
+
+            // Add click event listeners for notification close buttons
+            const closeButtons = document.querySelectorAll('.close-btn');
+            closeButtons.forEach(function (button) {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Close button clicked'); // Debug log
+                    const notificationItem = this.closest('.notification-item');
+                    if (notificationItem) {
+                        markAsRead(notificationItem);
+                    }
+                });
             });
 
             // Toggle add shift form

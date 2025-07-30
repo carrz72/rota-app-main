@@ -1,4 +1,24 @@
 /* Global Navigation Styles */
+@font-face {
+  font-family: "newFont";
+  src: url("../fonts/CooperHewitt-Book.otf");
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Ensure Font Awesome icons display properly */
+.fa,
+.nav-links i,
+[class^="fa-"],
+[class*=" fa-"] {
+  font-family: "FontAwesome", "Font Awesome 4", sans-serif !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  text-decoration: none !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 header {
   display: flex;
   justify-content: space-between;
@@ -85,6 +105,9 @@ header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 14px;
   transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .nav-links ul li:last-child a {
@@ -95,6 +118,186 @@ header {
   background-color: #c82333 !important;
   transform: translateY(0);
   box-shadow: none;
+}
+
+.nav-links ul li a i {
+  color: #ffffff !important;
+  font-size: 14px;
+  min-width: 16px;
+  text-align: center;
+  font-family: "FontAwesome", "Font Awesome 4", sans-serif !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+/* Additional Font Awesome icon fixes */
+.nav-links .fa,
+.nav-links i[class^="fa-"],
+.nav-links i[class*=" fa-"] {
+  font-family: "FontAwesome" !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  speak: none;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #ffffff !important;
+}
+
+/* Force notification styling consistency across all pages */
+header .notification-container,
+.header .notification-container {
+  position: relative !important;
+  display: inline-block !important;
+  margin-right: 20px !important;
+}
+
+header .notification-icon,
+.header .notification-icon,
+#notification-icon {
+  font-size: 26px !important;
+  cursor: pointer !important;
+  z-index: 1002 !important;
+  position: relative !important;
+  color: #333 !important;
+  font-family: "FontAwesome", "Font Awesome 4", sans-serif !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  transition: all 0.3s ease !important;
+  pointer-events: auto !important;
+}
+
+header .notification-icon:hover,
+.header .notification-icon:hover,
+#notification-icon:hover {
+  transform: scale(1.2) !important;
+  color: #fd2b2b !important;
+}
+
+header .notification-badge,
+.header .notification-badge,
+.notification-badge {
+  position: absolute !important;
+  top: -8px !important;
+  right: -8px !important;
+  background: #fd2b2b !important;
+  color: white !important;
+  border-radius: 50% !important;
+  padding: 2px 6px !important;
+  font-size: 10px !important;
+  font-weight: bold !important;
+  z-index: 1003 !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  font-family: "newFont", Arial, sans-serif !important;
+}
+
+header .notification-dropdown,
+.header .notification-dropdown,
+#notification-dropdown {
+  display: none;
+  position: absolute !important;
+  top: 45px !important;
+  right: -80px !important;
+  background-color: #fff !important;
+  width: 320px !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+  z-index: 1003 !important;
+  border: 1px solid #e0e0e0 !important;
+}
+
+/* Ensure dropdown can be shown when JavaScript sets display: block */
+header .notification-dropdown[style*="display: block"],
+.header .notification-dropdown[style*="display: block"],
+#notification-dropdown[style*="display: block"] {
+  display: block !important;
+}
+
+/* Universal Form Controls - Consistent across all pages */
+select,
+.form-select,
+.period-selector select,
+.filter-group select,
+.control-group select,
+#period,
+#periodForm select {
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: white;
+  font-family: "newFont", Arial, sans-serif;
+  font-size: 14px;
+  color: #333;
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23666' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 40px;
+  cursor: pointer;
+  min-width: 120px;
+  box-sizing: border-box;
+}
+
+select:hover,
+.form-select:hover,
+.period-selector select:hover,
+.filter-group select:hover,
+.control-group select:hover,
+#period:hover,
+#periodForm select:hover {
+  border-color: #fd2b2b;
+  box-shadow: 0 2px 8px rgba(253, 43, 43, 0.1);
+}
+
+select:focus,
+.form-select:focus,
+.period-selector select:focus,
+.filter-group select:focus,
+.control-group select:focus,
+#period:focus,
+#periodForm select:focus {
+  outline: none;
+  border-color: #fd2b2b;
+  box-shadow: 0 0 0 3px rgba(253, 43, 43, 0.1);
+}
+
+/* Universal Form Labels */
+label,
+.period-selector label,
+.filter-group label,
+.control-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  margin-bottom: 5px;
+  display: inline-block;
+  font-family: "newFont", Arial, sans-serif;
+}
+
+/* Form Groups */
+.period-selector,
+.filter-group,
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
 }
 
 @keyframes fadeIn {
@@ -108,7 +311,7 @@ header {
   }
 }
 
-/* Notification styles */
+/* Notification styles - Enhanced for consistency */
 .notification-container {
   position: relative;
   display: inline-block;
@@ -116,71 +319,127 @@ header {
 }
 
 .notification-icon {
-  font-size: 24px;
+  font-size: 26px !important;
   cursor: pointer;
   z-index: 1002;
   position: relative;
+  color: #333 !important;
+  font-family: "FontAwesome", "Font Awesome 4", sans-serif !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  transition: all 0.3s ease;
+  pointer-events: auto !important;
 }
 
 .notification-icon:hover {
   transition: 0.4s;
   transform: scale(1.2);
+  color: #fd2b2b !important;
 }
 
 .notification-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  background: red;
-  color: white;
+  top: -8px;
+  right: -8px;
+  background: #fd2b2b !important;
+  color: white !important;
   border-radius: 50%;
   padding: 2px 6px;
-  font-size: 12px;
+  font-size: 10px !important;
+  font-weight: bold;
   z-index: 1003;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-family: "newFont", Arial, sans-serif !important;
 }
 
 .notification-dropdown {
   display: none;
   position: absolute;
-  top: 40px;
+  top: 45px;
   right: -80px;
-  background-color: #fff;
-  width: 300px;
+  background-color: #fff !important;
+  width: 320px;
   max-height: 400px;
   overflow-y: auto;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
   z-index: 1003;
+  border: 1px solid #e0e0e0;
 }
 
 .notification-item {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
+  padding: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
+  transition: background-color 0.2s ease;
+}
+
+.notification-item:hover {
+  background-color: #f9f9f9;
 }
 
 .notification-item:last-child {
   border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.notification-item:first-child {
+  border-radius: 8px 8px 0 0;
 }
 
 .notification-item p {
   margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+  font-family: "newFont", Arial, sans-serif;
 }
 
 .shit-invt {
   display: flex;
-  padding: 14px;
-  background-color: black;
-  color: #ffffff;
+  padding: 15px;
+  color: #ffffff !important;
   text-decoration: none;
-  font-size: 16px;
+  font-size: 14px;
   transition: background-color 0.3s ease, transform 0.2s ease;
+  border-radius: 4px;
+  margin: 5px 0;
+}
+
+.shit-invt:hover {
+  background-color: #fd2b2b !important;
+  transform: translateY(-1px);
 }
 
 .close-btn {
   float: right;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   margin-left: 10px;
+  color: #999;
+  font-weight: bold;
+  line-height: 1;
+  transition: color 0.2s ease;
+  padding: 0;
+  border: none;
+  background: none;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-top: -5px;
+}
+
+.close-btn:hover {
+  color: #fd2b2b;
+  background-color: rgba(253, 43, 43, 0.1);
 }
 
 /* Safari-specific fixes */
@@ -248,10 +507,67 @@ header {
     width: 280px;
     right: -130px;
     top: 45px;
+    max-height: 350px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 
   .notification-container {
+    margin-right: 15px;
+  }
+
+  .notification-icon {
+    font-size: 24px !important;
+  }
+
+  .notification-badge {
+    top: -6px;
+    right: -6px;
+    font-size: 9px !important;
+    min-width: 14px;
+    height: 14px;
+  }
+
+  .notification-item {
+    padding: 12px;
+  }
+
+  .notification-item p {
+    font-size: 13px;
+  }
+
+  /* Enhanced admin navigation item for mobile */
+  .nav-links ul li a[href*="admin_dashboard"] {
+    font-weight: 600;
+    position: relative;
+  }
+
+  .nav-links ul li a[href*="admin_dashboard"]:hover {
+    background: linear-gradient(135deg, #218838, #1da383) !important;
+    transform: translateX(2px);
+  }
+
+  .nav-links ul li a[href*="admin_dashboard"] i {
+    color: #ffffff;
+    font-size: 1.1em;
     margin-right: 8px;
+  }
+
+  /* Better spacing for navigation items */
+  .nav-links ul li a {
+    padding: 16px 20px;
+    font-size: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .nav-links ul li a i {
+    margin-right: 10px;
+    width: 16px;
+    text-align: center;
+    font-family: "FontAwesome", "Font Awesome 4", sans-serif !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    color: #ffffff !important;
+    display: inline-block;
   }
 }
 
@@ -264,6 +580,18 @@ header {
     width: 250px;
     right: -150px;
     top: 45px;
+    max-height: 300px;
+  }
+
+  .notification-icon {
+    font-size: 22px !important;
+  }
+
+  .notification-badge {
+    font-size: 8px !important;
+    min-width: 12px;
+    height: 12px;
+    padding: 1px 4px;
   }
 
   .nav-links {

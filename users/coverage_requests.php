@@ -328,17 +328,17 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         <img src="../images/logo.png" alt="Open Rota Logo">
         <span>Open Rota</span>
     </div>
-    
+
     <div class="nav-group">
         <div class="notification-icon" id="notification-icon">
             <i class="fa fa-bell"></i>
         </div>
-        
+
         <div class="menu-toggle" id="menu-toggle">
             ☰
         </div>
     </div>
-    
+
     <!-- Navigation Menu -->
     <nav class="nav-links" id="nav-links">
         <ul>
