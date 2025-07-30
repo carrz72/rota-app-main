@@ -500,6 +500,7 @@ label,
     right: 2px;
     top: 60px;
     width: calc(100vw - 20px);
+    max-width: 0;
   }
 
   .notification-dropdown {
