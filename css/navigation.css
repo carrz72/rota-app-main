@@ -8,11 +8,7 @@
 
 /* Ensure Font Awesome icons display properly */
 .fa,
-.nav-links i,
-[class^="fa-"],
-[class*=" fa-"] {
-  font-family: "FontAwesome", "Font Awesome 4", sans-serif !important;
-  font-weight: normal !important;
+.nav-links i {
   font-style: normal !important;
   text-decoration: none !important;
   -webkit-font-smoothing: antialiased;
@@ -500,7 +496,6 @@ label,
     right: 2px;
     top: 60px;
     width: calc(100vw - 20px);
-    max-width: 0;
   }
 
   .notification-dropdown {
@@ -595,7 +590,7 @@ label,
   }
 
   .nav-links {
-    right: 0;
+    right: 8px;
     top: 55px;
   }
 }
