@@ -1,10 +1,13 @@
-const CACHE_NAME = "rota-app-cache-v2";
+const CACHE_NAME = "rota-app-cache-v3";
 const urlsToCache = [
-    "/rota-app-main/",
-    "/rota-app-main/index.php",
-    "/rota-app-main/css/styles.css",
-    "/rota-app-main/images/logo.png",
-    "/rota-app-main/fonts/CooperHewitt-Book.otf"
+    "./",
+    "./index.php",
+    "./css/styles.css",
+    "./css/navigation.css",
+    "./images/icon.png",
+    "./js/links.js",
+    "./js/menu.js",
+    "./fonts/CooperHewitt-Book.otf"
 ];
 
 self.addEventListener("install", event => {
@@ -18,16 +21,30 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener('fetch', event => {
-    // For navigation requests, try the network first, falling back to the cache
+    // Skip cross-origin requests
+    if (!event.request.url.startsWith(self.location.origin)) {
+        return;
+    }
+
+    // For navigation requests within the app scope
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            fetch(event.request).catch(error => {
-                console.log('Fetch failed; returning offline page instead.', error);
-                return caches.match(event.request);
-            })
+            fetch(event.request)
+                .then(response => {
+                    // If the response is successful, return it
+                    if (response.status === 200) {
+                        return response;
+                    }
+                    // If there's an error, try to serve from cache
+                    return caches.match(event.request);
+                })
+                .catch(error => {
+                    console.log('Fetch failed; serving from cache if available.', error);
+                    return caches.match(event.request);
+                })
         );
     } else {
-        // For non-navigation requests, use the cache-first strategy
+        // For non-navigation requests, use cache-first strategy
         event.respondWith(
             caches.match(event.request).then(response => {
                 return response || fetch(event.request);

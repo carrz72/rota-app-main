@@ -22,10 +22,10 @@ if (isset($_SESSION['user_id'])) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
-    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
-    <link rel="manifest" href="/rota-app-main/manifest.json">
+    <link rel="icon" type="image/png" href="./images/icon.png">
+    <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
+    <link rel="apple-touch-icon" href="./images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Open Rota - Manage Your Work Schedule</title>
     <style>
@@ -203,7 +203,7 @@ if (isset($_SESSION['user_id'])) {
 <script>
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
-            navigator.serviceWorker.register("/rota-app-main/service-worker.js")
+            navigator.serviceWorker.register("./service-worker.js")
                 .then(function (registration) {
                     console.log("ServiceWorker registration successful");
                 })
@@ -213,7 +213,7 @@ if (isset($_SESSION['user_id'])) {
         });
     }
 </script>
-<script src="/rota-app-main/js/pwa-debug.js"></script>
-<script src="/rota-app-main/js/links.js"></script>
+<script src="./js/pwa-debug.js"></script>
+<script src="./js/links.js"></script>
 
 </html>

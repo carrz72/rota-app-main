@@ -1,20 +1,20 @@
 {
-  "id": "/rota-app-main/index.php",
+  "id": "./index.php",
   "name": "Open Rota",
   "short_name": "Rota",
-  "start_url": "/rota-app-main/index.php",
+  "start_url": "./index.php",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#007bff",
-  "scope": "/rota-app-main/",
+  "theme_color": "#fd2b2b",
+  "scope": "./",
   "icons": [
     {
-      "src": "/rota-app-main/images/logo.png",
+      "src": "./images/icon.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/rota-app-main/images/logo.png",
+      "src": "./images/icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }

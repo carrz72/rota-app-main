@@ -76,28 +76,35 @@ function handleLinkNavigation(event) {
         return;
     }
 
+    // Skip external links - let them open normally
+    if (href.startsWith('http') && !href.includes(window.location.hostname)) {
+        return;
+    }
+
     // Handle the navigation
     event.preventDefault();
     event.stopPropagation(); // KEY FIX #3: Stop propagation to prevent double handling
 
     logPWA(`Intercepted navigation: ${href}`);
 
-    // Convert relative URLs to absolute
+    // Convert relative URLs to absolute, but keep them relative to the app scope
     let navigateUrl = href;
     if (href.startsWith('/')) {
-        // Already root-relative, keep as is
+        // Root-relative URL - keep as is
         navigateUrl = href;
     } else if (!href.includes('://')) {
-        // Convert relative to absolute using baseUrl
-        navigateUrl = new URL(href, window.location.href).href;
+        // Relative URL - convert using current page as base
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        navigateUrl = baseUrl + href;
+    } else if (href.startsWith('http') && href.includes(window.location.hostname)) {
+        // Same origin absolute URL - use as is
+        navigateUrl = href;
     }
 
-    // KEY FIX #4: Disable animation for smoother transitions on iOS
-    if (isIOS()) {
-        // For iOS, immediately replace location with no animation or history manipulation
-        window.location.replace(navigateUrl);
-    } else {
-        window.location.href = navigateUrl;
+    logPWA(`Navigating to: ${navigateUrl}`);
+
+    // For PWA, always use location.href to stay within the app
+    window.location.href = navigateUrl;
     }
 }
 
@@ -111,14 +118,21 @@ function handleFormSubmit(event) {
 
     logPWA(`Intercepted form submission: ${method.toUpperCase()} ${action}`);
 
-    // Convert relative URLs to absolute
+    // Convert relative URLs to absolute, keeping them within app scope
     let formAction = action;
     if (action.startsWith('/')) {
+        // Root-relative - keep as is
         formAction = action;
     } else if (!action.includes('://') && action !== '') {
-        formAction = new URL(action, window.location.href).href;
+        // Relative URL - convert using current page as base
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        formAction = baseUrl + action;
     } else if (action === '') {
+        // Empty action - use current page without query string
         formAction = window.location.href.split('?')[0];
+    } else if (action.startsWith('http') && action.includes(window.location.hostname)) {
+        // Same origin absolute URL - use as is
+        formAction = action;
     }
 
     event.preventDefault();
@@ -136,15 +150,10 @@ function handleFormSubmit(event) {
         const navigateUrl = formAction + (formAction.includes('?') ? '&' : '?') + queryString;
 
         logPWA(`Navigating to: ${navigateUrl}`);
-
-        if (isIOS()) {
-            window.location.replace(navigateUrl);
-        } else {
-            window.location.href = navigateUrl;
-        }
+        window.location.href = navigateUrl;
     } else {
-        // KEY FIX #5: Enhanced and fixed fetch handling for iOS
-        logPWA(`Performing fetch with method: ${method}`);
+        // Enhanced POST handling for PWA
+        logPWA(`Performing fetch with method: ${method} to: ${formAction}`);
 
         fetch(formAction, {
             method: method,
@@ -152,7 +161,7 @@ function handleFormSubmit(event) {
             credentials: 'same-origin',
             headers: {
                 'X-PWA-Standalone': 'true',
-                'X-Requested-With': 'XMLHttpRequest' // Helps server identify AJAX requests
+                'X-Requested-With': 'XMLHttpRequest'
             }
         })
             .then(response => {
@@ -160,14 +169,13 @@ function handleFormSubmit(event) {
 
                 if (response.redirected) {
                     logPWA(`Server redirected to: ${response.url}`);
-
-                    // Handle redirects properly
-                    if (isIOS()) {
-                        window.location.replace(response.url);
-                    } else {
-                        window.location.href = response.url;
-                    }
-                    return null; // Skip further processing
+                    // Handle redirects by navigating to the new URL
+                    window.location.href = response.url;
+                    return null;
+                } else if (response.status >= 400) {
+                    // Handle error responses
+                    logPWA(`Server error: ${response.status}`);
+                    throw new Error(`Server responded with ${response.status}`);
                 } else {
                     return response.text();
                 }
@@ -176,17 +184,13 @@ function handleFormSubmit(event) {
                 if (html) {
                     // Check if the response contains a full HTML document
                     if (html.includes('<!DOCTYPE html>') || html.includes('<html')) {
+                        // Replace the entire document
                         document.open();
                         document.write(html);
                         document.close();
 
                         // Re-apply navigation handlers to the new content
-                        if (isIOS()) {
-                            // Need to wait for the document to be properly parsed on iOS
-                            setTimeout(setupStandaloneNavigation, 100);
-                        } else {
-                            setupStandaloneNavigation();
-                        }
+                        setTimeout(setupStandaloneNavigation, 100);
                     } else {
                         // Handle JSON responses or partial HTML
                         logPWA('Response was not a complete HTML document');
@@ -194,23 +198,25 @@ function handleFormSubmit(event) {
                             // Check if it's JSON
                             const jsonData = JSON.parse(html);
                             if (jsonData.redirect) {
-                                if (isIOS()) {
-                                    window.location.replace(jsonData.redirect);
-                                } else {
-                                    window.location.href = jsonData.redirect;
-                                }
+                                window.location.href = jsonData.redirect;
+                            } else if (jsonData.success) {
+                                // Reload the current page to show the updated state
+                                window.location.reload();
                             }
                         } catch (e) {
-                            // Not JSON, might be a partial HTML response
-                            console.log("Non-HTML, non-JSON response received");
+                            // Not JSON, might be a partial HTML response or error message
+                            logPWA("Received non-HTML, non-JSON response - reloading page");
+                            window.location.reload();
                         }
                     }
                 }
             })
             .catch(error => {
-                console.error(`[PWA Navigation] Error during fetch: ${error.message}`);
-                // Fall back to regular form submission as last resort
-                this.submit();
+                logPWA(`Error during fetch: ${error.message}`);
+                // Fall back to regular form submission
+                const tempForm = this.cloneNode(true);
+                document.body.appendChild(tempForm);
+                tempForm.submit();
             });
     }
 }
