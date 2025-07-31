@@ -1,8 +1,9 @@
 <?php
+session_start();
 require_once '../includes/auth.php';
 requireLogin(); // Only logged-in users can access
+require_once '../includes/db.php';
 require_once '../functions/branch_functions.php';
-
 
 $user_id = $_SESSION['user_id'];
 
@@ -27,13 +28,15 @@ if (!$user_branch_id) {
     exit();
 }
 
-
 $user_branch = getUserHomeBranch($conn, $user_id);
 
 // Handle delete request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_request'])) {
     $delete_id = $_POST['delete_request_id'];
-    // Only allow delete if the request belongs to the user
+    // Remove any related coverage entries to satisfy foreign key constraints
+    $delCoverage = $conn->prepare("DELETE FROM shift_coverage WHERE request_id = ?");
+    $delCoverage->execute([$delete_id]);
+
     $stmt = $conn->prepare("DELETE FROM cross_branch_shift_requests WHERE id = ? AND requested_by_user_id = ?");
     $stmt->execute([$delete_id, $user_id]);
     $_SESSION['success_message'] = "Coverage request deleted.";
@@ -44,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_request'])) {
 // Handle edit request (show edit form)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_request'])) {
     $edit_id = $_POST['edit_request_id'];
-    // Fetch the request to edit
     $stmt = $conn->prepare("SELECT * FROM cross_branch_shift_requests WHERE id = ? AND requested_by_user_id = ?");
     $stmt->execute([$edit_id, $user_id]);
     $edit_request = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -62,157 +64,152 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
     $urgency_level = $_POST['urgency_level'];
     $description = $_POST['description'];
     $expires_hours = $_POST['expires_hours'];
-    $expires_at = date('Y-m-d H:i:s', strtotime("+$expires_hours hours"));
-    $stmt = $conn->prepare("UPDATE cross_branch_shift_requests SET target_branch_id=?, shift_date=?, start_time=?, end_time=?, role_id=?, urgency_level=?, description=?, expires_at=? WHERE id=? AND requested_by_user_id=?");
-    $stmt->execute([$target_branch_id, $shift_date, $start_time, $end_time, $role_id, $urgency_level, $description, $expires_at, $edit_id, $user_id]);
+    $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_hours} hours"));
+
+    $stmt = $conn->prepare(
+        "UPDATE cross_branch_shift_requests
+         SET target_branch_id = ?, shift_date = ?, start_time = ?, end_time = ?, role_id = ?, urgency_level = ?, description = ?, expires_at = ?
+         WHERE id = ? AND requested_by_user_id = ?"
+    );
+    $stmt->execute([
+        $target_branch_id,
+        $shift_date,
+        $start_time,
+        $end_time,
+        $role_id,
+        $urgency_level,
+        $description,
+        $expires_at,
+        $edit_id,
+        $user_id
+    ]);
+
     $_SESSION['success_message'] = "Coverage request updated.";
     header("Location: coverage_requests.php");
     exit();
 }
 
-// Handle form submissions
-if (\$_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset(\$_POST['create_request'])) {
-        \$target_branch_id = \$_POST['target_branch_id'];
-        \$shift_date = \$_POST['shift_date'];
-        \$start_time = \$_POST['start_time'];
-        \$end_time = \$_POST['end_time'];
-        \$role_id = \$_POST['role_id'];
-        $urgency_level = $_POST['urgency_level'];
-        $description = $_POST['description'];
-        $expires_hours = $_POST['expires_hours'];
+// Handle create request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
+    $target_branch_id = $_POST['target_branch_id'];
+    $shift_date = $_POST['shift_date'];
+    $start_time = $_POST['start_time'];
+    $end_time = $_POST['end_time'];
+    $role_id = $_POST['role_id'];
+    $urgency_level = $_POST['urgency_level'];
+    $description = $_POST['description'];
+    $expires_hours = $_POST['expires_hours'];
 
-        // Calculate expiration time
-        $expires_at = date('Y-m-d H:i:s', strtotime("+$expires_hours hours"));
+    $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_hours} hours"));
+    $request_data = [
+        'requesting_branch_id' => $user_branch_id,
+        'target_branch_id' => $target_branch_id,
+        'shift_date' => $shift_date,
+        'start_time' => $start_time,
+        'end_time' => $end_time,
+        'role_id' => $role_id,
+        'urgency_level' => $urgency_level,
+        'description' => $description,
+        'requested_by_user_id' => $user_id,
+        'expires_at' => $expires_at
+    ];
 
-        $request_data = [
-            'requesting_branch_id' => $user_branch_id,
-            'target_branch_id' => $target_branch_id,
-            'shift_date' => $shift_date,
-            'start_time' => $start_time,
-            'end_time' => $end_time,
-            'role_id' => $role_id,
-            'urgency_level' => $urgency_level,
-            'description' => $description,
-            'requested_by_user_id' => $user_id,
-            'expires_at' => $expires_at
-        ];
-
-        try {
-            if (createCrossBranchRequest($conn, $request_data)) {
-                $_SESSION['success_message'] = "Coverage request sent successfully!";
-            } else {
-                $_SESSION['error_message'] = "Failed to create request.";
-            }
-        } catch (Exception $e) {
-            $_SESSION['error_message'] = "Error: " . $e->getMessage();
+    try {
+        if (createCrossBranchRequest($conn, $request_data)) {
+            $_SESSION['success_message'] = "Coverage request sent successfully!";
+        } else {
+            $_SESSION['error_message'] = "Failed to create request.";
         }
-
-        header("Location: coverage_requests.php");
-        exit();
+    } catch (Exception $e) {
+        $_SESSION['error_message'] = "Error: " . $e->getMessage();
     }
 
-    if (isset($_POST['offer_coverage'])) {
-        $request_id = $_POST['request_id'];
-
-        try {
-            // Fetch the full request details
-            $stmt = $conn->prepare("SELECT * FROM cross_branch_shift_requests WHERE id = ?");
-            $stmt->execute([$request_id]);
-            $request = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$request) {
-                $_SESSION['error_message'] = "Coverage request not found.";
-            } elseif ($request['requesting_branch_id'] == $user_branch_id) {
-                $_SESSION['error_message'] = "You cannot offer coverage for your own branch's request.";
-            } else {
-                // Only add the shift if fulfillCrossBranchRequest does NOT already add it
-                $result = fulfillCrossBranchRequest($conn, $request_id, $user_id, $user_id);
-                error_log('fulfillCrossBranchRequest result: ' . var_export($result, true));
-                if ($result === true || $result === 1) {
-                    // Mark the request as accepted and store the accepting user
-                    $update = $conn->prepare("UPDATE cross_branch_shift_requests SET status = 'accepted', accepted_by_user_id = ? WHERE id = ?");
-                    $update_success = $update->execute([$user_id, $request_id]);
-                    error_log('Update cross_branch_shift_requests: ' . var_export($update_success, true));
-
-                    // Check if the shift already exists for this user, date, and time to avoid duplicates
-                    $check = $conn->prepare("SELECT id FROM shifts WHERE user_id = ? AND shift_date = ? AND start_time = ? AND end_time = ? AND branch_id = ? AND role_id = ?");
-                    $check->execute([
-                        $user_id,
-                        $request['shift_date'],
-                        $request['start_time'],
-                        $request['end_time'],
-                        $user_branch_id,
-                        $request['role_id']
-                    ]);
-                    error_log('Shift exists rowCount: ' . $check->rowCount());
-                    if ($check->rowCount() == 0) {
-                        $sql = "INSERT INTO shifts (user_id, shift_date, start_time, end_time, branch_id, location, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                        $stmt = $conn->prepare($sql);
-                        $insert_success = $stmt->execute([
-                            $user_id,
-                            $request['shift_date'],
-                            $request['start_time'],
-                            $request['end_time'],
-                            $user_branch_id, // The user's branch, not the requesting branch
-                            'Cross-branch coverage',
-                            $request['role_id']
-                        ]);
-                        error_log('Inserted shift for user_id ' . $user_id . ' on ' . $request['shift_date'] . ' success: ' . var_export($insert_success, true));
-                    } else {
-                        error_log('Shift already exists for user_id ' . $user_id . ' on ' . $request['shift_date']);
-                    }
-                    $_SESSION['success_message'] = "Coverage offer submitted successfully!";
-                } else {
-                    $_SESSION['error_message'] = "Failed to fulfill coverage request.";
-                }
-            }
-        } catch (Exception $e) {
-            error_log('Coverage offer error: ' . $e->getMessage());
-            $_SESSION['error_message'] = "Error: " . $e->getMessage();
-        }
-
-        header("Location: coverage_requests.php");
-        exit();
-    }
+    header("Location: coverage_requests.php");
+    exit();
 }
 
-// Get all branches for dropdown (excluding user's branch)
+// Handle offer coverage
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['offer_coverage'])) {
+    $request_id = $_POST['request_id'];
+    try {
+        $stmt = $conn->prepare("SELECT * FROM cross_branch_shift_requests WHERE id = ?");
+        $stmt->execute([$request_id]);
+        $request = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$request) {
+            $_SESSION['error_message'] = "Coverage request not found.";
+        } elseif ($request['requesting_branch_id'] === $user_branch_id) {
+            $_SESSION['error_message'] = "You cannot offer coverage for your own branch's request.";
+        } else {
+            $result = fulfillCrossBranchRequest($conn, $request_id, $user_id, $user_id);
+            if ($result) {
+                $update = $conn->prepare(
+                    "UPDATE cross_branch_shift_requests SET status='fulfilled', fulfilled_by_user_id=? WHERE id=?"
+                );
+                $update->execute([$user_id, $request_id]);
+
+                // Insert shift via SELECT
+                $shiftStmt = $conn->prepare(
+                    "INSERT INTO shifts (user_id, shift_date, start_time, end_time, branch_id, location, role_id)
+                     SELECT ?, shift_date, start_time, end_time, requesting_branch_id, branch_name, role_id
+                     FROM (
+                         SELECT cr.shift_date, cr.start_time, cr.end_time, cr.requesting_branch_id,
+                                CONCAT('Coverage at ', b.name) AS branch_name, cr.role_id
+                         FROM cross_branch_shift_requests cr
+                         JOIN branches b ON cr.requesting_branch_id=b.id
+                         WHERE cr.id=?
+                     ) AS data"
+                );
+                $shiftStmt->execute([$user_id, $request_id]);
+
+                $_SESSION['success_message'] = "Coverage offer submitted successfully!";
+            } else {
+                $_SESSION['error_message'] = "Failed to fulfill coverage request.";
+            }
+        }
+    } catch (Exception $e) {
+        $_SESSION['error_message'] = "Error: " . $e->getMessage();
+    }
+
+    header("Location: coverage_requests.php");
+    exit();
+}
+
+// Fetch dropdowns
 $all_branches = getAllBranches($conn);
-// Get all roles for dropdown
 $roles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-// Get available coverage requests (from other branches)
-$sql = "SELECT cbr.*, rb.name as requesting_branch_name, u.username as requested_by_username
+// Load available requests
+$sql = "SELECT cbr.*, rb.name AS requesting_branch_name, u.username AS requested_by_username
         FROM cross_branch_shift_requests cbr
-        JOIN branches rb ON cbr.requesting_branch_id = rb.id
-        JOIN users u ON cbr.requested_by_user_id = u.id
-        WHERE cbr.target_branch_id = ? 
-        AND cbr.status = 'pending'
-        AND cbr.expires_at > NOW()
+        JOIN branches rb ON cbr.requesting_branch_id=rb.id
+        JOIN users u ON cbr.requested_by_user_id=u.id
+        WHERE cbr.target_branch_id=? AND cbr.status='pending' AND cbr.expires_at>NOW()
         ORDER BY cbr.urgency_level DESC, cbr.created_at ASC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_branch_id]);
 $available_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get user's own requests
-// Show both pending and accepted requests for the sender
-$sql = "SELECT cbr.*, tb.name as target_branch_name, u_accept.username as accepted_by_username
+// Load my requests
+$sql = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username
         FROM cross_branch_shift_requests cbr
-        JOIN branches tb ON cbr.target_branch_id = tb.id
-        LEFT JOIN users u_accept ON cbr.accepted_by_user_id = u_accept.id
-        WHERE cbr.requested_by_user_id = ?
-        AND (cbr.status = 'pending' OR cbr.status = 'accepted')
+        JOIN branches tb ON cbr.target_branch_id=tb.id
+        LEFT JOIN users uf ON cbr.fulfilled_by_user_id=uf.id
+        WHERE cbr.requested_by_user_id=? AND cbr.status IN ('pending','fulfilled')
         ORDER BY cbr.created_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_id]);
 $my_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Check for messages
+// Flash messages
 $success_message = $_SESSION['success_message'] ?? null;
 $error_message = $_SESSION['error_message'] ?? null;
 unset($_SESSION['success_message'], $_SESSION['error_message']);
+
+// Render HTML view below…
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
