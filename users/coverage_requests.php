@@ -3,7 +3,17 @@ require_once '../includes/auth.php';
 requireLogin(); // Only logged-in users can access
 require_once '../functions/branch_functions.php';
 
+
 $user_id = $_SESSION['user_id'];
+
+// Fetch notifications for header dropdown
+require_once '../includes/notifications.php';
+$notifications = [];
+$notificationCount = 0;
+if ($user_id) {
+    $notifications = getNotifications($user_id);
+    $notificationCount = count($notifications);
+}
 
 // Get user's branch information
 $stmt = $conn->prepare("SELECT branch_id FROM users WHERE id = ?");
@@ -17,7 +27,48 @@ if (!$user_branch_id) {
     exit();
 }
 
+
 $user_branch = getUserHomeBranch($conn, $user_id);
+
+// Handle delete request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_request'])) {
+    $delete_id = $_POST['delete_request_id'];
+    // Only allow delete if the request belongs to the user
+    $stmt = $conn->prepare("DELETE FROM cross_branch_shift_requests WHERE id = ? AND requested_by_user_id = ?");
+    $stmt->execute([$delete_id, $user_id]);
+    $_SESSION['success_message'] = "Coverage request deleted.";
+    header("Location: coverage_requests.php");
+    exit();
+}
+
+// Handle edit request (show edit form)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_request'])) {
+    $edit_id = $_POST['edit_request_id'];
+    // Fetch the request to edit
+    $stmt = $conn->prepare("SELECT * FROM cross_branch_shift_requests WHERE id = ? AND requested_by_user_id = ?");
+    $stmt->execute([$edit_id, $user_id]);
+    $edit_request = $stmt->fetch(PDO::FETCH_ASSOC);
+    $show_edit_modal = true;
+}
+
+// Handle update after editing
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
+    $edit_id = $_POST['edit_id'];
+    $target_branch_id = $_POST['target_branch_id'];
+    $shift_date = $_POST['shift_date'];
+    $start_time = $_POST['start_time'];
+    $end_time = $_POST['end_time'];
+    $role_id = $_POST['role_id'] ?? null;
+    $urgency_level = $_POST['urgency_level'];
+    $description = $_POST['description'];
+    $expires_hours = $_POST['expires_hours'];
+    $expires_at = date('Y-m-d H:i:s', strtotime("+$expires_hours hours"));
+    $stmt = $conn->prepare("UPDATE cross_branch_shift_requests SET target_branch_id=?, shift_date=?, start_time=?, end_time=?, role_id=?, urgency_level=?, description=?, expires_at=? WHERE id=? AND requested_by_user_id=?");
+    $stmt->execute([$target_branch_id, $shift_date, $start_time, $end_time, $role_id, $urgency_level, $description, $expires_at, $edit_id, $user_id]);
+    $_SESSION['success_message'] = "Coverage request updated.";
+    header("Location: coverage_requests.php");
+    exit();
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -26,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $shift_date = $_POST['shift_date'];
         $start_time = $_POST['start_time'];
         $end_time = $_POST['end_time'];
-        $role_required = $_POST['role_required'];
+        $role_id = $_POST['role_id'];
         $urgency_level = $_POST['urgency_level'];
         $description = $_POST['description'];
         $expires_hours = $_POST['expires_hours'];
@@ -40,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'shift_date' => $shift_date,
             'start_time' => $start_time,
             'end_time' => $end_time,
-            'role_required' => $role_required,
+            'role_id' => $role_id,
             'urgency_level' => $urgency_level,
             'description' => $description,
             'requested_by_user_id' => $user_id,
@@ -65,18 +116,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $request_id = $_POST['request_id'];
 
         try {
-            // Check if user can fulfill this request (not from their own branch)
-            $stmt = $conn->prepare("SELECT requesting_branch_id FROM cross_branch_shift_requests WHERE id = ?");
+            // Fetch the full request details
+            $stmt = $conn->prepare("SELECT * FROM cross_branch_shift_requests WHERE id = ?");
             $stmt->execute([$request_id]);
             $request = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($request['requesting_branch_id'] == $user_branch_id) {
+            if (!$request) {
+                $_SESSION['error_message'] = "Coverage request not found.";
+            } elseif ($request['requesting_branch_id'] == $user_branch_id) {
                 $_SESSION['error_message'] = "You cannot offer coverage for your own branch's request.";
             } else {
-                fulfillCrossBranchRequest($conn, $request_id, $user_id, $user_id);
-                $_SESSION['success_message'] = "Coverage offer submitted successfully!";
+                // Only add the shift if fulfillCrossBranchRequest does NOT already add it
+                $result = fulfillCrossBranchRequest($conn, $request_id, $user_id, $user_id);
+                error_log('fulfillCrossBranchRequest result: ' . var_export($result, true));
+                if ($result === true || $result === 1) {
+                    // Mark the request as accepted and store the accepting user
+                    $update = $conn->prepare("UPDATE cross_branch_shift_requests SET status = 'accepted', accepted_by_user_id = ? WHERE id = ?");
+                    $update_success = $update->execute([$user_id, $request_id]);
+                    error_log('Update cross_branch_shift_requests: ' . var_export($update_success, true));
+
+                    // Check if the shift already exists for this user, date, and time to avoid duplicates
+                    $check = $conn->prepare("SELECT id FROM shifts WHERE user_id = ? AND shift_date = ? AND start_time = ? AND end_time = ? AND branch_id = ? AND role_id = ?");
+                    $check->execute([
+                        $user_id,
+                        $request['shift_date'],
+                        $request['start_time'],
+                        $request['end_time'],
+                        $user_branch_id,
+                        $request['role_id']
+                    ]);
+                    error_log('Shift exists rowCount: ' . $check->rowCount());
+                    if ($check->rowCount() == 0) {
+                        $sql = "INSERT INTO shifts (user_id, shift_date, start_time, end_time, branch_id, location, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                        $stmt = $conn->prepare($sql);
+                        $insert_success = $stmt->execute([
+                            $user_id,
+                            $request['shift_date'],
+                            $request['start_time'],
+                            $request['end_time'],
+                            $user_branch_id, // The user's branch, not the requesting branch
+                            'Cross-branch coverage',
+                            $request['role_id']
+                        ]);
+                        error_log('Inserted shift for user_id ' . $user_id . ' on ' . $request['shift_date'] . ' success: ' . var_export($insert_success, true));
+                    } else {
+                        error_log('Shift already exists for user_id ' . $user_id . ' on ' . $request['shift_date']);
+                    }
+                    $_SESSION['success_message'] = "Coverage offer submitted successfully!";
+                } else {
+                    $_SESSION['error_message'] = "Failed to fulfill coverage request.";
+                }
             }
         } catch (Exception $e) {
+            error_log('Coverage offer error: ' . $e->getMessage());
             $_SESSION['error_message'] = "Error: " . $e->getMessage();
         }
 
@@ -87,6 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all branches for dropdown (excluding user's branch)
 $all_branches = getAllBranches($conn);
+// Get all roles for dropdown
+$roles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 // Get available coverage requests (from other branches)
 $sql = "SELECT cbr.*, rb.name as requesting_branch_name, u.username as requested_by_username
@@ -102,11 +196,13 @@ $stmt->execute([$user_branch_id]);
 $available_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get user's own requests
-$sql = "SELECT cbr.*, tb.name as target_branch_name
+// Show both pending and accepted requests for the sender
+$sql = "SELECT cbr.*, tb.name as target_branch_name, u_accept.username as accepted_by_username
         FROM cross_branch_shift_requests cbr
         JOIN branches tb ON cbr.target_branch_id = tb.id
-        WHERE cbr.requested_by_user_id = ? 
-        AND cbr.status = 'pending'
+        LEFT JOIN users u_accept ON cbr.accepted_by_user_id = u_accept.id
+        WHERE cbr.requested_by_user_id = ?
+        AND (cbr.status = 'pending' OR cbr.status = 'accepted')
         ORDER BY cbr.created_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_id]);
@@ -134,223 +230,63 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .request-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            border-left: 4px solid #007bff;
-        }
-
-        .request-card.high-urgency {
-            border-left-color: #dc3545;
-        }
-
-        .request-card.medium-urgency {
-            border-left-color: #ffc107;
-        }
-
-        .request-card.low-urgency {
-            border-left-color: #28a745;
-        }
-
-        .request-card.critical-urgency {
-            border-left-color: #6f42c1;
-        }
-
-        .urgency-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .urgency-critical {
-            background: #6f42c1;
-            color: white;
-        }
-
-        .urgency-high {
-            background: #dc3545;
-            color: white;
-        }
-
-        .urgency-medium {
-            background: #ffc107;
-            color: #212529;
-        }
-
-        .urgency-low {
-            background: #28a745;
-            color: white;
-        }
-
-        .request-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 15px 0;
-        }
-
-        .detail-item {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 4px;
-        }
-
-        .detail-label {
-            font-weight: bold;
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-        }
-
-        .detail-value {
-            font-size: 16px;
-            margin-top: 5px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin: 2px;
-        }
-
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #ddd;
-            margin-bottom: 20px;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-        }
-
-        .tab.active {
-            border-bottom-color: #007bff;
-            background: #f8f9fa;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/coverage_requests.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 
 <body>
     <!-- Navigation Header -->
-    <div class="logo">
-        <img src="../images/logo.png" alt="Open Rota Logo">
-        <span>Open Rota</span>
-    </div>
+    <header style="opacity: 1; transition: opacity 0.5s ease;">
+        <div class="logo">Open Rota</div>
+        <div class="nav-group">
+            <div class="notification-container">
+                <!-- Bell Icon -->
+                <i class="fa fa-bell notification-icon" id="notification-icon"></i>
+                <?php if (isset($notificationCount) && $notificationCount > 0): ?>
+                    <span class="notification-badge"><?php echo $notificationCount; ?></span>
+                <?php endif; ?>
 
-    <div class="nav-group">
-        <div class="notification-icon" id="notification-icon">
-            <i class="fa fa-bell"></i>
+                <!-- Notifications Dropdown -->
+                <div class="notification-dropdown" id="notification-dropdown">
+                    <?php if (isset($notifications) && !empty($notifications)): ?>
+                        <?php foreach ($notifications as $notification): ?>
+                            <div class="notification-item notification-<?php echo $notification['type']; ?>"
+                                data-id="<?php echo $notification['id']; ?>">
+                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                    <a class="shit-invt"
+                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                    </a>
+                                <?php else: ?>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="notification-item">
+                            <p>No notifications</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+            <nav class="nav-links" id="nav-links">
+                <ul>
+                    <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
+                    <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
+                    <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
+                    <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
+                    <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                    <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+                    <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
+                </ul>
+            </nav>
         </div>
-
-        <div class="menu-toggle" id="menu-toggle">
-            ☰
-        </div>
-    </div>
-
-    <!-- Navigation Menu -->
-    <nav class="nav-links" id="nav-links">
-        <ul>
-            <li><a href="dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="shifts.php"><i class="fa fa-calendar-alt"></i> My Shifts</a></li>
-            <li><a href="rota.php"><i class="fa fa-calendar"></i> Rota</a></li>
-            <li><a href="roles.php"><i class="fa fa-briefcase"></i> Roles</a></li>
-            <li><a href="coverage_requests.php"><i class="fa fa-exchange-alt"></i> Coverage</a></li>
-            <li><a href="settings.php"><i class="fa fa-cogs"></i> Settings</a></li>
-            <li><a href="../functions/logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
-        </ul>
-    </nav>
+    </header>
 
     <div class="container">
         <h1><i class="fas fa-exchange-alt"></i> Shift Coverage</h1>
@@ -497,9 +433,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <input type="time" id="end_time" name="end_time" required>
                         </div>
                         <div class="form-group">
-                            <label for="role_required">Role/Position:</label>
-                            <input type="text" id="role_required" name="role_required"
-                                placeholder="e.g., Cashier, Manager, Sales Associate">
+                            <label for="role_id">Role/Position:</label>
+                            <select id="role_id" name="role_id" required>
+                                <option value="">Select a role...</option>
+                                <?php foreach ($roles as $role): ?>
+                                    <option value="<?php echo $role['id']; ?>">
+                                        <?php echo htmlspecialchars($role['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="description">Additional Details:</label>
@@ -546,12 +488,31 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">Role Required</div>
-                                <div class="detail-value"><?php echo htmlspecialchars($request['role_required'] ?: 'Any'); ?>
+                                <div class="detail-value">
+                                    <?php
+                                    $roleName = 'Any';
+                                    if (isset($request['role_id']) && $request['role_id']) {
+                                        foreach ($roles as $role) {
+                                            if ($role['id'] == $request['role_id']) {
+                                                $roleName = $role['name'];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    echo htmlspecialchars($roleName);
+                                    ?>
                                 </div>
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">Status</div>
-                                <div class="detail-value">Pending Response</div>
+                                <div class="detail-value">
+                                    <?php if ($request['status'] === 'accepted'): ?>
+                                        Accepted by
+                                        <?php echo htmlspecialchars($request['accepted_by_username'] ?: 'another user'); ?>
+                                    <?php else: ?>
+                                        Pending Response
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">Expires</div>
@@ -566,16 +527,116 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <?php echo nl2br(htmlspecialchars($request['description'])); ?>
                             </div>
                         <?php endif; ?>
+
+                        <div style="margin-top: 10px; text-align: right;">
+                            <form method="POST" style="display:inline;">
+                                <input type="hidden" name="edit_request_id" value="<?php echo $request['id']; ?>">
+                                <button type="submit" name="edit_request" class="btn btn-warning btn-sm"><i
+                                        class="fas fa-edit"></i> Edit</button>
+                            </form>
+                            <form method="POST" style="display:inline; margin-left: 8px;"
+                                onsubmit="return confirm('Are you sure you want to delete this request?');">
+                                <input type="hidden" name="delete_request_id" value="<?php echo $request['id']; ?>">
+                                <button type="submit" name="delete_request" class="btn btn-danger btn-sm"><i
+                                        class="fas fa-trash"></i> Delete</button>
+                            </form>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
+        <?php if (isset($show_edit_modal) && $show_edit_modal && isset($edit_request) && $edit_request): ?>
+            <div id="editRequestModal" class="modal"
+                style="display:block; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:2000;">
+                <div class="modal-content"
+                    style="background:#fff; margin:30px auto; padding:30px; border-radius:10px; max-width:500px; position:relative; max-height:90vh; overflow-y:auto;">
+                    <span class="close-modal" onclick="window.location.href='coverage_requests.php'"
+                        style="position:absolute; top:10px; right:18px; font-size:2rem; cursor:pointer;">&times;</span>
+                    <h3>Edit Coverage Request</h3>
+                    <form method="POST">
+                        <input type="hidden" name="edit_id" value="<?php echo htmlspecialchars($edit_request['id']); ?>">
+                        <div class="form-group">
+                            <label for="target_branch_id">Target Branch</label>
+                            <select name="target_branch_id" required>
+                                <?php foreach ($all_branches as $branch): ?>
+                                    <option value="<?php echo $branch['id']; ?>" <?php if ($edit_request['target_branch_id'] == $branch['id'])
+                                           echo 'selected'; ?>>
+                                        <?php echo htmlspecialchars($branch['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="shift_date">Shift Date</label>
+                            <input type="date" name="shift_date"
+                                value="<?php echo htmlspecialchars($edit_request['shift_date']); ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="start_time">Start Time</label>
+                            <input type="time" name="start_time"
+                                value="<?php echo htmlspecialchars($edit_request['start_time']); ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end_time">End Time</label>
+                            <input type="time" name="end_time"
+                                value="<?php echo htmlspecialchars($edit_request['end_time']); ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="role_id">Role Required</label>
+                            <select name="role_id" required>
+                                <?php foreach ($roles as $role): ?>
+                                    <option value="<?php echo $role['id']; ?>" <?php if ($edit_request['role_id'] == $role['id'])
+                                           echo 'selected'; ?>><?php echo htmlspecialchars($role['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="urgency_level">Urgency Level</label>
+                            <select name="urgency_level" required>
+                                <option value="low" <?php if ($edit_request['urgency_level'] == 'low')
+                                    echo 'selected'; ?>>Low</option>
+                                <option value="medium" <?php if ($edit_request['urgency_level'] == 'medium')
+                                    echo 'selected'; ?>>Medium</option>
+                                <option value="high" <?php if ($edit_request['urgency_level'] == 'high')
+                                    echo 'selected'; ?>>High</option>
+                                <option value="critical" <?php if ($edit_request['urgency_level'] == 'critical')
+                                    echo 'selected'; ?>>Critical</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea name="description"
+                                rows="3"><?php echo htmlspecialchars($edit_request['description']); ?></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="expires_hours">Expires In (hours)</label>
+                            <input type="number" name="expires_hours" min="1" max="168"
+                                value="<?php echo isset($edit_request['expires_at']) ? round((strtotime($edit_request['expires_at']) - time()) / 3600) : 24; ?>"
+                                required>
+                        </div>
+                        <button type="submit" name="update_request" class="btn btn-primary">Update Request</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="window.location.href='coverage_requests.php'">Cancel</button>
+                    </form>
+                </div>
+            </div>
+            <script>
+                // Close modal on outside click
+                window.onclick = function (event) {
+                    var modal = document.getElementById('editRequestModal');
+                    if (modal && event.target === modal) {
+                        window.location.href = 'coverage_requests.php';
+                    }
+                }
+            </script>
+        <?php endif; ?>
+    </div>
 
-        <div style="margin-top: 30px; text-align: center;">
-            <a href="dashboard.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Dashboard
-            </a>
-        </div>
+    <div style="margin-top: 30px; text-align: center;">
+        <a href="dashboard.php" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
     </div>
 
     <script>
@@ -596,8 +657,81 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             // Add active class to clicked tab
             event.target.classList.add('active');
         }
+
+        // Notification functionality
+        function markAsRead(element) {
+            const notificationId = element.getAttribute('data-id');
+            fetch('../functions/mark_notification.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: notificationId })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response data:', data); // Debug log
+                    if (data.success) {
+                        element.style.display = 'none';
+
+                        // Count remaining visible notifications more reliably
+                        const allNotifications = document.querySelectorAll('.notification-item[data-id]');
+                        let visibleCount = 0;
+
+                        allNotifications.forEach(notification => {
+                            const computedStyle = window.getComputedStyle(notification);
+                            if (computedStyle.display !== 'none') {
+                                visibleCount++;
+                            }
+                        });
+
+                        console.log('Total notifications with data-id:', allNotifications.length); // Debug log
+                        console.log('Visible notifications count:', visibleCount); // Debug log
+
+                        if (visibleCount === 0) {
+                            document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.style.display = 'none';
+                                console.log('Badge hidden - no notifications left'); // Debug log
+                            }
+                        } else {
+                            const badge = document.querySelector('.notification-badge');
+                            if (badge) {
+                                badge.textContent = visibleCount;
+                                badge.style.display = 'flex'; // Ensure badge is visible
+                                console.log('Badge updated to:', visibleCount); // Debug log
+                            }
+                        }
+                    } else {
+                        console.error('Failed to mark notification as read:', data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Notification setup
+            var notificationIcon = document.getElementById('notification-icon');
+            var dropdown = document.getElementById('notification-dropdown');
+
+            if (notificationIcon && dropdown) {
+                notificationIcon.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                if (dropdown && !dropdown.contains(e.target) && !notificationIcon.contains(e.target)) {
+                    dropdown.style.display = "none";
+                }
+            });
+        });
     </script>
     <script src="../js/menu.js"></script>
+    <script src="../js/pwa-debug.js"></script>
+    <script src="../js/links.js"></script>
 </body>
 
 </html>

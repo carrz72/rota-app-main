@@ -163,6 +163,12 @@ if ($user_id) {
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
         .card {
             background-color: white;
             border-radius: 12px;
