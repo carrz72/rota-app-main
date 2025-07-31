@@ -71,13 +71,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
 }
 
 // Handle form submissions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['create_request'])) {
-        $target_branch_id = $_POST['target_branch_id'];
-        $shift_date = $_POST['shift_date'];
-        $start_time = $_POST['start_time'];
-        $end_time = $_POST['end_time'];
-        $role_id = $_POST['role_id'];
+if (\$_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset(\$_POST['create_request'])) {
+        \$target_branch_id = \$_POST['target_branch_id'];
+        \$shift_date = \$_POST['shift_date'];
+        \$start_time = \$_POST['start_time'];
+        \$end_time = \$_POST['end_time'];
+        \$role_id = \$_POST['role_id'];
         $urgency_level = $_POST['urgency_level'];
         $description = $_POST['description'];
         $expires_hours = $_POST['expires_hours'];
