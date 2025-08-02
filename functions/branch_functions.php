@@ -96,10 +96,12 @@ function canUserAccessBranch($conn, $user_id, $branch_id, $required_level = 'vie
  */
 function createCrossBranchRequest($conn, $data)
 {
+    // ...debug output removed...
+
     $sql = "INSERT INTO cross_branch_shift_requests 
             (requesting_branch_id, target_branch_id, shift_date, start_time, end_time, 
-             role_required, urgency_level, description, requested_by_user_id, expires_at) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+             role_required, urgency_level, description, requested_by_user_id, expires_at, role_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $conn->prepare($sql);
     return $stmt->execute([
@@ -108,11 +110,12 @@ function createCrossBranchRequest($conn, $data)
         $data['shift_date'],
         $data['start_time'],
         $data['end_time'],
-        $data['role_required'],
+        null, // role_required is not used in user UI, so set to NULL
         $data['urgency_level'],
         $data['description'],
         $data['requested_by_user_id'],
-        $data['expires_at']
+        $data['expires_at'],
+        $data['role_id']
     ]);
 }
 

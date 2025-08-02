@@ -5,6 +5,7 @@ require_once '../includes/db.php';
 require_once '../includes/notifications.php';
 
 // Get user-specific data for header
+// Get user-specific data for header
 $user_id = $_SESSION['user_id'];
 $notifications = [];
 $notificationCount = 0;
@@ -12,6 +13,12 @@ if ($user_id) {
     $notifications = getNotifications($user_id);
     $notificationCount = count($notifications);
 }
+
+// Get user's branch
+$stmt = $conn->prepare("SELECT branch_id FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+$user_branch_id = $user['branch_id'] ?? null;
 
 // Determine filtering period from GET parameters (default to week)
 $period = $_GET['period'] ?? 'week';
@@ -27,22 +34,22 @@ if ($period === 'week') {
         $weekStart = date('Y-m-d', strtotime('last Saturday'));
     }
     $weekEnd = date('Y-m-d', strtotime("$weekStart +6 days"));
-    $periodSql = "shift_date BETWEEN :weekStart AND DATE_ADD(:weekStart, INTERVAL 6 DAY)";
+    $periodSql = "s.shift_date BETWEEN :weekStart AND DATE_ADD(:weekStart, INTERVAL 6 DAY)";
     $bindings = [':weekStart' => $weekStart];
 } elseif ($period === 'month') {
     $month = $_GET['month'] ?? date('n');
     $year = $_GET['year'] ?? date('Y');
-    $periodSql = "MONTH(shift_date) = :month AND YEAR(shift_date) = :year";
+    $periodSql = "MONTH(s.shift_date) = :month AND YEAR(s.shift_date) = :year";
     $bindings = [':month' => $month, ':year' => $year];
 } elseif ($period === 'year') {
     $year = $_GET['year'] ?? date('Y');
-    $periodSql = "YEAR(shift_date) = :year";
+    $periodSql = "YEAR(s.shift_date) = :year";
     $bindings = [':year' => $year];
 } else {
     // Default fallback
     $period = 'week';
     $weekStart = date('Y-m-d', strtotime('last Saturday'));
-    $periodSql = "shift_date BETWEEN :weekStart AND DATE_ADD(:weekStart, INTERVAL 6 DAY)";
+    $periodSql = "s.shift_date BETWEEN :weekStart AND DATE_ADD(:weekStart, INTERVAL 6 DAY)";
     $bindings = [':weekStart' => $weekStart];
 }
 
@@ -57,27 +64,26 @@ $locationStmt->execute();
 $allLocations = $locationStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Add filters for role and location
+
 $roleFilter = $_GET['role_filter'] ?? '';
-$locationFilter = $_GET['location_filter'] ?? '';
 
 // Modify the SQL query to include filters
+
 $filterConditions = [];
 if ($roleFilter) {
     $filterConditions[] = "r.id = :role_id";
     $bindings[':role_id'] = $roleFilter;
 }
-if ($locationFilter) {
-    $filterConditions[] = "s.location = :location";
-    $bindings[':location'] = $locationFilter;
-}
 
 // Combine all filter conditions
+// Always prefix shift_date with s.
 $sql = "WHERE $periodSql";
 if (!empty($filterConditions)) {
     $sql .= " AND " . implode(" AND ", $filterConditions);
 }
 
 // Query shifts for ALL users for the selected period
+// Only show shifts for user's branch, including cover shifts
 $query = "
     SELECT s.*, u.username, r.name AS role_name, r.base_pay, r.has_night_pay, 
            r.night_shift_pay, r.night_start_time, r.night_end_time
@@ -85,6 +91,7 @@ $query = "
     JOIN users u ON s.user_id = u.id
     JOIN roles r ON s.role_id = r.id
     $sql
+    AND s.branch_id = :user_branch_id
     ORDER BY s.shift_date ASC, s.start_time ASC
 ";
 
@@ -92,6 +99,7 @@ $stmt = $conn->prepare($query);
 foreach ($bindings as $param => $value) {
     $stmt->bindValue($param, $value);
 }
+$stmt->bindValue(':user_branch_id', $user_branch_id);
 $stmt->execute();
 $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -626,15 +634,20 @@ if ($period === 'week') {
                     </div>
 
                     <div class="filter-group">
-                        <label for="location_filter">Filter by Location:</label>
-                        <select name="location_filter" id="location_filter" onchange="this.form.submit()">
-                            <option value="">All Locations</option>
-                            <?php foreach ($allLocations as $location): ?>
-                                <option value="<?php echo $location['location']; ?>" <?php echo ($locationFilter == $location['location']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($location['location']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label>My Branch:</label>
+                        <div style="font-weight: bold; font-size: 16px; color: #3366cc; padding: 8px 0;">
+                            <?php 
+                            // Get branch name
+                            $branchName = '';
+                            if ($user_branch_id) {
+                                $branchStmt = $conn->prepare("SELECT name FROM branches WHERE id = ?");
+                                $branchStmt->execute([$user_branch_id]);
+                                $branchRow = $branchStmt->fetch(PDO::FETCH_ASSOC);
+                                $branchName = $branchRow ? $branchRow['name'] : '';
+                            }
+                            echo htmlspecialchars($branchName);
+                            ?>
+                        </div>
                     </div>
                 </div>
 

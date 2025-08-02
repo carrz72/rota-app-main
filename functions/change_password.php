@@ -47,22 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <link rel="stylesheet" href="../css/loginandregister.css">
     <link rel="stylesheet" href="../css/change_Password.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        @font-face {
-            font-family: 'newFont';
-            src: url('../fonts/CooperHewitt-Book.otf') format('opentype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        body {
-            font-family: 'newFont', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
-    </style>
+    <!-- Unified style: Use only the main app font and background from loginandregister.css -->
 </head>
 
 <body>

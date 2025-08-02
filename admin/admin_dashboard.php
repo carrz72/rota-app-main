@@ -44,13 +44,20 @@ $branchFilter = $_GET['branch_filter'] ?? 'all';
 $whereClause = '';
 $params = [];
 if ($isSuperAdmin) {
-    // Super admin can see all users and filter by branch
+    // Super admin can see all users and filter by branch (support multiple branches)
     if ($branchFilter !== 'all') {
         if ($branchFilter === 'none') {
             $whereClause = 'WHERE u.branch_id IS NULL';
         } else {
-            $whereClause = 'WHERE u.branch_id = ?';
-            $params[] = $branchFilter;
+            $branchIds = array_filter(explode(',', $branchFilter), function($id) { return $id !== ''; });
+            if (count($branchIds) > 1) {
+                $inClause = implode(',', array_fill(0, count($branchIds), '?'));
+                $whereClause = 'WHERE u.branch_id IN (' . $inClause . ')';
+                $params = array_merge($params, $branchIds);
+            } else {
+                $whereClause = 'WHERE u.branch_id = ?';
+                $params[] = $branchFilter;
+            }
         }
     }
 } else {
@@ -81,6 +88,29 @@ $branches = $conn->query("SELECT id, name, code FROM branches WHERE status = 'ac
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
     $userId = $_POST['user_id'];
     $newRole = $_POST['role'];
+
+    // Only allow super_admin to assign super_admin role, and prevent non-super_admins from assigning it
+    if ($newRole === 'super_admin' && !$isSuperAdmin) {
+        $_SESSION['error_message'] = "Only a super admin can assign the super admin role.";
+        header("Location: admin_dashboard.php");
+        exit();
+    }
+
+    // Prevent demoting the last super admin
+    if ($newRole !== 'super_admin') {
+        // Check if this is the last super admin
+        $stmtCheck = $conn->prepare("SELECT COUNT(*) FROM users WHERE role = 'super_admin'");
+        $stmtCheck->execute();
+        $superAdminCount = $stmtCheck->fetchColumn();
+        $stmtCurrent = $conn->prepare("SELECT role FROM users WHERE id = ?");
+        $stmtCurrent->execute([$userId]);
+        $currentRole = $stmtCurrent->fetchColumn();
+        if ($currentRole === 'super_admin' && $superAdminCount <= 1) {
+            $_SESSION['error_message'] = "You cannot demote the last super admin.";
+            header("Location: admin_dashboard.php");
+            exit();
+        }
+    }
 
     $stmt = $conn->prepare("UPDATE users SET role = ? WHERE id = ?");
     if ($stmt->execute([$newRole, $userId])) {
@@ -342,19 +372,248 @@ if ($viewType === 'week') {
                 <div class="panel-controls">
                     <?php if ($isSuperAdmin): ?>
                         <div class="filter-group">
-                            <label for="branch-filter">Filter by Branch:</label>
-                            <form method="GET" style="display: inline-block;">
-                                <select name="branch_filter" id="branch-filter" onchange="this.form.submit()" class="form-control-inline">
-                                    <option value="all" <?php echo $branchFilter === 'all' ? 'selected' : ''; ?>>All Branches</option>
-                                    <option value="none" <?php echo $branchFilter === 'none' ? 'selected' : ''; ?>>No Branch Assigned</option>
-                                    <?php foreach ($branches as $branch): ?>
-                                        <option value="<?php echo $branch['id']; ?>" <?php echo $branchFilter == $branch['id'] ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($branch['name']); ?> (<?php echo htmlspecialchars($branch['code']); ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                            <label for="branch-multiselect">Filter by Branch:</label>
+                            <form method="GET" id="branch-multiselect-form" style="display: inline-block;" onsubmit="return submitBranchMultiSelect();">
+                                <div id="branch-multiselect-container" class="multiselect-container">
+                                    <div id="branch-tags" class="multiselect-tags" onclick="document.getElementById('branch-multiselect-search').focus();"></div>
+                                    <input type="text" id="branch-multiselect-search" class="form-control-inline multiselect-search" placeholder="Tap to select up to 5 branches" onkeyup="filterBranchMultiOptions()" autocomplete="off">
+                                    <button type="button" id="branch-multiselect-clear" class="multiselect-clear-btn" title="Clear selection" style="display:none;" onclick="clearBranchMultiSelect(event)"><i class="fas fa-times-circle"></i></button>
+                                    <div id="branch-multiselect-dropdown" class="multiselect-dropdown" style="display:none;"></div>
+                                </div>
+                                <input type="hidden" name="branch_filter" id="branch-multiselect-value" value="<?php echo htmlspecialchars($branchFilter); ?>">
                             </form>
                         </div>
+                        <style>
+                        .multiselect-container {
+                            position: relative;
+                            display: flex;
+                            flex-wrap: wrap;
+                            align-items: center;
+                            background: #fff;
+                            border: 1.5px solid #b6b6b6;
+                            border-radius: 8px;
+                            min-height: 40px;
+                            padding: 3px 8px 3px 8px;
+                            cursor: text;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+                            transition: border-color 0.2s;
+                        }
+                        .multiselect-container:focus-within {
+                            border-color: #198754;
+                        }
+                        .multiselect-tags {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 4px;
+                            margin-right: 4px;
+                        }
+                        .multiselect-tag {
+                            background: linear-gradient(90deg, #e9ecef 60%, #f8f9fa 100%);
+                            border-radius: 4px;
+                            padding: 2px 8px 2px 6px;
+                            font-size: 13px;
+                            margin: 2px 0;
+                            display: flex;
+                            align-items: center;
+                            border: 1px solid #d1e7dd;
+                        }
+                        .multiselect-tag .remove-tag {
+                            margin-left: 6px;
+                            color: #dc3545;
+                            cursor: pointer;
+                            font-weight: bold;
+                            font-size: 15px;
+                        }
+                        .multiselect-search {
+                            border: none;
+                            outline: none;
+                            width: 140px;
+                            min-width: 80px;
+                            font-size: 14px;
+                            background: transparent;
+                            margin-left: 2px;
+                            margin-right: 2px;
+                        }
+                        .multiselect-clear-btn {
+                            background: none;
+                            border: none;
+                            color: #888;
+                            font-size: 18px;
+                            margin-left: 2px;
+                            margin-right: 2px;
+                            cursor: pointer;
+                            align-self: center;
+                            transition: color 0.2s;
+                        }
+                        .multiselect-clear-btn:hover {
+                            color: #dc3545;
+                        }
+                        .multiselect-dropdown {
+                            position: absolute;
+                            top: 100%;
+                            left: 0;
+                            right: 0;
+                            background: #fff;
+                            border: 1.5px solid #b6b6b6;
+                            border-radius: 0 0 8px 8px;
+                            z-index: 10;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+                        }
+                        .multiselect-option {
+                            padding: 9px 14px;
+                            cursor: pointer;
+                            font-size: 15px;
+                            border-bottom: 1px solid #f1f1f1;
+                            transition: background 0.15s;
+                        }
+                        .multiselect-option:last-child {
+                            border-bottom: none;
+                        }
+                        .multiselect-option:hover {
+                            background: #f8f9fa;
+                        }
+                        .multiselect-option.selected {
+                            background: #d1e7dd;
+                            color: #198754;
+                            font-weight: bold;
+                        }
+                        </style>
+                        <script>
+                        // Branch data for JS
+                        const branchMultiOptions = [
+                            { id: 'all', label: 'All Branches' },
+                            { id: 'none', label: 'No Branch Assigned' },
+                            <?php foreach ($branches as $branch): ?>
+                            { id: '<?php echo $branch['id']; ?>', label: '<?php echo addslashes(htmlspecialchars($branch['name'] . " (" . $branch['code'] . ")")); ?>' },
+                            <?php endforeach; ?>
+                        ];
+                        let branchMultiSelected = [];
+                        // Parse initial value from PHP
+                        (function(){
+                            let val = '<?php echo addslashes($branchFilter); ?>';
+                            if (val === '' || val === 'all') branchMultiSelected = ['all'];
+                            else if (val === 'none') branchMultiSelected = ['none'];
+                            else branchMultiSelected = val.split(',').filter(Boolean);
+                        })();
+                        function renderBranchMultiSelect(triggerSubmit = false) {
+                            const tagsDiv = document.getElementById('branch-tags');
+                            tagsDiv.innerHTML = '';
+    branchMultiSelected.forEach(id => {
+        const opt = branchMultiOptions.find(o => o.id == id);
+        if (opt) {
+            const tag = document.createElement('span');
+            tag.className = 'multiselect-tag';
+            tag.textContent = opt.label;
+            if (id !== 'all' && id !== 'none') {
+                const remove = document.createElement('span');
+                remove.className = 'remove-tag';
+                remove.innerHTML = '&times;';
+                remove.onclick = function(e) {
+                    e.stopPropagation();
+                    branchMultiSelected = branchMultiSelected.filter(x => x != id);
+                    // If all tags are removed, default to 'all'
+                    if (branchMultiSelected.length === 0) {
+                        branchMultiSelected = ['all'];
+                    }
+                    renderBranchMultiSelect(true);
+                    updateClearBtn();
+                };
+                tag.appendChild(remove);
+            }
+            tagsDiv.appendChild(tag);
+        }
+    });
+    // If all tags were removed by other means, also default to 'all'
+    if (branchMultiSelected.length === 0) {
+        branchMultiSelected = ['all'];
+    }
+    document.getElementById('branch-multiselect-value').value = branchMultiSelected.join(',');
+    updateClearBtn();
+    if (triggerSubmit) {
+        autoSubmitBranchMultiForm();
+    }
+                        }
+                        function filterBranchMultiOptions() {
+                            const search = document.getElementById('branch-multiselect-search').value.toLowerCase();
+                            const dropdown = document.getElementById('branch-multiselect-dropdown');
+                            dropdown.innerHTML = '';
+                            let shown = 0;
+                            branchMultiOptions.forEach(opt => {
+                                if (opt.id === 'all' || opt.id === 'none' || (opt.label.toLowerCase().indexOf(search) > -1)) {
+                                    const div = document.createElement('div');
+                                    div.className = 'multiselect-option' + (branchMultiSelected.includes(opt.id) ? ' selected' : '');
+                                    div.textContent = opt.label;
+                                    div.onclick = function() {
+                                        if (opt.id === 'all') {
+                                            branchMultiSelected = ['all'];
+                                        } else if (opt.id === 'none') {
+                                            branchMultiSelected = ['none'];
+                                        } else {
+                                            if (branchMultiSelected.includes('all') || branchMultiSelected.includes('none')) branchMultiSelected = [];
+                                            if (branchMultiSelected.includes(opt.id)) {
+                                                branchMultiSelected = branchMultiSelected.filter(x => x != opt.id);
+                                            } else if (branchMultiSelected.length < 5) {
+                                                branchMultiSelected.push(opt.id);
+                                            }
+                                        }
+                                        renderBranchMultiSelect(true);
+                                        filterBranchMultiOptions();
+                                    };
+                                    dropdown.appendChild(div);
+                                    shown++;
+                                }
+                            });
+                            dropdown.style.display = shown ? 'block' : 'none';
+                        }
+                        function showBranchMultiDropdown() {
+                            filterBranchMultiOptions();
+                            document.getElementById('branch-multiselect-dropdown').style.display = 'block';
+                        }
+                        function hideBranchMultiDropdown() {
+                            setTimeout(() => {
+                                document.getElementById('branch-multiselect-dropdown').style.display = 'none';
+                            }, 150);
+                        }
+                        function submitBranchMultiSelect() {
+                            // If nothing selected, default to all
+                            if (!branchMultiSelected.length) branchMultiSelected = ['all'];
+                            document.getElementById('branch-multiselect-value').value = branchMultiSelected.join(',');
+                            return true;
+                        }
+                        function clearBranchMultiSelect(e) {
+                            e.preventDefault();
+                            branchMultiSelected = ['all'];
+                            renderBranchMultiSelect(true);
+                            filterBranchMultiOptions();
+                        }
+                        function autoSubmitBranchMultiForm() {
+                            document.getElementById('branch-multiselect-form').submit();
+                        }
+                        function updateClearBtn() {
+                            const clearBtn = document.getElementById('branch-multiselect-clear');
+                            if (!clearBtn) return;
+                            if (branchMultiSelected.length && !(branchMultiSelected.length === 1 && branchMultiSelected[0] === 'all')) {
+                                clearBtn.style.display = '';
+                            } else {
+                                clearBtn.style.display = 'none';
+                            }
+                        }
+                        document.addEventListener('DOMContentLoaded', function() {
+                            renderBranchMultiSelect();
+                            const search = document.getElementById('branch-multiselect-search');
+                            const container = document.getElementById('branch-multiselect-container');
+                            search.addEventListener('focus', showBranchMultiDropdown);
+                            search.addEventListener('blur', hideBranchMultiDropdown);
+                            container.addEventListener('click', function(e) {
+                                if (e.target.classList.contains('multiselect-clear-btn')) return;
+                                search.focus();
+                                showBranchMultiDropdown();
+                            });
+                            updateClearBtn();
+                        });
+                        </script>
                     <?php else: ?>
                         <div class="branch-info">
                             <i class="fas fa-info-circle"></i>
@@ -414,16 +673,20 @@ if ($viewType === 'week') {
                                             <?php echo ucfirst(htmlspecialchars($user['role'])); ?>
                                         </span>
                                         <div class="quick-update-form">
-                                            <form method="POST" class="inline-form">
-                                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                                <select name="role" class="mini-select" onchange="this.form.submit()" title="Change user role">
-                                                    <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User</option>
-                                                    <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                                                </select>
-                                                <button type="submit" name="update_role" class="mini-btn" title="Update role">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                            </form>
+<form method="POST" class="inline-form" onsubmit="return true;">
+    <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+    <input type="hidden" name="update_role" value="1">
+    <select name="role" class="mini-select" title="Change user role">
+        <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User</option>
+        <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
+        <?php if ($isSuperAdmin): ?>
+        <option value="super_admin" <?php echo $user['role'] === 'super_admin' ? 'selected' : ''; ?>>Super Admin</option>
+        <?php endif; ?>
+    </select>
+    <button type="submit" class="mini-btn" title="Update role">
+        <i class="fas fa-check"></i>
+    </button>
+</form>
                                         </div>
                                     </div>
                                 </td>
@@ -444,7 +707,7 @@ if ($viewType === 'week') {
                                         <div class="quick-update-form">
                                             <form method="POST" class="inline-form">
                                                 <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                                <select name="branch_id" class="mini-select" onchange="this.form.submit()" title="Change branch assignment">
+<select name="branch_id" class="mini-select" title="Change branch assignment">
                                                     <option value="">No Branch</option>
                                                     <?php foreach ($branches as $branch): ?>
                                                         <option value="<?php echo $branch['id']; ?>" 
@@ -472,12 +735,8 @@ if ($viewType === 'week') {
                                             <i class="fas fa-plus"></i>
                                             <span>Add</span>
                                         </a>
-                                        <a href="edit_user.php?id=<?php echo $user['id']; ?>" 
-                                           class="action-btn edit" title="Edit user details">
-                                            <i class="fas fa-edit"></i>
-                                            <span>Edit</span>
-                                        </a>
-                                        <button onclick="confirmDelete(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
+                                        <!-- Edit button removed as requested -->
+                                        <button type="button" onclick="confirmDelete(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
                                                 class="action-btn delete" title="Delete user">
                                             <i class="fas fa-trash"></i>
                                             <span>Delete</span>
@@ -657,14 +916,7 @@ if ($viewType === 'week') {
             select.addEventListener('change', function() {
                 this.style.background = '#fff3cd';
                 this.style.borderColor = '#ffc107';
-                setTimeout(() => {
-                    // Show loading state
-                    const button = this.parentNode.querySelector('.mini-btn');
-                    if (button) {
-                        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                        button.disabled = true;
-                    }
-                }, 100);
+                // No button disabling or spinner here
             });
         });
 

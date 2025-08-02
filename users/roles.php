@@ -8,13 +8,16 @@ if (!isset($_SESSION['user_id'])) {
 require_once '../includes/db.php';
 require_once '../includes/auth.php';
 require_once '../includes/notifications.php';
+require_once '../includes/PermissionManager.php';
+
+$user_id = $_SESSION['user_id'];
+$permissions = new PermissionManager($conn, $user_id);
 
 // Fetch all roles globally for every user
 $stmt = $conn->query("SELECT * FROM roles ORDER BY name ASC");
 $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get user-specific data for header
-$user_id = $_SESSION['user_id'];
 $notifications = [];
 $notificationCount = 0;
 if ($user_id) {
@@ -91,7 +94,7 @@ if ($user_id) {
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-                <?php if ($_SESSION['role'] === 'admin'): ?>
+                <?php if ($permissions->isAdmin()): ?>
                     <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
                 <?php endif; ?>
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
@@ -147,13 +150,6 @@ if ($user_id) {
                                         <div class="pay-label"><i class="fa fa-money"></i> Hourly Rate:</div>
                                         <div class="pay-value">£<?php echo number_format($role['base_pay'], 2); ?> per hour</div>
                                     </div>
-                                <?php else: ?>
-                                    <!-- Monthly Salary -->
-                                    <div class="pay-detail">
-                                        <div class="pay-label"><i class="fa fa-money"></i> Monthly Salary:</div>
-                                        <div class="pay-value">£<?php echo number_format($role['monthly_salary'], 2); ?> per month
-                                        </div>
-                                    </div>
                                 <?php endif; ?>
 
                                 <!-- Night Shift Pay (if applicable and hourly) -->
@@ -173,15 +169,17 @@ if ($user_id) {
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <div class="role-actions">
-                            <button class="action-btn edit-btn" onclick="editRole(<?php echo $role['id']; ?>)">
-                                <i class="fa fa-pencil"></i> Edit
-                            </button>
-                            <button class="action-btn delete-btn"
-                                onclick="confirmDelete(<?php echo $role['id']; ?>, '<?php echo htmlspecialchars($role['name']); ?>')">
-                                <i class="fa fa-trash"></i> Delete
-                            </button>
-                        </div>
+                        <?php if ($permissions->canManageRoles()): ?>
+                            <div class="role-actions">
+                                <button class="action-btn edit-btn" onclick="editRole(<?php echo $role['id']; ?>)">
+                                    <i class="fa fa-pencil"></i> Edit
+                                </button>
+                                <button class="action-btn delete-btn"
+                                    onclick="confirmDelete(<?php echo $role['id']; ?>, '<?php echo htmlspecialchars($role['name']); ?>')">
+                                    <i class="fa fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
@@ -190,73 +188,75 @@ if ($user_id) {
         </section>
 
         <!-- Add New Role Form -->
-        <section class="form-card">
-            <h2><i class="fa fa-plus-circle"></i> Add New Role</h2>
-            <form action="../functions/create_role.php" method="POST" id="roleForm">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="name">Role Name:</label>
-                        <input type="text" id="name" name="name" required placeholder="e.g. Manager, Server, Barista">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="employment_type">Employment Type:</label>
-                        <select id="employment_type" name="employment_type" onchange="togglePayFields()" required>
-                            <option value="hourly">Hourly Staff</option>
-                            <option value="salaried">Salaried Staff</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group" id="hourly_pay_group">
-                        <label for="base_pay">Hourly Rate (£):</label>
-                        <input type="number" step="0.01" min="0" id="base_pay" name="base_pay" placeholder="e.g. 10.50">
-                    </div>
-
-                    <div class="form-group" id="salary_pay_group" style="display: none;">
-                        <label for="monthly_salary">Monthly Salary (£):</label>
-                        <input type="number" step="0.01" min="0" id="monthly_salary" name="monthly_salary"
-                            placeholder="e.g. 2500.00">
-                    </div>
-
-                    <div class="form-full-width" id="night_pay_toggle">
-                        <div class="toggle-container">
-                            <label for="has_night_pay">Enable Night Shift Pay (Hourly Only):</label>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="has_night_pay" name="has_night_pay"
-                                    onclick="toggleNightPayFields()">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="night_pay_fields" style="display: none; margin-top: 20px;">
-                    <h3>Night Shift Settings</h3>
-                    <div class="night-pay-grid">
+        <?php if ($permissions->canManageRoles()): ?>
+            <section class="form-card">
+                <h2><i class="fa fa-plus-circle"></i> Add New Role</h2>
+                <form action="../functions/create_role.php" method="POST" id="roleForm">
+                    <div class="form-grid">
                         <div class="form-group">
-                            <label for="night_shift_pay">Night Shift Pay Rate (£):</label>
-                            <input type="number" step="0.01" min="0" id="night_shift_pay" name="night_shift_pay"
-                                placeholder="e.g. 12.50">
+                            <label for="name">Role Name:</label>
+                            <input type="text" id="name" name="name" required placeholder="e.g. Manager, Server, Barista">
                         </div>
 
                         <div class="form-group">
-                            <label for="night_start_time">Night Shift Starts At:</label>
-                            <input type="time" id="night_start_time" name="night_start_time">
+                            <label for="employment_type">Employment Type:</label>
+                            <select id="employment_type" name="employment_type" onchange="togglePayFields()" required>
+                                <option value="hourly">Hourly Staff</option>
+                                <option value="salaried">Salaried Staff</option>
+                            </select>
                         </div>
 
-                        <div class="form-group">
-                            <label for="night_end_time">Night Shift Ends At:</label>
-                            <input type="time" id="night_end_time" name="night_end_time">
+                        <div class="form-group" id="hourly_pay_group">
+                            <label for="base_pay">Hourly Rate (£):</label>
+                            <input type="number" step="0.01" min="0" id="base_pay" name="base_pay" placeholder="e.g. 10.50">
+                        </div>
+
+                        <div class="form-group" id="salary_pay_group" style="display: none;">
+                            <label for="monthly_salary">Monthly Salary (£):</label>
+                            <input type="number" step="0.01" min="0" id="monthly_salary" name="monthly_salary"
+                                placeholder="e.g. 2500.00">
+                        </div>
+
+                        <div class="form-full-width" id="night_pay_toggle">
+                            <div class="toggle-container">
+                                <label for="has_night_pay">Enable Night Shift Pay (Hourly Only):</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="has_night_pay" name="has_night_pay"
+                                        onclick="toggleNightPayFields()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="form-footer">
-                    <button type="button" class="action-btn" onclick="resetForm()">Reset</button>
-                    <button type="submit" class="action-btn">Create Role</button>
-                </div>
-            </form>
-        </section>
+                    <div id="night_pay_fields" style="display: none; margin-top: 20px;">
+                        <h3>Night Shift Settings</h3>
+                        <div class="night-pay-grid">
+                            <div class="form-group">
+                                <label for="night_shift_pay">Night Shift Pay Rate (£):</label>
+                                <input type="number" step="0.01" min="0" id="night_shift_pay" name="night_shift_pay"
+                                    placeholder="e.g. 12.50">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="night_start_time">Night Shift Starts At:</label>
+                                <input type="time" id="night_start_time" name="night_start_time">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="night_end_time">Night Shift Ends At:</label>
+                                <input type="time" id="night_end_time" name="night_end_time">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-footer">
+                        <button type="button" class="action-btn" onclick="resetForm()">Reset</button>
+                        <button type="submit" class="action-btn">Create Role</button>
+                    </div>
+                </form>
+            </section>
+        <?php endif; ?>
 
         <div style="margin-top: 20px; text-align: center;">
             <a href="dashboard.php">Back to Dashboard</a>

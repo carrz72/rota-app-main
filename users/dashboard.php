@@ -798,7 +798,7 @@ foreach ($days_result as $day) {
                     <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                     <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                     <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-                    <?php if ($_SESSION['role'] === 'admin'): ?>
+                    <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
                         <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
                     <?php endif; ?>
                     <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
@@ -824,7 +824,7 @@ foreach ($days_result as $day) {
                 <a href="payroll.php"><i class="fa fa-money"></i> Payroll</a>
                 <a href="coverage_requests.php"><i class="fa fa-exchange"></i> Coverage Requests</a>
                 <a href="settings.php"><i class="fa fa-cog"></i> Settings</a>
-                <?php if ($_SESSION['role'] === 'admin'): ?>
+                <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
                     <a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a>
                 <?php endif; ?>
             </div>
@@ -1049,7 +1049,7 @@ foreach ($days_result as $day) {
             <?php endif; ?>
         </div>
 
-        <?php if ($_SESSION['role'] === 'admin'): ?>
+        <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
             <!-- Admin Quick Access -->
             <div class="dashboard-card">
                 <h3><i class="fas fa-shield-alt"></i> Admin Tools</h3>
