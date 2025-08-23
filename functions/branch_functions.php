@@ -98,21 +98,12 @@ function canUserAccessBranch($conn, $user_id, $branch_id, $required_level = 'vie
  */
 function createCrossBranchRequest($conn, $data)
 {
-    // Determine role_required text and role_id (if provided)
-    $role_id = isset($data['role_id']) && $data['role_id'] !== '' ? (int)$data['role_id'] : null;
-    $role_required = null;
-    if ($role_id) {
-        $rstmt = $conn->prepare("SELECT name FROM roles WHERE id = ? LIMIT 1");
-        $rstmt->execute([$role_id]);
-        $role_required = $rstmt->fetchColumn();
-    } elseif (isset($data['role_required'])) {
-        $role_required = $data['role_required'];
-    }
+    // ...debug output removed...
 
     $sql = "INSERT INTO cross_branch_shift_requests 
             (requesting_branch_id, target_branch_id, shift_date, start_time, end_time, 
-             role_required, urgency_level, description, requested_by_user_id, expires_at, role_id, source_shift_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+             role_required, urgency_level, description, requested_by_user_id, expires_at, role_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $conn->prepare($sql);
     $ok = $stmt->execute([
@@ -121,47 +112,13 @@ function createCrossBranchRequest($conn, $data)
         $data['shift_date'],
         $data['start_time'],
         $data['end_time'],
-        $role_required,
+        null, // role_required is not used in user UI, so set to NULL
         $data['urgency_level'],
         $data['description'],
-    $data['requested_by_user_id'],
+        $data['requested_by_user_id'],
         $data['expires_at'],
-        $role_id
-    , isset($data['source_shift_id']) && $data['source_shift_id'] ? (int)$data['source_shift_id'] : null
+        $data['role_id']
     ]);
-
-    // If insert succeeded, notify target branch admins about the new request (best-effort)
-    if ($ok) {
-        try {
-            $requestId = (int)$conn->lastInsertId();
-            // Get friendly branch names
-            $rbStmt = $conn->prepare("SELECT name FROM branches WHERE id = ? LIMIT 1");
-            $rbStmt->execute([$data['requesting_branch_id']]);
-            $requestingBranchName = $rbStmt->fetchColumn() ?: 'a branch';
-
-            $tbStmt = $conn->prepare("SELECT name FROM branches WHERE id = ? LIMIT 1");
-            $tbStmt->execute([$data['target_branch_id']]);
-            $targetBranchName = $tbStmt->fetchColumn() ?: 'your branch';
-
-            $msg = "New coverage request for {$data['shift_date']} {$data['start_time']}-{$data['end_time']} from {$requestingBranchName}";
-
-            // Find admins for the target branch: branch-local admins (role) and explicit branch_permissions with admin level
-            $admSql = "(SELECT id, username FROM users WHERE branch_id = ? AND role IN ('admin','super_admin'))
-                       UNION
-                       (SELECT u.id, u.username FROM users u JOIN branch_permissions bp ON bp.user_id = u.id WHERE bp.branch_id = ? AND bp.permission_level = 'admin')";
-            $admStmt = $conn->prepare($admSql);
-            $admStmt->execute([$data['target_branch_id'], $data['target_branch_id']]);
-            $admins = $admStmt->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($admins as $a) {
-                try { addNotification($conn, (int)$a['id'], $msg, 'info', $requestId); } catch (Exception $e) { error_log('Failed to notify branch admin: ' . $e->getMessage()); }
-            }
-        } catch (Exception $e) {
-            error_log('Failed to send branch admin notifications for new cross-branch request: ' . $e->getMessage());
-        }
-    }
-
-    return $ok;
-    // Note: caller receives boolean; we should also record audit after creation in caller context if needed.
 }
 
 /**

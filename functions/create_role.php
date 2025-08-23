@@ -1,6 +1,8 @@
 <?php
 session_start();
-include '../includes/db.php';
+
+require_once '../includes/db.php';
+require_once '../includes/PermissionManager.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -9,36 +11,41 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Only admin users may create roles
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    $_SESSION['error'] = "Only administrators can create roles.";
+$permissions = new PermissionManager($conn, $_SESSION['user_id']);
+if (!$permissions->canManageRoles()) {
+    $_SESSION['error'] = "Only admins or super admins can manage roles.";
     header("Location: ../users/roles.php");
     exit;
 }
 
-// Validate required input (basic)
-if (empty($_POST['name'])) {
+// Validate required input
+
+$employment_type = $_POST['employment_type'] ?? 'hourly';
+$name = trim($_POST['name'] ?? '');
+if (empty($name)) {
     $_SESSION['error'] = "Invalid role name.";
     header("Location: ../users/roles.php");
     exit;
+}
+if ($employment_type === 'hourly') {
+    if (!isset($_POST['base_pay']) || !is_numeric($_POST['base_pay']) || $_POST['base_pay'] < 0) {
+        $_SESSION['error'] = "Invalid hourly rate for hourly role.";
+        header("Location: ../users/roles.php");
+        exit;
+    }
+} elseif ($employment_type === 'salaried') {
+    if (!isset($_POST['monthly_salary']) || !is_numeric($_POST['monthly_salary']) || $_POST['monthly_salary'] < 0) {
+        $_SESSION['error'] = "Invalid monthly salary for salaried role.";
+        header("Location: ../users/roles.php");
+        exit;
+    }
 }
 
 $user_id = $_SESSION['user_id'];
 $name = trim($_POST['name']);
 $employment_type = $_POST['employment_type'] ?? 'hourly';
-$base_pay = 0.0; // default to 0 for salaried roles (DB requires non-null)
-$monthly_salary = null;
-if ($employment_type === 'hourly') {
-    $base_pay = isset($_POST['base_pay']) ? (float) $_POST['base_pay'] : 0.0;
-} else {
-    // Expect annual salary from the form; convert to monthly for DB storage
-    $annual_salary = isset($_POST['annual_salary']) ? $_POST['annual_salary'] : null;
-    if ($annual_salary !== null && $annual_salary !== '') {
-        $monthly_salary = (float)$annual_salary / 12.0;
-    }
-    // ensure base_pay is numeric and non-null for DB constraints
-    $base_pay = 0.0;
-}
+$base_pay = $employment_type === 'hourly' ? (float) $_POST['base_pay'] : 0;
+$monthly_salary = $employment_type === 'salaried' ? (float) $_POST['monthly_salary'] : null;
 $has_night_pay = isset($_POST['has_night_pay']) ? 1 : 0;
 
 // Validate based on employment type

@@ -99,7 +99,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_request'])) {
 // Handle update after editing
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
     $edit_id = $_POST['edit_id'];
-    $target_branch_id = $_POST['target_branch_id'];
+    $target_branch_ids = isset($_POST['target_branch_ids']) ? $_POST['target_branch_ids'] : '';
+    if (is_string($target_branch_ids)) {
+        $target_branch_ids = array_filter(explode(',', $target_branch_ids));
+    }
+    if (!is_array($target_branch_ids) || count($target_branch_ids) === 0) {
+        $_SESSION['error_message'] = "Please select a branch.";
+        header("Location: coverage_requests.php");
+        exit();
+    }
+    $target_branch_id = $target_branch_ids[0]; // Only one allowed for edit
     $shift_date = $_POST['shift_date'];
     $start_time = $_POST['start_time'];
     $end_time = $_POST['end_time'];
@@ -144,47 +153,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
 
 // Handle create request (supports selecting up to 5 target branches)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
-    $raw_target_ids = $_POST['target_branch_ids'] ?? '';
-    $target_branch_ids = array_filter(array_map('intval', explode(',', $raw_target_ids)));
-    // Limit to 5
-    $target_branch_ids = array_slice($target_branch_ids, 0, 5);
-    if (empty($target_branch_ids)) {
-        $_SESSION['error_message'] = 'Please select at least one target branch (up to 5).';
+    $target_branch_ids = isset($_POST['target_branch_ids']) ? $_POST['target_branch_ids'] : '';
+    if (is_string($target_branch_ids)) {
+        $target_branch_ids = array_filter(explode(',', $target_branch_ids));
+    }
+    if (!is_array($target_branch_ids) || count($target_branch_ids) === 0) {
+        $_SESSION['error_message'] = "Please select at least one branch.";
+        header("Location: coverage_requests.php");
+        exit();
+    }
+    if (count($target_branch_ids) > 5) {
+        $_SESSION['error_message'] = "You can select up to 5 branches.";
+        header("Location: coverage_requests.php");
+        exit();
+    }
+    $shift_date = $_POST['shift_date'];
+    $start_time = $_POST['start_time'];
+    $end_time = $_POST['end_time'];
+    $role_id = isset($_POST['role_id']) ? (int) $_POST['role_id'] : 0;
+    $urgency_level = $_POST['urgency_level'];
+    $description = $_POST['description'];
+    $expires_hours = $_POST['expires_hours'];
+    $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_hours} hours"));
+
+    // Validate role_id
+    if (empty($role_id) || $role_id == 0) {
+        $_SESSION['error_message'] = "You must select a valid role for the coverage request.";
         header("Location: coverage_requests.php");
         exit();
     }
 
-    $shift_date = $_POST['shift_date'];
-    $start_time = $_POST['start_time'];
-    $end_time = $_POST['end_time'];
-    $role_id = isset($_POST['role_id']) && $_POST['role_id'] !== '' ? (int)$_POST['role_id'] : null;
-    $urgency_level = $_POST['urgency_level'];
-    $description = $_POST['description'] ?? null;
-    $expires_hours = $_POST['expires_hours'] ?? 24;
-
-    // Optional: selected source shift from user's shifts
-    $source_shift_id = isset($_POST['source_shift_id']) && $_POST['source_shift_id'] !== '' ? (int)$_POST['source_shift_id'] : null;
-
-    // If a source_shift_id was provided, override the provided fields with the shift's details
-    if ($source_shift_id) {
-        $ps = $conn->prepare("SELECT shift_date, start_time, end_time, role_id FROM shifts WHERE id = ? AND user_id = ? LIMIT 1");
-        $ps->execute([$source_shift_id, $user_id]);
-        $shiftRow = $ps->fetch(PDO::FETCH_ASSOC);
-        if ($shiftRow) {
-            $shift_date = $shiftRow['shift_date'];
-            $start_time = $shiftRow['start_time'];
-            $end_time = $shiftRow['end_time'];
-            $role_id = $shiftRow['role_id'];
-        } else {
-            // invalid selection - ignore
-            $source_shift_id = null;
-        }
-    }
-
-    $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_hours} hours"));
-
-    $successCount = 0;
-    $errors = [];
+    $success_count = 0;
+    $fail_count = 0;
     foreach ($target_branch_ids as $target_branch_id) {
         $request_data = [
             'requesting_branch_id' => $user_branch_id,
@@ -196,137 +196,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
             'urgency_level' => $urgency_level,
             'description' => $description,
             'requested_by_user_id' => $user_id,
-            'expires_at' => $expires_at,
-            'source_shift_id' => $source_shift_id
+            'expires_at' => $expires_at
         ];
-
         try {
             if (createCrossBranchRequest($conn, $request_data)) {
-                $successCount++;
+                $success_count++;
             } else {
-                $errors[] = "Failed to create request for branch ID {$target_branch_id}";
+                $fail_count++;
             }
         } catch (Exception $e) {
-            $errors[] = "Error for branch ID {$target_branch_id}: " . $e->getMessage();
+            $fail_count++;
         }
     }
-
-    if ($successCount > 0) {
-        $_SESSION['success_message'] = "Coverage request sent to {$successCount} branch(es).";
-        if (!empty($errors)) {
-            $_SESSION['error_message'] = implode('\n', $errors);
-        }
+    if ($success_count > 0) {
+        $_SESSION['success_message'] = "Coverage request sent to $success_count branch(es)!";
     } else {
-        $_SESSION['error_message'] = "No requests created. " . implode('\n', $errors);
+        $_SESSION['error_message'] = "Failed to create request.";
     }
-
-    header("Location: coverage_requests.php");
-    exit();
-}
-
-// Handle clear (delete) of a fulfilled request by requester: remove the cross-branch request but keep the shift
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_request'])) {
-    $clear_id = isset($_POST['clear_request_id']) ? (int)$_POST['clear_request_id'] : 0;
-    if ($clear_id <= 0) {
-        $_SESSION['error_message'] = "Invalid request id.";
-        header("Location: coverage_requests.php");
-        exit();
-    }
-
-    try {
-        $stmt = $conn->prepare("SELECT requested_by_user_id, status FROM cross_branch_shift_requests WHERE id = ? LIMIT 1");
-        $stmt->execute([$clear_id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$row) {
-            $_SESSION['error_message'] = "Coverage request not found.";
-            header("Location: coverage_requests.php");
-            exit();
-        }
-
-        // Only the requester or an admin can clear
-        $isAdmin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin'], true);
-        if ((int)$row['requested_by_user_id'] !== (int)$user_id && !$isAdmin) {
-            $_SESSION['error_message'] = "You are not authorized to clear this request.";
-            header("Location: coverage_requests.php");
-            exit();
-        }
-
-        // Only allow clearing fulfilled requests (don't clear pending)
-        if ($row['status'] !== 'fulfilled') {
-            $_SESSION['error_message'] = "Only fulfilled requests can be cleared.";
-            header("Location: coverage_requests.php");
-            exit();
-        }
-
-        $conn->beginTransaction();
-
-        // Remove coverage entries but KEEP the shift record
-        $delCov = $conn->prepare("DELETE FROM shift_coverage WHERE request_id = ?");
-        $delCov->execute([$clear_id]);
-
-        // Delete the request itself
-        $delReq = $conn->prepare("DELETE FROM cross_branch_shift_requests WHERE id = ?");
-        $delReq->execute([$clear_id]);
-
-        $conn->commit();
-        $_SESSION['success_message'] = "Fulfilled coverage request cleared (shift remains in place).";
-    } catch (Exception $e) {
-        if ($conn->inTransaction()) $conn->rollBack();
-        $_SESSION['error_message'] = "Error clearing request: " . $e->getMessage();
-    }
-
-    header("Location: coverage_requests.php");
-    exit();
-}
-
-// Handle clear/remove by the user who covered a request: remove the created shift and revert request to pending
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_covered'])) {
-    $clear_id = isset($_POST['clear_covered_request_id']) ? (int)$_POST['clear_covered_request_id'] : 0;
-    $shift_id = isset($_POST['clear_covered_shift_id']) ? (int)$_POST['clear_covered_shift_id'] : 0;
-    if ($clear_id <= 0 || $shift_id <= 0) {
-        $_SESSION['error_message'] = "Invalid request or shift id.";
-        header("Location: coverage_requests.php");
-        exit();
-    }
-
-    try {
-        // Verify the user is indeed the covering user for this request/shift
-        $chk = $conn->prepare("SELECT sc.covering_user_id, sc.shift_id, cbr.status FROM shift_coverage sc JOIN cross_branch_shift_requests cbr ON cbr.id = sc.request_id WHERE sc.request_id = ? AND sc.shift_id = ? LIMIT 1");
-        $chk->execute([$clear_id, $shift_id]);
-        $row = $chk->fetch(PDO::FETCH_ASSOC);
-        if (!$row) {
-            $_SESSION['error_message'] = "Coverage record not found.";
-            header("Location: coverage_requests.php");
-            exit();
-        }
-
-        if ((int)$row['covering_user_id'] !== (int)$user_id) {
-            $_SESSION['error_message'] = "You are not authorized to remove this shift.";
-            header("Location: coverage_requests.php");
-            exit();
-        }
-
-        $conn->beginTransaction();
-
-        // Delete the shift record
-        $delShift = $conn->prepare("DELETE FROM shifts WHERE id = ? AND user_id = ?");
-        $delShift->execute([$shift_id, $user_id]);
-
-        // Remove coverage record
-        $delCov = $conn->prepare("DELETE FROM shift_coverage WHERE request_id = ? AND shift_id = ?");
-        $delCov->execute([$clear_id, $shift_id]);
-
-        // Revert the original request back to pending so other branches can still accept if appropriate
-        $updReq = $conn->prepare("UPDATE cross_branch_shift_requests SET status = 'pending', fulfilled_by_user_id = NULL, fulfilled_at = NULL, notes = NULL WHERE id = ?");
-        $updReq->execute([$clear_id]);
-
-        $conn->commit();
-        $_SESSION['success_message'] = "Your coverage shift has been removed and request reverted to pending.";
-    } catch (Exception $e) {
-        if ($conn->inTransaction()) $conn->rollBack();
-        $_SESSION['error_message'] = "Error removing covered shift: " . $e->getMessage();
-    }
-
     header("Location: coverage_requests.php");
     exit();
 }
@@ -335,67 +221,185 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_covered'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['offer_coverage'])) {
     $request_id = $_POST['request_id'];
     try {
+        $conn->beginTransaction();
+
+        // Fetch the request details
         $stmt = $conn->prepare("SELECT * FROM cross_branch_shift_requests WHERE id = ?");
         $stmt->execute([$request_id]);
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
-
         if (!$request) {
-            $_SESSION['error_message'] = "Coverage request not found.";
+            throw new Exception("Coverage request not found.");
+        }
+
+        // Only allow if not already fulfilled
+        if ($request['status'] !== 'pending') {
+            throw new Exception("This request has already been fulfilled or is not pending.");
+        }
+
+        // Get shift details
+        $shift_date = $request['shift_date'];
+        $start_time = $request['start_time'];
+        $end_time = $request['end_time'];
+        $branch_id = $request['requesting_branch_id'];
+        $role_id = $request['role_id']; // Always use role_id
+        $location = 'Coverage at ';
+        // Get branch name for location
+        $bstmt = $conn->prepare("SELECT name FROM branches WHERE id = ?");
+        $bstmt->execute([$branch_id]);
+        $branch = $bstmt->fetch(PDO::FETCH_ASSOC);
+        if ($branch) {
+            $location .= $branch['name'];
         } else {
-            // Ensure request is still pending and not expired
-            if ($request['status'] !== 'pending' || (isset($request['expires_at']) && strtotime($request['expires_at']) <= time())) {
-                $_SESSION['error_message'] = "This coverage request is no longer available.";
-            // Prevent users from covering their own branch's request
-            } elseif ($request['requesting_branch_id'] === $user_branch_id) {
-                $_SESSION['error_message'] = "You cannot offer coverage for your own branch's request.";
-            // Ensure the current user is a member of the target branch (or an admin) before fulfilling
-            } elseif ($request['target_branch_id'] !== $user_branch_id && !in_array($_SESSION['role'] ?? '', ['admin', 'super_admin'], true)) {
-                $_SESSION['error_message'] = "You are not authorized to cover this request.";
+            $location .= 'Unknown';
+        }
+
+        // Ensure role_id is valid (not null or 0)
+        if (empty($role_id) || $role_id == 0) {
+            // Try to get user's default role
+            $role_stmt = $conn->prepare("SELECT role_id FROM users WHERE id = ?");
+            $role_stmt->execute([$user_id]);
+            $user_role_id = $role_stmt->fetchColumn();
+            if ($user_role_id) {
+                $role_id = $user_role_id;
             } else {
-                $result = fulfillCrossBranchRequest($conn, $request_id, $user_id, $user_id);
-                if ($result) {
-                    $_SESSION['success_message'] = "Coverage offer submitted successfully!";
-                } else {
-                    $_SESSION['error_message'] = "Failed to fulfill coverage request.";
-                }
+                throw new Exception("No valid role_id for coverage shift.");
             }
         }
+
+        // Check for duplicate shift
+        $check = $conn->prepare('SELECT id FROM shifts WHERE user_id=? AND shift_date=? AND start_time=? AND end_time=? AND branch_id=? AND (role_id <=> ?)');
+        $check->execute([$user_id, $shift_date, $start_time, $end_time, $branch_id, $role_id]);
+        if (!$check->fetch()) {
+            $insert = $conn->prepare('INSERT INTO shifts (user_id, shift_date, start_time, end_time, branch_id, location, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            $insert->execute([$user_id, $shift_date, $start_time, $end_time, $branch_id, $location, $role_id]);
+        }
+
+        // Log coverage
+        $log = $conn->prepare('INSERT INTO shift_coverage (request_id, covered_by_user_id) VALUES (?, ?)');
+        $log->execute([$request_id, $user_id]);
+
+        // Update request status
+        $update = $conn->prepare('UPDATE cross_branch_shift_requests SET status = "fulfilled", fulfilled_by_user_id = ?, fulfilled_at = NOW() WHERE id = ?');
+        $update->execute([$user_id, $request_id]);
+
+        $conn->commit();
+        $_SESSION['success_message'] = "Coverage offer submitted and shift added successfully!";
     } catch (Exception $e) {
+        $conn->rollBack();
         $_SESSION['error_message'] = "Error: " . $e->getMessage();
     }
-
     header("Location: coverage_requests.php");
     exit();
 }
 
 // Fetch dropdowns
+
+require_once __DIR__ . '/../functions/coverage_pay_helper.php';
 $all_branches = getAllBranches($conn);
 $roles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch the current user's upcoming shifts (eligible for requesting coverage)
-$userShiftsStmt = $conn->prepare("SELECT id, shift_date, start_time, end_time, location, branch_id FROM shifts WHERE user_id = ? AND shift_date >= CURDATE() ORDER BY shift_date, start_time");
-$userShiftsStmt->execute([$user_id]);
-$user_shifts = $userShiftsStmt->fetchAll(PDO::FETCH_ASSOC);
+// Fetch user's upcoming shifts for swap proposals
+$my_shifts_stmt = $conn->prepare("SELECT s.*, r.name as role_name FROM shifts s LEFT JOIN roles r ON s.role_id = r.id WHERE s.user_id = ? AND s.shift_date >= CURDATE() ORDER BY s.shift_date, s.start_time");
+$my_shifts_stmt->execute([$user_id]);
+$my_shifts = $my_shifts_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Handle shift swap proposal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_swap'])) {
+    $swap_request_id = $_POST['swap_request_id'];
+    $offered_shift_id = $_POST['offered_shift_id'];
+    // Insert swap proposal
+    $stmt = $conn->prepare("INSERT INTO shift_swaps (request_id, offered_shift_id, proposer_user_id, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
+    $stmt->execute([$swap_request_id, $offered_shift_id, $user_id]);
+    $_SESSION['success_message'] = "Shift swap proposal sent!";
+    header("Location: coverage_requests.php");
+    exit();
+}
+
+// Handle accept swap
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_swap'])) {
+    $swap_id = $_POST['swap_id'];
+    // Fetch swap details
+    $stmt = $conn->prepare("SELECT ss.*, s.user_id AS offered_user_id, s.id AS offered_shift_id, cbr.requested_by_user_id, cbr.shift_date AS req_shift_date, cbr.start_time AS req_start_time, cbr.end_time AS req_end_time, cbr.role_id AS req_role_id, cbr.target_branch_id AS req_branch_id FROM shift_swaps ss JOIN shifts s ON ss.offered_shift_id = s.id JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id WHERE ss.id = ?");
+    $stmt->execute([$swap_id]);
+    $swap = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($swap) {
+        // Find the original request shift (the one to be swapped with)
+        $stmt2 = $conn->prepare("SELECT * FROM shifts WHERE user_id = ? AND shift_date = ? AND start_time = ? AND end_time = ? AND role_id = ? AND branch_id = ? LIMIT 1");
+        $stmt2->execute([
+            $swap['requested_by_user_id'],
+            $swap['req_shift_date'],
+            $swap['req_start_time'],
+            $swap['req_end_time'],
+            $swap['req_role_id'],
+            $swap['req_branch_id']
+        ]);
+        $request_shift = $stmt2->fetch(PDO::FETCH_ASSOC);
+        if ($request_shift) {
+            // Swap user_id between the two shifts
+            $conn->beginTransaction();
+            $stmt3 = $conn->prepare("UPDATE shifts SET user_id = ? WHERE id = ?");
+            $stmt3->execute([$swap['offered_user_id'], $request_shift['id']]);
+            $stmt3->execute([$swap['requested_by_user_id'], $swap['offered_shift_id']]);
+            // Mark swap as accepted
+            $stmt4 = $conn->prepare("UPDATE shift_swaps SET status='accepted', accepted_at=NOW() WHERE id=?");
+            $stmt4->execute([$swap_id]);
+            // Optionally, notify both users
+            require_once '../includes/notifications.php';
+            addNotification($conn, $swap['offered_user_id'], "Your shift swap has been completed.", "success");
+            addNotification($conn, $swap['requested_by_user_id'], "Your shift swap has been completed.", "success");
+            $conn->commit();
+            $_SESSION['success_message'] = "Shift swap completed and shifts updated!";
+        } else {
+            $_SESSION['error_message'] = "Could not find the original shift to swap.";
+        }
+    } else {
+        $_SESSION['error_message'] = "Swap proposal not found.";
+    }
+    header("Location: coverage_requests.php");
+    exit();
+}
+
+// Fetch all swap proposals for the user (either as proposer or as request owner)
+$swap_proposals_stmt = $conn->prepare("
+    SELECT ss.*, s.shift_date, s.start_time, s.end_time, s.location, r.name as role_name, u.username as proposer_name, cbr.shift_date as req_shift_date, cbr.start_time as req_start_time, cbr.end_time as req_end_time
+    FROM shift_swaps ss
+    JOIN shifts s ON ss.offered_shift_id = s.id
+    JOIN roles r ON s.role_id = r.id
+    JOIN users u ON ss.proposer_user_id = u.id
+    JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id
+    WHERE cbr.requested_by_user_id = ? OR ss.proposer_user_id = ?
+    ORDER BY ss.created_at DESC
+");
+$swap_proposals_stmt->execute([$user_id, $user_id]);
+$swap_proposals = $swap_proposals_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Load available requests
-$sql = "SELECT cbr.*, rb.name AS requesting_branch_name, u.username AS requested_by_username
+$sql = "SELECT cbr.*, rb.name AS requesting_branch_name, u.username AS requested_by_username, r.name AS role_name
         FROM cross_branch_shift_requests cbr
         JOIN branches rb ON cbr.requesting_branch_id=rb.id
         JOIN users u ON cbr.requested_by_user_id=u.id
+        LEFT JOIN roles r ON cbr.role_id = r.id
         WHERE cbr.target_branch_id=? AND cbr.status='pending' AND cbr.expires_at>NOW()
         ORDER BY cbr.urgency_level DESC, cbr.created_at ASC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_branch_id]);
 $available_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// DEBUG: Output role_id for each available request
+if (!empty($available_requests)) {
+    echo '<pre>DEBUG: Available requests role_id values:';
+    foreach ($available_requests as $req) {
+        echo "\nRequest ID {$req['id']}: role_id=" . var_export($req['role_id'], true);
+    }
+    echo "</pre>";
+}
 
-// Load my requests (only those I requested) — fulfilled requests I covered are shown separately in $my_fulfilled
-$sql = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username, fb.name AS accepted_by_branch
-    FROM cross_branch_shift_requests cbr
-    JOIN branches tb ON cbr.target_branch_id=tb.id
-    LEFT JOIN users uf ON cbr.fulfilled_by_user_id=uf.id
-    LEFT JOIN branches fb ON uf.branch_id = fb.id
-    WHERE cbr.requested_by_user_id = ? AND cbr.status IN ('pending','fulfilled')
-    ORDER BY cbr.created_at DESC";
+// Load my requests
+$sql = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username
+        FROM cross_branch_shift_requests cbr
+        JOIN branches tb ON cbr.target_branch_id=tb.id
+        LEFT JOIN users uf ON cbr.fulfilled_by_user_id=uf.id
+        WHERE cbr.requested_by_user_id=? AND cbr.status IN ('pending','fulfilled')
+        ORDER BY cbr.created_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_id]);
 $my_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -418,24 +422,10 @@ $success_message = $_SESSION['success_message'] ?? null;
 $error_message = $_SESSION['error_message'] ?? null;
 unset($_SESSION['success_message'], $_SESSION['error_message']);
 
-// If a source_shift_id is provided via GET (e.g., from shifts list), prefill the form
-$prefill = ['shift_date' => '', 'start_time' => '', 'end_time' => '', 'role_id' => '', 'source_shift_id' => ''];
-if (!empty($_GET['source_shift_id'])) {
-    $ss = (int)$_GET['source_shift_id'];
-    $ps = $conn->prepare("SELECT id, shift_date, start_time, end_time, role_id FROM shifts WHERE id = ? AND user_id = ? LIMIT 1");
-    $ps->execute([$ss, $user_id]);
-    $psr = $ps->fetch(PDO::FETCH_ASSOC);
-    if ($psr) {
-        $prefill['shift_date'] = $psr['shift_date'];
-        $prefill['start_time'] = $psr['start_time'];
-        $prefill['end_time'] = $psr['end_time'];
-        $prefill['role_id'] = $psr['role_id'];
-        $prefill['source_shift_id'] = $psr['id'];
-    }
-}
-
-// Render HTML view below…
+// Render HTML view below
 ?>
+
+
 
 
 
@@ -556,6 +546,68 @@ if (!empty($_GET['source_shift_id'])) {
             <div class="tab" onclick="showTab('my-requests')">
                 <i class="fas fa-paper-plane"></i> My Requests (<?php echo count($my_requests); ?>)
             </div>
+            <div class="tab" onclick="showTab('swap')">
+                <i class="fas fa-exchange-alt"></i> Shift Swaps
+            </div>
+        </div>
+        <!-- Shift Swap Tab -->
+        <div id="swap-tab" class="tab-content">
+            <h2><i class="fas fa-exchange-alt"></i> Shift Swap Proposals</h2>
+            <p>Propose a swap by offering one of your shifts in exchange for a coverage request, or accept a swap
+                offered to you.</p>
+
+            <h3>Propose a Swap</h3>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="swap_request_id">Select Coverage Request to Swap With:</label>
+                    <select name="swap_request_id" required>
+                        <option value="">Select a coverage request...</option>
+                        <?php foreach ($available_requests as $req): ?>
+                            <option value="<?php echo $req['id']; ?>">
+                                <?php echo htmlspecialchars($req['requesting_branch_name']) . ' - ' . date('M j, Y', strtotime($req['shift_date'])) . ' ' . date('g:i A', strtotime($req['start_time'])) . ' - ' . date('g:i A', strtotime($req['end_time'])); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="offered_shift_id">Select One of Your Shifts to Offer:</label>
+                    <select name="offered_shift_id" required>
+                        <option value="">Select your shift...</option>
+                        <?php foreach ($my_shifts as $shift): ?>
+                            <option value="<?php echo $shift['id']; ?>">
+                                <?php echo date('M j, Y', strtotime($shift['shift_date'])) . ' ' . date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i A', strtotime($shift['end_time'])) . ' (' . htmlspecialchars($shift['role_name']) . ')'; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit" name="propose_swap" class="btn btn-primary">Propose Swap</button>
+            </form>
+
+            <h3 style="margin-top:30px;">Swap Proposals</h3>
+            <?php if (empty($swap_proposals)): ?>
+                <div class="request-card">
+                    <p><i class="fas fa-info-circle"></i> No swap proposals yet.</p>
+                </div>
+            <?php else: ?>
+                <?php foreach ($swap_proposals as $swap): ?>
+                    <div class="request-card">
+                        <div><strong>Proposed by:</strong> <?php echo htmlspecialchars($swap['proposer_name']); ?></div>
+                        <div><strong>Offered Shift:</strong>
+                            <?php echo date('M j, Y', strtotime($swap['shift_date'])) . ' ' . date('g:i A', strtotime($swap['start_time'])) . ' - ' . date('g:i A', strtotime($swap['end_time'])) . ' (' . htmlspecialchars($swap['role_name']) . ')'; ?>
+                        </div>
+                        <div><strong>For Coverage Request:</strong>
+                            <?php echo date('M j, Y', strtotime($swap['req_shift_date'])) . ' ' . date('g:i A', strtotime($swap['req_start_time'])) . ' - ' . date('g:i A', strtotime($swap['req_end_time'])); ?>
+                        </div>
+                        <div><strong>Status:</strong> <?php echo ucfirst($swap['status']); ?></div>
+                        <?php if ($swap['status'] === 'pending' && $swap['proposer_user_id'] != $user_id): ?>
+                            <form method="POST" style="margin-top:10px;">
+                                <input type="hidden" name="swap_id" value="<?php echo $swap['id']; ?>">
+                                <button type="submit" name="accept_swap" class="btn btn-success">Accept Swap</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
 
         <!-- Available Coverage Tab -->
@@ -567,8 +619,16 @@ if (!empty($_GET['source_shift_id'])) {
                     <p><i class="fas fa-info-circle"></i> No coverage requests available at this time.</p>
                 </div>
             <?php else: ?>
-                <?php foreach ($available_requests as $request): ?>
+                <?php foreach ($available_requests as $request):
+                    $estimated_pay = calculateCoverageRequestPay($conn, $request);
+                    ?>
                     <div class="request-card <?php echo $request['urgency_level']; ?>-urgency">
+                        <div class="detail-item">
+                            <div class="detail-label">Estimated Pay</div>
+                            <div class="detail-value">
+                                <?php echo $estimated_pay > 0 ? ('£' . number_format($estimated_pay, 2)) : 'N/A'; ?>
+                            </div>
+                        </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3>
                                 <i class="fas fa-building"></i>
@@ -590,7 +650,7 @@ if (!empty($_GET['source_shift_id'])) {
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">Role Required</div>
-                                <div class="detail-value"><?php echo htmlspecialchars($request['role_required'] ?: 'Any'); ?>
+                                <div class="detail-value"><?php echo htmlspecialchars($request['role_name'] ?? 'Any'); ?>
                                 </div>
                             </div>
                             <div class="detail-item">
@@ -631,26 +691,149 @@ if (!empty($_GET['source_shift_id'])) {
         <div id="create-tab" class="tab-content">
             <div class="request-card">
                 <h2><i class="fas fa-plus"></i> Request Coverage for Your Shift</h2>
-                <form method="POST">
+                <form method="POST" id="coverage-request-form">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="target_branch_ids">Request Coverage From (select up to 5):</label>
-                            <div id="branch-multi-select" class="multi-select">
-                                <input type="text" id="branch-search" placeholder="Search branches..." autocomplete="off">
-                                <div id="branch-selected" class="selected-list"></div>
-                                <div id="branch-options" class="options-list">
-                                    <?php foreach ($all_branches as $branch): ?>
-                                        <?php if ($branch['id'] != $user_branch_id): ?>
-                                            <div class="option" data-id="<?php echo $branch['id']; ?>">
-                                                <?php echo htmlspecialchars($branch['name']); ?>
-                                                <span class="muted">(<?php echo htmlspecialchars($branch['code']); ?>)</span>
-                                            </div>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
+                            <label for="target_branch_ids">Request Coverage From (up to 5 branches):</label>
+                            <div class="branch-multiselect" id="branch-multiselect">
+                                <div class="selected-branches" id="selected-branches" tabindex="0"
+                                    style="min-height:38px; border:1px solid #bbb; border-radius:5px; padding:8px 10px; background:#fff; cursor:pointer; user-select:none; display:flex; flex-wrap:wrap; align-items:center;">
+                                    Select branches...
                                 </div>
-                                <input type="hidden" id="target_branch_ids" name="target_branch_ids" value="">
-                                <small class="hint">Type to search, click to select. Max 5 branches.</small>
+                                <div class="branch-dropdown" id="branch-dropdown"
+                                    style="display:none; max-height:220px; overflow-y:auto; background:#fff; border:1px solid #bbb; border-radius:5px; position:absolute; z-index:1001; width:100%; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                                    <input type="text" id="branch-search" placeholder="Search branches..."
+                                        style="width:96%; margin:8px 2%; padding:6px 10px; border:1px solid #ccc; border-radius:6px; font-size:15px;">
+                                    <div id="branch-options-list">
+                                        <?php foreach ($all_branches as $branch): ?>
+                                            <?php if ($branch['id'] != $user_branch_id): ?>
+                                                <label class="branch-option"
+                                                    data-name="<?php echo htmlspecialchars(strtolower($branch['name'] . ' ' . $branch['code'])); ?>"
+                                                    style="display:block; padding:7px 12px; cursor:pointer;">
+                                                    <input type="checkbox" class="branch-checkbox"
+                                                        value="<?php echo $branch['id']; ?>">
+                                                    <?php echo htmlspecialchars($branch['name']) . ' (' . htmlspecialchars($branch['code']) . ')'; ?>
+                                                </label>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
                             </div>
+                            <input type="hidden" name="target_branch_ids" id="target_branch_ids">
+                            <small style="color:#888;">Tap to select up to 5 branches.</small>
+                            <script>
+                                // Robust custom multi-select for branches (up to 5, mobile friendly, with search)
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    function setupBranchMultiselect(multiselectId, dropdownId, selectedDivId, hiddenInputId, searchId, optionsListId) {
+                                        const multiselect = document.getElementById(multiselectId);
+                                        const selectedDiv = document.getElementById(selectedDivId);
+                                        const dropdown = document.getElementById(dropdownId);
+                                        const hiddenInput = document.getElementById(hiddenInputId);
+                                        const searchInput = document.getElementById(searchId);
+                                        const optionsList = document.getElementById(optionsListId);
+                                        if (!multiselect || !selectedDiv || !dropdown || !hiddenInput || !searchInput || !optionsList) return;
+                                        let selected = [];
+                                        // Prepopulate if checkboxes are checked
+                                        function getBranchName(cb) {
+                                            return cb.parentElement.textContent.trim();
+                                        }
+                                        function updateSelectedDisplay() {
+                                            selectedDiv.innerHTML = '';
+                                            let any = false;
+                                            optionsList.querySelectorAll('.branch-checkbox').forEach(cb => {
+                                                if (cb.checked) {
+                                                    any = true;
+                                                    const badge = document.createElement('span');
+                                                    badge.textContent = getBranchName(cb);
+                                                    badge.style.cssText = 'background:#007bff;color:#fff;padding:3px 10px;border-radius:12px;margin:2px 6px 2px 0;font-size:14px;display:inline-flex;align-items:center;';
+                                                    const remove = document.createElement('span');
+                                                    remove.textContent = '×';
+                                                    remove.style.cssText = 'margin-left:7px;cursor:pointer;font-weight:bold;';
+                                                    remove.onclick = function (e) {
+                                                        e.stopPropagation();
+                                                        cb.checked = false;
+                                                        updateSelectedDisplay();
+                                                        updateHiddenInput();
+                                                    };
+                                                    badge.appendChild(remove);
+                                                    selectedDiv.appendChild(badge);
+                                                }
+                                            });
+                                            if (!any) selectedDiv.textContent = 'Select branches...';
+                                        }
+                                        function updateHiddenInput() {
+                                            const checked = Array.from(optionsList.querySelectorAll('.branch-checkbox:checked')).map(cb => cb.value);
+                                            hiddenInput.value = checked.join(',');
+                                        }
+                                        // Toggle dropdown
+                                        selectedDiv.onclick = function (e) {
+                                            if (dropdown.style.display === 'block') {
+                                                dropdown.style.display = 'none';
+                                            } else {
+                                                dropdown.style.display = 'block';
+                                                searchInput.value = '';
+                                                filterOptions('');
+                                                searchInput.focus();
+                                            }
+                                            e.stopPropagation();
+                                        };
+                                        // Prevent closing when clicking inside dropdown or multiselect
+                                        dropdown.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+                                        multiselect.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+                                        // Close dropdown on outside click
+                                        document.addEventListener('mousedown', function (e) {
+                                            if (!multiselect.contains(e.target)) {
+                                                dropdown.style.display = 'none';
+                                            }
+                                        });
+                                        // Limit selection to 5
+                                        optionsList.querySelectorAll('.branch-checkbox').forEach(cb => {
+                                            cb.onchange = function () {
+                                                const checked = optionsList.querySelectorAll('.branch-checkbox:checked');
+                                                if (checked.length > 5) {
+                                                    cb.checked = false;
+                                                    alert('You can select up to 5 branches.');
+                                                }
+                                                updateSelectedDisplay();
+                                                updateHiddenInput();
+                                            };
+                                        });
+                                        // Search filter
+                                        function filterOptions(query) {
+                                            const q = query.trim().toLowerCase();
+                                            optionsList.querySelectorAll('.branch-option').forEach(opt => {
+                                                if (!q || opt.getAttribute('data-name').includes(q)) {
+                                                    opt.style.display = 'block';
+                                                } else {
+                                                    opt.style.display = 'none';
+                                                }
+                                            });
+                                        }
+                                        searchInput.addEventListener('input', function () {
+                                            filterOptions(this.value);
+                                        });
+                                        // Keyboard accessibility
+                                        selectedDiv.addEventListener('keydown', function (e) {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                if (dropdown.style.display === 'block') {
+                                                    dropdown.style.display = 'none';
+                                                } else {
+                                                    dropdown.style.display = 'block';
+                                                    searchInput.value = '';
+                                                    filterOptions('');
+                                                    searchInput.focus();
+                                                }
+                                            }
+                                        });
+                                        // Initial state
+                                        updateSelectedDisplay();
+                                        updateHiddenInput();
+                                    }
+                                    // Setup for create request
+                                    setupBranchMultiselect('branch-multiselect', 'branch-dropdown', 'selected-branches', 'target_branch_ids', 'branch-search', 'branch-options-list');
+                                });
+                            </script>
                         </div>
                         <div class="form-group">
                             <label for="urgency_level">Urgency Level:</label>
@@ -718,8 +901,16 @@ if (!empty($_GET['source_shift_id'])) {
                     <p><i class="fas fa-info-circle"></i> You haven't made any coverage requests yet.</p>
                 </div>
             <?php else: ?>
-                <?php foreach ($my_requests as $request): ?>
+                <?php foreach ($my_requests as $request):
+                    $estimated_pay = calculateCoverageRequestPay($conn, $request);
+                    ?>
                     <div class="request-card <?php echo $request['urgency_level']; ?>-urgency">
+                        <div class="detail-item">
+                            <div class="detail-label">Estimated Pay</div>
+                            <div class="detail-value">
+                                <?php echo $estimated_pay > 0 ? ('$' . number_format($estimated_pay, 2)) : 'N/A'; ?>
+                            </div>
+                        </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3>
                                 <i class="fas fa-building"></i>
@@ -760,10 +951,8 @@ if (!empty($_GET['source_shift_id'])) {
                                 <div class="detail-label">Status</div>
                                 <div class="detail-value">
                                     <?php if ($request['status'] === 'fulfilled'): ?>
-                                        Accepted by
+                                        Picked up by
                                         <?php echo htmlspecialchars($request['fulfilled_by_username'] ?: 'another user'); ?>
-                                        From
-                                        <?php echo htmlspecialchars($request['accepted_by_branch'] ?? $request['target_branch_name'] ?? 'unknown branch'); ?>
                                     <?php else: ?>
                                         Pending Response
                                     <?php endif; ?>
@@ -846,18 +1035,25 @@ if (!empty($_GET['source_shift_id'])) {
                     <span class="close-modal" onclick="window.location.href='coverage_requests.php'"
                         style="position:absolute; top:10px; right:18px; font-size:2rem; cursor:pointer;">&times;</span>
                     <h3>Edit Coverage Request</h3>
-                    <form method="POST">
+                    <form method="POST" id="edit-request-form">
                         <input type="hidden" name="edit_id" value="<?php echo htmlspecialchars($edit_request['id']); ?>">
                         <div class="form-group">
-                            <label for="target_branch_id">Target Branch</label>
-                            <select name="target_branch_id" required>
-                                <?php foreach ($all_branches as $branch): ?>
-                                    <option value="<?php echo $branch['id']; ?>" <?php if ($edit_request['target_branch_id'] == $branch['id'])
-                                           echo 'selected'; ?>>
-                                        <?php echo htmlspecialchars($branch['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <label for="edit_target_branch_ids">Target Branch</label>
+                            <div class="branch-multiselect" id="edit-branch-multiselect">
+                                <div class="selected-branches" id="edit-selected-branches" tabindex="0">Select branch...
+                                </div>
+                                <div class="branch-dropdown" id="edit-branch-dropdown" style="display:none;">
+                                    <?php foreach ($all_branches as $branch): ?>
+                                        <label>
+                                            <input type="checkbox" class="edit-branch-checkbox"
+                                                value="<?php echo $branch['id']; ?>">
+                                            <?php echo htmlspecialchars($branch['name']); ?>
+                                            (<?php echo htmlspecialchars($branch['code']); ?>)
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <input type="hidden" name="target_branch_ids[]" id="edit_target_branch_ids">
                         </div>
                         <div class="form-group">
                             <label for="shift_date">Shift Date</label>
@@ -911,9 +1107,259 @@ if (!empty($_GET['source_shift_id'])) {
                         <button type="button" class="btn btn-secondary"
                             onclick="window.location.href='coverage_requests.php'">Cancel</button>
                     </form>
+                    <script>
+                        // Custom Multi-Select for Branches (up to 5, mobile friendly)
+                        document.addEventListener('DOMContentLoaded', function () {
+                            const multiselect = document.getElementById('branch-multiselect');
+                            const selectedDiv = document.getElementById('selected-branches');
+                            const dropdown = document.getElementById('branch-dropdown');
+                            const checkboxes = dropdown.querySelectorAll('.branch-checkbox');
+                            const hiddenInput = document.getElementById('target_branch_ids');
+                            let selected = [];
+
+                            function updateSelectedDisplay() {
+                                selectedDiv.innerHTML = '';
+                                if (selected.length === 0) {
+                                    selectedDiv.textContent = 'Select branches...';
+                                } else {
+                                    selected.forEach(obj => {
+                                        const badge = document.createElement('span');
+                                        badge.className = 'selected-branch-badge';
+                                        badge.textContent = obj.name;
+                                        const remove = document.createElement('span');
+                                        remove.className = 'remove-branch';
+                                        remove.textContent = '×';
+                                        remove.onclick = function (e) {
+                                            e.stopPropagation();
+                                            checkboxes.forEach(cb => {
+                                                if (cb.value === obj.id) cb.checked = false;
+                                            });
+                                            selected = selected.filter(b => b.id !== obj.id);
+                                            updateSelectedDisplay();
+                                            updateHiddenInput();
+                                        };
+                                        badge.appendChild(remove);
+                                        selectedDiv.appendChild(badge);
+                                    });
+                                }
+                            }
+
+                            function updateHiddenInput() {
+                                hiddenInput.value = selected.map(b => b.id).join(',');
+                            }
+
+                            selectedDiv.addEventListener('click', function () {
+                                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                            });
+                            selectedDiv.addEventListener('keydown', function (e) {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                                }
+                            });
+                            document.addEventListener('click', function (e) {
+                                if (!multiselect.contains(e.target)) {
+                                    dropdown.style.display = 'none';
+                                }
+                            });
+
+                            checkboxes.forEach(cb => {
+                                cb.addEventListener('change', function () {
+                                    if (cb.checked) {
+                                        if (selected.length >= 5) {
+                                            cb.checked = false;
+                                            alert('You can select up to 5 branches.');
+                                            return;
+                                        }
+                                        selected.push({ id: cb.value, name: cb.parentElement.textContent.trim() });
+                                    } else {
+                                        selected = selected.filter(b => b.id !== cb.value);
+                                    }
+                                    updateSelectedDisplay();
+                                    updateHiddenInput();
+                                });
+                            });
+
+                            // On form submit, set hidden input as array
+                            document.getElementById('coverage-request-form').addEventListener('submit', function (e) {
+                                hiddenInput.value = selected.map(b => b.id);
+                                if (selected.length === 0) {
+                                    alert('Please select at least one branch.');
+                                    e.preventDefault();
+                                }
+                            });
+
+                            // Initialize
+                            updateSelectedDisplay();
+                            updateHiddenInput();
+                        });
+                        // Edit modal multi-select logic (single branch for now, but UI matches main form)
+                        document.addEventListener('DOMContentLoaded', function () {
+                            const multiselect = document.getElementById('edit-branch-multiselect');
+                            const selectedDiv = document.getElementById('edit-selected-branches');
+                            const dropdown = document.getElementById('edit-branch-dropdown');
+                            const checkboxes = dropdown.querySelectorAll('.edit-branch-checkbox');
+                            const hiddenInput = document.getElementById('edit_target_branch_ids');
+                            let selected = [];
+                            // Pre-select the branch from the request
+                            checkboxes.forEach(cb => {
+                                if (cb.value == <?php echo json_encode($edit_request['target_branch_id']); ?>) {
+                                    cb.checked = true;
+                                    selected.push({ id: cb.value, name: cb.parentElement.textContent.trim() });
+                                }
+                            });
+                            function updateSelectedDisplay() {
+                                selectedDiv.innerHTML = '';
+                                if (selected.length === 0) {
+                                    selectedDiv.textContent = 'Select branch...';
+                                } else {
+                                    selected.forEach(obj => {
+                                        const badge = document.createElement('span');
+                                        badge.className = 'selected-branch-badge';
+                                        badge.textContent = obj.name;
+                                        const remove = document.createElement('span');
+                                        remove.className = 'remove-branch';
+                                        remove.textContent = '×';
+                                        remove.onclick = function (e) {
+                                            e.stopPropagation();
+                                            checkboxes.forEach(cb => {
+                                                if (cb.value === obj.id) cb.checked = false;
+                                            });
+                                            selected = selected.filter(b => b.id !== obj.id);
+                                            updateSelectedDisplay();
+                                            updateHiddenInput();
+                                        };
+                                        badge.appendChild(remove);
+                                        selectedDiv.appendChild(badge);
+                                    });
+                                }
+                            }
+                            function updateHiddenInput() {
+                                hiddenInput.value = selected.map(b => b.id).join(',');
+                            }
+                            selectedDiv.addEventListener('click', function () {
+                                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                            });
+                            selectedDiv.addEventListener('keydown', function (e) {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                                }
+                            });
+                            document.addEventListener('click', function (e) {
+                                if (!multiselect.contains(e.target)) {
+                                    dropdown.style.display = 'none';
+                                }
+                            });
+                            checkboxes.forEach(cb => {
+                                cb.addEventListener('change', function () {
+                                    if (cb.checked) {
+                                        // Only allow one for edit (for now)
+                                        checkboxes.forEach(other => { if (other !== cb) other.checked = false; });
+                                        selected = [{ id: cb.value, name: cb.parentElement.textContent.trim() }];
+                                    } else {
+                                        selected = [];
+                                    }
+                                    updateSelectedDisplay();
+                                    updateHiddenInput();
+                                });
+                            });
+                            document.getElementById('edit-request-form').addEventListener('submit', function (e) {
+                                hiddenInput.value = selected.map(b => b.id);
+                                if (selected.length === 0) {
+                                    alert('Please select a branch.');
+                                    e.preventDefault();
+                                }
+                            });
+                            updateSelectedDisplay();
+                            updateHiddenInput();
+                        });
+                    </script>
                 </div>
             </div>
             <script>
+                // Custom Multi-Select for Branches (up to 5)
+                document.addEventListener('DOMContentLoaded', function () {
+                    const multiselect = document.getElementById('branch-multiselect');
+                    const selectedDiv = document.getElementById('selected-branches');
+                    const dropdown = document.getElementById('branch-dropdown');
+                    const checkboxes = dropdown.querySelectorAll('.branch-checkbox');
+                    const hiddenInput = document.getElementById('target_branch_ids');
+                    let selected = [];
+
+                    function updateSelectedDisplay() {
+                        selectedDiv.innerHTML = '';
+                        if (selected.length === 0) {
+                            selectedDiv.textContent = 'Select branches...';
+                        } else {
+                            selected.forEach(obj => {
+                                const badge = document.createElement('span');
+                                badge.className = 'selected-branch-badge';
+                                badge.textContent = obj.name;
+                                const remove = document.createElement('span');
+                                remove.className = 'remove-branch';
+                                remove.textContent = '×';
+                                remove.onclick = function (e) {
+                                    e.stopPropagation();
+                                    checkboxes.forEach(cb => {
+                                        if (cb.value === obj.id) cb.checked = false;
+                                    });
+                                    selected = selected.filter(b => b.id !== obj.id);
+                                    updateSelectedDisplay();
+                                    updateHiddenInput();
+                                };
+                                badge.appendChild(remove);
+                                selectedDiv.appendChild(badge);
+                            });
+                        }
+                    }
+
+                    function updateHiddenInput() {
+                        hiddenInput.value = selected.map(b => b.id).join(',');
+                    }
+
+                    selectedDiv.addEventListener('click', function () {
+                        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                    });
+                    selectedDiv.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                        }
+                    });
+                    document.addEventListener('click', function (e) {
+                        if (!multiselect.contains(e.target)) {
+                            dropdown.style.display = 'none';
+                        }
+                    });
+
+                    checkboxes.forEach(cb => {
+                        cb.addEventListener('change', function () {
+                            if (cb.checked) {
+                                if (selected.length >= 5) {
+                                    cb.checked = false;
+                                    alert('You can select up to 5 branches.');
+                                    return;
+                                }
+                                selected.push({ id: cb.value, name: cb.parentElement.textContent.trim() });
+                            } else {
+                                selected = selected.filter(b => b.id !== cb.value);
+                            }
+                            updateSelectedDisplay();
+                            updateHiddenInput();
+                        });
+                    });
+
+                    // On form submit, set hidden input as array
+                    document.getElementById('coverage-request-form').addEventListener('submit', function (e) {
+                        hiddenInput.value = selected.map(b => b.id);
+                        if (selected.length === 0) {
+                            alert('Please select at least one branch.');
+                            e.preventDefault();
+                        }
+                    });
+
+                    // Initialize
+                    updateSelectedDisplay();
+                    updateHiddenInput();
+                });
                 // Close modal on outside click
                 window.onclick = function (event) {
                     var modal = document.getElementById('editRequestModal');
