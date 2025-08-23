@@ -30,6 +30,17 @@ if (!$user_branch_id) {
 
 $user_branch = getUserHomeBranch($conn, $user_id);
 
+// Ensure shift_swaps has request_id column (some setups may not have it); add if missing
+try {
+    $colCheck = $conn->query("SHOW COLUMNS FROM shift_swaps LIKE 'request_id'")->fetchAll();
+    if (empty($colCheck)) {
+        $conn->exec("ALTER TABLE shift_swaps ADD COLUMN request_id INT DEFAULT NULL");
+    }
+} catch (Exception $e) {
+    // Non-blocking: if ALTER fails (permissions/schema), queries later may still fail — logging for debug
+    error_log('Could not ensure shift_swaps.request_id: ' . $e->getMessage());
+}
+
 // Handle delete request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_request'])) {
     $delete_id = isset($_POST['delete_request_id']) ? (int)$_POST['delete_request_id'] : 0;
@@ -308,7 +319,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_swap'])) {
     $swap_request_id = $_POST['swap_request_id'];
     $offered_shift_id = $_POST['offered_shift_id'];
     // Insert swap proposal
-    $stmt = $conn->prepare("INSERT INTO shift_swaps (request_id, offered_shift_id, proposer_user_id, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
+    $stmt = $conn->prepare("INSERT INTO shift_swaps (request_id, from_shift_id, from_user_id, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
     $stmt->execute([$swap_request_id, $offered_shift_id, $user_id]);
     $_SESSION['success_message'] = "Shift swap proposal sent!";
     header("Location: coverage_requests.php");
@@ -319,7 +330,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_swap'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_swap'])) {
     $swap_id = $_POST['swap_id'];
     // Fetch swap details
-    $stmt = $conn->prepare("SELECT ss.*, s.user_id AS offered_user_id, s.id AS offered_shift_id, cbr.requested_by_user_id, cbr.shift_date AS req_shift_date, cbr.start_time AS req_start_time, cbr.end_time AS req_end_time, cbr.role_id AS req_role_id, cbr.target_branch_id AS req_branch_id FROM shift_swaps ss JOIN shifts s ON ss.offered_shift_id = s.id JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id WHERE ss.id = ?");
+    $stmt = $conn->prepare("SELECT ss.*, s.user_id AS offered_user_id, s.id AS offered_shift_id, cbr.requested_by_user_id, cbr.shift_date AS req_shift_date, cbr.start_time AS req_start_time, cbr.end_time AS req_end_time, cbr.role_id AS req_role_id, cbr.target_branch_id AS req_branch_id FROM shift_swaps ss JOIN shifts s ON ss.from_shift_id = s.id JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id WHERE ss.id = ?");
     $stmt->execute([$swap_id]);
     $swap = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($swap) {
@@ -363,11 +374,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_swap'])) {
 $swap_proposals_stmt = $conn->prepare("
     SELECT ss.*, s.shift_date, s.start_time, s.end_time, s.location, r.name as role_name, u.username as proposer_name, cbr.shift_date as req_shift_date, cbr.start_time as req_start_time, cbr.end_time as req_end_time
     FROM shift_swaps ss
-    JOIN shifts s ON ss.offered_shift_id = s.id
+    JOIN shifts s ON ss.from_shift_id = s.id
     JOIN roles r ON s.role_id = r.id
-    JOIN users u ON ss.proposer_user_id = u.id
+    JOIN users u ON ss.from_user_id = u.id
     JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id
-    WHERE cbr.requested_by_user_id = ? OR ss.proposer_user_id = ?
+    WHERE cbr.requested_by_user_id = ? OR ss.from_user_id = ?
     ORDER BY ss.created_at DESC
 ");
 $swap_proposals_stmt->execute([$user_id, $user_id]);

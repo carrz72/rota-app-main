@@ -19,6 +19,7 @@ $conn->exec("CREATE TABLE IF NOT EXISTS shift_swaps (
   to_user_id INT NOT NULL,
     from_shift_id INT NOT NULL,
     to_shift_id INT DEFAULT NULL,
+    request_id INT DEFAULT NULL,
   status ENUM('proposed','accepted','declined','cancelled') DEFAULT 'proposed',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL
