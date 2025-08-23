@@ -56,6 +56,7 @@ $stmtShifts = $conn->prepare(
     "SELECT s.*, r.name as role, s.location, r.base_pay, r.has_night_pay, r.night_shift_pay, r.night_start_time, r.night_end_time, b.id AS branch_id, b.name AS branch_name 
     FROM shifts s 
     LEFT JOIN roles r ON s.role_id = r.id 
+    LEFT JOIN branches b ON s.branch_id = b.id 
     WHERE s.user_id = :user_id AND $periodSql 
     ORDER BY shift_date ASC, start_time ASC"
 );
