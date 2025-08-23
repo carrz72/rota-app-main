@@ -2,11 +2,17 @@
 require '../includes/auth.php';
 requireLogin();
 require '../includes/db.php';
+require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/audit_log.php';
 
 $error = '';
 $success = '';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($csrf_token)) {
+        $error = 'Invalid request (CSRF token).';
+    }
     $user_id = $_SESSION['user_id'];
     $current_password = $_POST['current_password'] ?? '';
     $new_password = $_POST['new_password'] ?? '';
@@ -32,7 +38,43 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
             $stmt->execute([$hashed_password, $user_id]);
+
+            // Rotate session id to prevent session fixation attacks
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                @session_start();
+            }
+            // regenerate id and delete old session (when handler supports it)
+            session_regenerate_id(true);
+
+            // Optionally log out other devices if user requested
+            if (!empty($_POST['logout_other_devices'])) {
+                try {
+                    if (isset($conn) && $conn instanceof PDO) {
+                        $currentSid = session_id();
+                        $stmt = $conn->prepare("DELETE FROM user_sessions WHERE user_id = ? AND session_id != ?");
+                        $stmt->execute([$user_id, $currentSid]);
+                    }
+                } catch (Exception $e) {
+                    error_log("Failed to delete other user sessions: " . $e->getMessage());
+                }
+            }
+
+            // Update the user_sessions row with the new/regenerated session id
+            try {
+                if (isset($conn) && $conn instanceof PDO) {
+                    $currentSid = session_id();
+                    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                    $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
+                    $stmt = $conn->prepare("REPLACE INTO user_sessions (session_id, user_id, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$currentSid, $user_id, $ip, $ua]);
+                }
+            } catch (Exception $e) {
+                error_log("user_sessions upsert error after password change: " . $e->getMessage());
+            }
+
             $success = "Password changed successfully!";
+            // Audit
+            try { log_audit($conn, $user_id, 'change_password', ['logout_other_devices' => !empty($_POST['logout_other_devices'])], $user_id, 'user_security', session_id()); } catch (Exception $e) {}
         }
     }
 }
@@ -45,27 +87,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Change Password - Open Rota</title>
     <link rel="stylesheet" href="../css/loginandregister.css">
-    <link rel="stylesheet" href="../css/change_Password.css">
+    <link rel="stylesheet" href="../css/change_password.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        @font-face {
-            font-family: 'newFont';
-            src: url('../fonts/CooperHewitt-Book.otf') format('opentype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        body {
-            font-family: 'newFont', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
-    </style>
+   
 </head>
 
-<body>
+<body class="change-password-page">
     <div class="auth-container">
         <!-- Logo Header -->
         <div class="logo-header">
@@ -90,6 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php endif; ?>
 
         <form method="POST" class="card__form">
+            <?php echo csrf_input_field(); ?>
             <div class="form-group">
                 <label for="current_password">Current Password</label>
                 <input type="password" id="current_password" name="current_password" class="form-control"
@@ -108,9 +136,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     placeholder="Confirm your new password" required minlength="8">
             </div>
 
-            <button type="submit" class="btn-primary">
+            <button type="submit" class="btn btn-primary">
                 <i class="fas fa-save"></i> Change Password
             </button>
+            <div class="form-group-checkbox" style="margin-top:12px;">
+                <label style="font-weight:600;">
+                    <input type="checkbox" name="logout_other_devices" value="1"> Log out of other devices
+                </label>
+            </div>
         </form>
 
         <div class="text-center mt-20">
@@ -140,6 +173,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }, 2000);
         <?php endif; ?>
     </script>
+    <?php include __DIR__ . '/../includes/privacy_footer.php'; ?>
 </body>
 
 </html>

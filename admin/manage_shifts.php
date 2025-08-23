@@ -3,6 +3,15 @@ require '../includes/auth.php';
 requireAdmin();
 require_once '../includes/db.php';
 
+// Determine current admin branch for filtering
+$currentAdminId = $_SESSION['user_id'] ?? null;
+$adminBranchId = null;
+if ($currentAdminId) {
+    $bstmt = $conn->prepare("SELECT branch_id FROM users WHERE id = ? LIMIT 1");
+    $bstmt->execute([$currentAdminId]);
+    $adminBranchId = $bstmt->fetchColumn();
+}
+
 // Check if we're managing shifts for a specific user
 $user_id = isset($_GET['user_id']) ? (int) $_GET['user_id'] : null;
 $username = null;
@@ -43,13 +52,22 @@ $userSql = $user_id ? "AND s.user_id = $user_id" : "";
 
 // Get all shifts with user and role info
 $shiftsQuery = "
-    SELECT s.*, u.username, r.name as role_name
+    SELECT s.*, u.username, r.name as role_name, b.id AS branch_id, b.name AS branch_name
     FROM shifts s
     JOIN users u ON s.user_id = u.id
     JOIN roles r ON s.role_id = r.id
-    WHERE $periodSql $userSql
-    ORDER BY s.shift_date ASC, s.start_time ASC
-";
+    LEFT JOIN branches b ON s.branch_id = b.id
+    WHERE $periodSql";
+
+// If filtering to a specific user, add that clause
+if ($userSql) {
+    $shiftsQuery .= " $userSql";
+} elseif ($adminBranchId) {
+    // Include shifts where either the user's home branch matches admin branch or the shift is scheduled at admin branch
+    $shiftsQuery .= " AND (u.branch_id = " . (int)$adminBranchId . " OR s.branch_id = " . (int)$adminBranchId . ")";
+}
+
+$shiftsQuery .= " ORDER BY s.shift_date ASC, s.start_time ASC";
 
 $shifts = $conn->query($shiftsQuery)->fetchAll(PDO::FETCH_ASSOC);
 
@@ -257,6 +275,7 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                     <table class="admin-table">
                         <thead>
                             <tr>
+                                <th style="width:56px;text-align:center">U</th>
                                 <th>User</th>
                                 <th>Date</th>
                                 <th>Time</th>
@@ -276,31 +295,53 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                                     $current_date = $shift_date;
                                     ?>
                                     <tr>
-                                        <td colspan="6" class="day-header">
+                                        <td colspan="7" class="day-header">
                                             <i class="fas fa-calendar-day"></i>
                                             <?php echo date('l, F j, Y', strtotime($shift_date)); ?>
                                         </td>
                                     </tr>
                                 <?php endif; ?>
                                 <tr>
+                                    <?php
+                                    // compute compact username (initials or first two chars)
+                                    $compactUsername = '';
+                                    $rawName = trim($shift['username'] ?? '');
+                                    if ($rawName !== '') {
+                                        $parts = preg_split('/\s+/', $rawName);
+                                        if (count($parts) >= 2) {
+                                            $compactUsername = strtoupper(substr($parts[0],0,1) . substr($parts[1],0,1));
+                                        } else {
+                                            $compactUsername = strtoupper(substr($rawName,0,2));
+                                        }
+                                    }
+                                    ?>
+                                    <td class="compact-col" data-label="U" style="text-align:center;font-weight:600"><?php echo htmlspecialchars($compactUsername); ?></td>
                                     <td data-label="User"><?php echo htmlspecialchars($shift['username']); ?></td>
                                     <td data-label="Date"><?php echo date('D, M j', strtotime($shift['shift_date'])); ?></td>
                                     <td data-label="Time"><?php echo date('g:i A', strtotime($shift['start_time'])); ?> -
                                         <?php echo date('g:i A', strtotime($shift['end_time'])); ?>
                                     </td>
                                     <td data-label="Role"><?php echo htmlspecialchars($shift['role_name']); ?></td>
-                                    <td data-label="Location"><?php echo htmlspecialchars($shift['location']); ?></td>
+                                    <td data-label="Location">
+                                        <?php
+                                        $loc = $shift['location'] ?? '';
+                                        if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                            echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                        } else {
+                                            echo htmlspecialchars($loc);
+                                        }
+                                        ?>
+                                    </td>
                                     <td class="actions" data-label="Actions">
                                         <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn"
                                             title="Edit shift">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form method="POST"
-                                            onsubmit="return confirm('Are you sure you want to delete this shift?');"
-                                            style="display: inline;">
+                                        <form method="POST" style="display:inline;">
                                             <input type="hidden" name="shift_id" value="<?php echo $shift['id']; ?>">
-                                            <button type="submit" name="delete_shift" class="admin-btn delete-btn"
-                                                title="Delete shift">
+                                            <button type="button" name="delete_shift" class="admin-btn delete-btn"
+                                                title="Delete shift"
+                                                onclick="if(confirm('Are you sure you want to delete the shift for <?php echo addslashes(htmlspecialchars($shift['username'])); ?> on <?php echo date('M j, Y', strtotime($shift['shift_date'])); ?>?')) { this.form.submit(); }">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>

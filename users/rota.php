@@ -80,10 +80,12 @@ if (!empty($filterConditions)) {
 // Query shifts for ALL users for the selected period
 $query = "
     SELECT s.*, u.username, r.name AS role_name, r.base_pay, r.has_night_pay, 
-           r.night_shift_pay, r.night_start_time, r.night_end_time
+           r.night_shift_pay, r.night_start_time, r.night_end_time,
+           b.name AS branch_name
     FROM shifts s
     JOIN users u ON s.user_id = u.id
     JOIN roles r ON s.role_id = r.id
+    LEFT JOIN branches b ON s.branch_id = b.id
     $sql
     ORDER BY s.shift_date ASC, s.start_time ASC
 ";
@@ -557,16 +559,22 @@ if ($period === 'week') {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
-                                    <a class="shit-invt" href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>" href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>" href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -754,7 +762,16 @@ if ($period === 'week') {
                                         style="display:inline-block; width:12px; height:12px; background-color:<?php echo $roleColor; ?>; border-radius:50%; margin-right:5px;"></span>
                                     <?php echo htmlspecialchars($shift['role_name']); ?>
                                 </td>
-                                <td><?php echo htmlspecialchars($shift['location']); ?></td>
+                                <td>
+                                    <?php
+                                    $loc = $shift['location'] ?? '';
+                                    if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                        echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                    } else {
+                                        echo htmlspecialchars($loc);
+                                    }
+                                    ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -788,7 +805,16 @@ if ($period === 'week') {
                                             </div>
                                             <div class="shift-user"><?php echo htmlspecialchars($shift['username']); ?></div>
                                             <div class="shift-role"><?php echo htmlspecialchars($shift['role_name']); ?></div>
-                                            <small><?php echo htmlspecialchars($shift['location']); ?></small>
+                                            <small>
+                                                <?php
+                                                $loc = $shift['location'] ?? '';
+                                                if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                                    echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                                } else {
+                                                    echo htmlspecialchars($loc);
+                                                }
+                                                ?>
+                                            </small>
                                         </div>
                                     <?php
                                     endforeach;

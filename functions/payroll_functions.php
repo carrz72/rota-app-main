@@ -323,6 +323,7 @@ function markPayrollPeriodAsProcessed($conn, $payroll_period_id)
         SET status = 'processed', updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
     ");
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'process_payroll_period', [], $payroll_period_id, 'payroll', session_id()); } catch (Exception $e) {}
     return $stmt->execute([$payroll_period_id]);
 }
 

@@ -18,6 +18,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $stmt = $conn->prepare("UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?");
     $stmt->execute([$username, $email, $role, $id]);
 
+    // Audit user edit
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'], 'edit_user', ['fields' => ['username','email','role']], $id, 'user', session_id()); } catch (Exception $e) {}
+
     header("Location: admin.php");
 }
 ?>

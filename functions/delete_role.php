@@ -2,15 +2,35 @@
 session_start();
 include '../includes/db.php';
 
-$data = json_decode(file_get_contents("php://input"), true);
-$id = $data['id'];
-$user_id = $_SESSION['user_id'];
+// Only allow POST/JSON and admin users
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Unauthorized']);
+    exit;
+}
 
-$stmt = $conn->prepare("DELETE FROM roles WHERE id = ? AND user_id = ?");
-$result = $stmt->execute([$id, $user_id]);
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Only administrators can delete roles']);
+    exit;
+}
+
+$data = json_decode(file_get_contents("php://input"), true);
+if (!$data || !isset($data['id'])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid request']);
+    exit;
+}
+
+$id = (int) $data['id'];
+
+$stmt = $conn->prepare("DELETE FROM roles WHERE id = ?");
+$result = $stmt->execute([$id]);
 if ($result) {
-    echo "Role deleted!";
+    echo json_encode(['success' => true, 'message' => 'Role deleted']);
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'delete_role', [], $id, 'role', session_id()); } catch (Exception $e) {}
 } else {
-    echo "Error deleting role!";
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Error deleting role']);
 }
 ?>

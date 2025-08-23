@@ -77,7 +77,22 @@ class PermissionManager
         $stmt->execute([$userId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $user['branch_id'] == $this->userBranchId;
+        // If the user's home branch matches, allow view
+        if (isset($user['branch_id']) && (int)$user['branch_id'] === (int)$this->userBranchId) {
+            return true;
+        }
+
+        // Otherwise allow if the user has any shifts scheduled at this admin's branch
+        if ($this->userBranchId) {
+            $sstmt = $this->conn->prepare("SELECT 1 FROM shifts WHERE user_id = ? AND branch_id = ? LIMIT 1");
+            $sstmt->execute([$userId, $this->userBranchId]);
+            $has = $sstmt->fetchColumn();
+            if ($has) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function canEditUser($userId)
@@ -111,10 +126,31 @@ class PermissionManager
             JOIN users u ON s.user_id = u.id 
             WHERE s.id = ?
         ");
+        // Admins (non-super) can view all branches
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        // Prefer explicit branch_id on shifts if present
+        $stmt = $this->conn->prepare("SELECT branch_id FROM shifts WHERE id = ? LIMIT 1");
         $stmt->execute([$shiftId]);
         $shift = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $shift['branch_id'] == $this->userBranchId;
+        // If shift has a branch set, compare it; otherwise fall back to user's branch via join
+        if ($shift && isset($shift['branch_id']) && !is_null($shift['branch_id'])) {
+            return (int)$shift['branch_id'] === (int)$this->userBranchId;
+        }
+
+        $stmt = $this->conn->prepare("
+            SELECT u.branch_id 
+            FROM shifts s 
+            JOIN users u ON s.user_id = u.id 
+            WHERE s.id = ?
+        ");
+        $stmt->execute([$shiftId]);
+        $shiftUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return isset($shiftUser['branch_id']) && (int)$shiftUser['branch_id'] === (int)$this->userBranchId;
     }
 
     public function canManageShiftsForUser($userId)

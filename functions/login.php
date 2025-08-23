@@ -2,6 +2,7 @@
 // Start output buffering early to prevent any whitespace issues
 ob_start();
 
+
 // Include session manager first
 require_once '../includes/session_manager.php';
 initializeSessionTimeout();
@@ -115,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && password_verify($password, $user['password'])) {
+    if ($user && password_verify($password, $user['password'])) {
             // Clear and recreate session to prevent session fixation
             session_regenerate_id(true);
 
@@ -126,15 +127,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['last_activity'] = time();
             $_SESSION['timeout_duration'] = 7200; // 2 hours
 
+            // Record login history (non-fatal). Keep this separate so a missing table doesn't stop audit logging.
             try {
-                // Record login for history - in a separate try block to avoid login failure
                 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
                 $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
                 $stmt = $conn->prepare("INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)");
                 $stmt->execute([$user['id'], $ip, $user_agent]);
             } catch (Exception $logError) {
-                // Just log it, don't prevent login
+                // Log but continue to audit
                 error_log("Login history recording error: " . $logError->getMessage());
+            }
+
+            // Attempt audit logging regardless of login_history outcome
+            try {
+                require_once __DIR__ . '/../includes/audit_log.php';
+                $ok = log_audit($conn, $user['id'], 'login_success', ['ip' => $ip ?? ($_SERVER['REMOTE_ADDR'] ?? 'unknown')], $user['id'], 'auth', session_id());
+            } catch (Exception $e) {
+                error_log('audit_log exception on login_success: ' . $e->getMessage());
+                $ok = false;
+            }
+
+            // Debug log whether primary audit succeeded
+            if ($ok) {
+                error_log('audit_log: login_success recorded for user_id=' . $user['id'] . ' sid=' . session_id());
+            } else {
+                error_log('audit_log: login_success NOT recorded for user_id=' . $user['id'] . ' — attempting fallback. sid=' . session_id());
+                // Fallback: include session_id so fallback rows are consistent
+                try {
+                    $fallbackMeta = json_encode(['ip' => $ip ?? ($_SERVER['REMOTE_ADDR'] ?? 'unknown')]);
+                    $sid = session_id();
+                    $stmtFallback = $conn->prepare('INSERT INTO audit_log (user_id, action, meta, ip_address, user_agent, session_id) VALUES (?, ?, ?, ?, ?, ?)');
+                    $stmtFallback->execute([$user['id'], 'login_success', $fallbackMeta, $ip ?? ($_SERVER['REMOTE_ADDR'] ?? 'unknown'), $user_agent ?? ($_SERVER['HTTP_USER_AGENT'] ?? 'unknown'), $sid]);
+                    error_log('audit_log fallback succeeded for login_success user_id=' . $user['id'] . ' sid=' . $sid);
+                } catch (Exception $fbE) {
+                    error_log('audit_log fallback failed for login_success: ' . $fbE->getMessage());
+                }
+            }
+
+            // Attempt to record the current session in user_sessions for session invalidation features
+            try {
+                $currentSid = session_id();
+                $stmt = $conn->prepare("REPLACE INTO user_sessions (session_id, user_id, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$currentSid, $user['id'], $ip, $user_agent]);
+            } catch (Exception $e) {
+                // Non-fatal: user_sessions table might not exist
+                error_log("user_sessions insert error: " . $e->getMessage());
             }
 
             // Determine redirect URL based on role and return URL
@@ -166,6 +203,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         } else {
             $error = "Invalid email or password.";
+            // Audit login failure (email provided)
+                try {
+                require_once __DIR__ . '/../includes/audit_log.php';
+                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $ok = log_audit($conn, null, 'login_failure', ['email' => $email, 'ip' => $ip], null, 'auth', session_id());
+                } catch (Exception $e) {
+                    error_log('audit_log exception on login_failure: ' . $e->getMessage());
+                    $ok = false;
+                }
+
+                if ($ok) {
+                    error_log('audit_log: login_failure recorded for email=' . $email . ' sid=' . session_id());
+                } else {
+                    error_log('audit_log: login_failure NOT recorded for email=' . $email . ' — attempting fallback. sid=' . session_id());
+                    try {
+                        $fallbackMeta = json_encode(['email' => $email, 'ip' => $ip]);
+                        $sid = session_id();
+                        $stmtFallback = $conn->prepare('INSERT INTO audit_log (user_id, action, meta, ip_address, user_agent, session_id) VALUES (?, ?, ?, ?, ?, ?)');
+                        $stmtFallback->execute([null, 'login_failure', $fallbackMeta, $ip, $_SERVER['HTTP_USER_AGENT'] ?? 'unknown', $sid]);
+                        error_log('audit_log fallback succeeded for login_failure email=' . $email . ' sid=' . $sid);
+                    } catch (Exception $fbE) {
+                        error_log('audit_log fallback failed for login_failure: ' . $fbE->getMessage());
+                    }
+                }
         }
     } catch (Exception $e) {
         error_log("Login process error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
@@ -212,8 +273,8 @@ ob_start();
             padding: 20px;
             color: #333;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
+            align-items: center; /* center horizontally */
         }
 
         .login-container {
@@ -224,6 +285,7 @@ ob_start();
             width: 100%;
             max-width: 450px;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin: auto; /* center vertically and horizontally within column layout */
         }
 
         .login-container:hover {
@@ -370,15 +432,13 @@ ob_start();
                 font-size: 1.5rem;
             }
         }
+
+       
     </style>
 </head>
 
 <body>
-    </style>
-    </head>
-
-    <body>
-        <div class="login-container">
+    <div class="login-container">
             <!-- Logo Header -->
             <div class="logo-header">
                 <div class="logo">Open Rota</div>
@@ -427,7 +487,7 @@ ob_start();
             <div class="text-center" style="margin-top: 25px; color: #666;">
                 Don't have an account? <a href="../register_with_otp.php" class="login-link">Sign Up</a>
             </div>
-        </div>
+        </div> <!-- .login-container -->
 
         <script>
             // Simple form submission handler
@@ -439,6 +499,9 @@ ob_start();
         </script>
 
         <script src="../js/pwa-debug.js"></script>
+
+        <?php include __DIR__ . '/../includes/privacy_footer.php'; ?>
+
     </body>
 
 </html>

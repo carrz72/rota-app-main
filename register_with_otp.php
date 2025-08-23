@@ -331,8 +331,8 @@
                 <div class="checkbox-group">
                     <input type="checkbox" id="terms" name="terms" required>
                     <label for="terms">
-                        I agree to the <a href="#" class="login-link">Terms & Conditions</a>
-                        and <a href="#" class="login-link">Privacy Policy</a>
+                        I agree to the <a href="terms.php" target="_blank" rel="noopener" class="login-link">Terms &amp; Conditions</a>
+                        and <a href="privacy.php" target="_blank" rel="noopener" class="login-link">Privacy Policy</a>
                     </label>
                 </div>
             </div>

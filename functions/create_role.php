@@ -9,9 +9,16 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Validate required input
-if (empty($_POST['name']) || !isset($_POST['base_pay']) || !is_numeric($_POST['base_pay']) || $_POST['base_pay'] < 0) {
-    $_SESSION['error'] = "Invalid role name or base pay.";
+// Only admin users may create roles
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    $_SESSION['error'] = "Only administrators can create roles.";
+    header("Location: ../users/roles.php");
+    exit;
+}
+
+// Validate required input (basic)
+if (empty($_POST['name'])) {
+    $_SESSION['error'] = "Invalid role name.";
     header("Location: ../users/roles.php");
     exit;
 }
@@ -19,21 +26,34 @@ if (empty($_POST['name']) || !isset($_POST['base_pay']) || !is_numeric($_POST['b
 $user_id = $_SESSION['user_id'];
 $name = trim($_POST['name']);
 $employment_type = $_POST['employment_type'] ?? 'hourly';
-$base_pay = $employment_type === 'hourly' ? (float) $_POST['base_pay'] : null;
-$monthly_salary = $employment_type === 'salaried' ? (float) $_POST['monthly_salary'] : null;
+$base_pay = 0.0; // default to 0 for salaried roles (DB requires non-null)
+$monthly_salary = null;
+if ($employment_type === 'hourly') {
+    $base_pay = isset($_POST['base_pay']) ? (float) $_POST['base_pay'] : 0.0;
+} else {
+    // Expect annual salary from the form; convert to monthly for DB storage
+    $annual_salary = isset($_POST['annual_salary']) ? $_POST['annual_salary'] : null;
+    if ($annual_salary !== null && $annual_salary !== '') {
+        $monthly_salary = (float)$annual_salary / 12.0;
+    }
+    // ensure base_pay is numeric and non-null for DB constraints
+    $base_pay = 0.0;
+}
 $has_night_pay = isset($_POST['has_night_pay']) ? 1 : 0;
 
 // Validate based on employment type
-if ($employment_type === 'hourly' && (!isset($_POST['base_pay']) || !is_numeric($_POST['base_pay']) || $_POST['base_pay'] < 0)) {
-    $_SESSION['error'] = "Invalid hourly rate for hourly role.";
-    header("Location: ../users/roles.php");
-    exit;
-}
-
-if ($employment_type === 'salaried' && (!isset($_POST['monthly_salary']) || !is_numeric($_POST['monthly_salary']) || $_POST['monthly_salary'] < 0)) {
-    $_SESSION['error'] = "Invalid monthly salary for salaried role.";
-    header("Location: ../users/roles.php");
-    exit;
+if ($employment_type === 'hourly') {
+    if (!isset($base_pay) || !is_numeric($base_pay) || $base_pay < 0) {
+        $_SESSION['error'] = "Invalid hourly rate for hourly role.";
+        header("Location: ../users/roles.php");
+        exit;
+    }
+} else {
+    if (!isset($monthly_salary) || !is_numeric($monthly_salary) || $monthly_salary < 0) {
+        $_SESSION['error'] = "Invalid annual salary for salaried role.";
+        header("Location: ../users/roles.php");
+        exit;
+    }
 }
 
 // Initialize optional night shift fields
@@ -73,22 +93,28 @@ $stmt = $conn->prepare("
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 ");
 
-$success = $stmt->execute([
-    $user_id,
-    $name,
-    $employment_type,
-    $base_pay,
-    $monthly_salary,
-    $has_night_pay,
-    $night_shift_pay,
-    $night_start_time,
-    $night_end_time
-]);
+try {
+    $success = $stmt->execute([
+        $user_id,
+        $name,
+        $employment_type,
+        $base_pay,
+        $monthly_salary,
+        $has_night_pay,
+        $night_shift_pay,
+        $night_start_time,
+        $night_end_time
+    ]);
 
-if ($success) {
-    $_SESSION['success'] = "Role successfully created.";
-} else {
-    $_SESSION['error'] = "An error occurred: " . implode(' - ', $stmt->errorInfo());
+    if ($success) {
+        $_SESSION['success'] = "Role successfully created.";
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'], 'create_role', ['role' => $name], $conn->lastInsertId() ?: null, 'role', session_id()); } catch (Exception $e) {}
+    } else {
+        $_SESSION['error'] = "An error occurred: " . implode(' - ', $stmt->errorInfo());
+    }
+} catch (PDOException $e) {
+    // Common cause: roles.id not AUTO_INCREMENT or duplicate primary key values
+    $_SESSION['error'] = "Database error while creating role: " . $e->getMessage() . ".\nIf this mentions duplicate entry '0' or PRIMARY key, run the migration 'migrations/fix_roles_autoinc.sql' to make 'roles.id' AUTO_INCREMENT and ensure the primary key is correctly set.";
 }
 
 $conn = null;

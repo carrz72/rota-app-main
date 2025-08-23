@@ -19,9 +19,7 @@ if (isset($_SESSION['user_id'])) {
 
 <head>
     <meta charset="UTF-8">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Open Rota">
+    <?php require_once __DIR__ . '/includes/seo.php'; seo_render_head(['title' => seo_full_title('Open Rota - Manage Your Work Schedule'), 'description' => 'Open Rota helps small teams manage shifts, track earnings and communicate schedule changes. Secure, simple rota management.']); ?>
     <link rel="icon" type="image/png" href="./images/icon.png">
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -198,6 +196,8 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </div>
     </main>
+    <?php include __DIR__ . '/includes/privacy_footer.php'; ?>
+
 </body>
 
 <script>

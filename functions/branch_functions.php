@@ -1,6 +1,8 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../includes/db.php';
+// Notifications helper
+require_once __DIR__ . '/addNotification.php';
 
 /**
  * Get all branches
@@ -96,24 +98,70 @@ function canUserAccessBranch($conn, $user_id, $branch_id, $required_level = 'vie
  */
 function createCrossBranchRequest($conn, $data)
 {
+    // Determine role_required text and role_id (if provided)
+    $role_id = isset($data['role_id']) && $data['role_id'] !== '' ? (int)$data['role_id'] : null;
+    $role_required = null;
+    if ($role_id) {
+        $rstmt = $conn->prepare("SELECT name FROM roles WHERE id = ? LIMIT 1");
+        $rstmt->execute([$role_id]);
+        $role_required = $rstmt->fetchColumn();
+    } elseif (isset($data['role_required'])) {
+        $role_required = $data['role_required'];
+    }
+
     $sql = "INSERT INTO cross_branch_shift_requests 
             (requesting_branch_id, target_branch_id, shift_date, start_time, end_time, 
-             role_required, urgency_level, description, requested_by_user_id, expires_at) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+             role_required, urgency_level, description, requested_by_user_id, expires_at, role_id, source_shift_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     $stmt = $conn->prepare($sql);
-    return $stmt->execute([
+    $ok = $stmt->execute([
         $data['requesting_branch_id'],
         $data['target_branch_id'],
         $data['shift_date'],
         $data['start_time'],
         $data['end_time'],
-        $data['role_required'],
+        $role_required,
         $data['urgency_level'],
         $data['description'],
-        $data['requested_by_user_id'],
-        $data['expires_at']
+    $data['requested_by_user_id'],
+        $data['expires_at'],
+        $role_id
+    , isset($data['source_shift_id']) && $data['source_shift_id'] ? (int)$data['source_shift_id'] : null
     ]);
+
+    // If insert succeeded, notify target branch admins about the new request (best-effort)
+    if ($ok) {
+        try {
+            $requestId = (int)$conn->lastInsertId();
+            // Get friendly branch names
+            $rbStmt = $conn->prepare("SELECT name FROM branches WHERE id = ? LIMIT 1");
+            $rbStmt->execute([$data['requesting_branch_id']]);
+            $requestingBranchName = $rbStmt->fetchColumn() ?: 'a branch';
+
+            $tbStmt = $conn->prepare("SELECT name FROM branches WHERE id = ? LIMIT 1");
+            $tbStmt->execute([$data['target_branch_id']]);
+            $targetBranchName = $tbStmt->fetchColumn() ?: 'your branch';
+
+            $msg = "New coverage request for {$data['shift_date']} {$data['start_time']}-{$data['end_time']} from {$requestingBranchName}";
+
+            // Find admins for the target branch: branch-local admins (role) and explicit branch_permissions with admin level
+            $admSql = "(SELECT id, username FROM users WHERE branch_id = ? AND role IN ('admin','super_admin'))
+                       UNION
+                       (SELECT u.id, u.username FROM users u JOIN branch_permissions bp ON bp.user_id = u.id WHERE bp.branch_id = ? AND bp.permission_level = 'admin')";
+            $admStmt = $conn->prepare($admSql);
+            $admStmt->execute([$data['target_branch_id'], $data['target_branch_id']]);
+            $admins = $admStmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($admins as $a) {
+                try { addNotification($conn, (int)$a['id'], $msg, 'info', $requestId); } catch (Exception $e) { error_log('Failed to notify branch admin: ' . $e->getMessage()); }
+            }
+        } catch (Exception $e) {
+            error_log('Failed to send branch admin notifications for new cross-branch request: ' . $e->getMessage());
+        }
+    }
+
+    return $ok;
+    // Note: caller receives boolean; we should also record audit after creation in caller context if needed.
 }
 
 /**
@@ -180,20 +228,21 @@ function fulfillCrossBranchRequest($conn, $request_id, $fulfilling_user_id, $app
             throw new Exception("Request not found");
         }
 
-        // Create shift for the fulfilling user at the requesting branch
-        $sql = "INSERT INTO shifts (user_id, shift_date, start_time, end_time, branch_id, location) 
-                VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([
-            $fulfilling_user_id,
-            $request['shift_date'],
-            $request['start_time'],
-            $request['end_time'],
-            $request['requesting_branch_id'],
-            'Cross-branch coverage'
-        ]);
+    // Create shift for the fulfilling user at the requesting branch (include role_id if present)
+    $sql = "INSERT INTO shifts (user_id, shift_date, start_time, end_time, branch_id, location, role_id) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([
+        $fulfilling_user_id,
+        $request['shift_date'],
+        $request['start_time'],
+        $request['end_time'],
+        $request['requesting_branch_id'],
+        'Cross-branch coverage',
+        isset($request['role_id']) && $request['role_id'] ? $request['role_id'] : null
+    ]);
 
-        $shift_id = $conn->lastInsertId();
+    $shift_id = $conn->lastInsertId();
 
         // Create coverage record
         $sql = "INSERT INTO shift_coverage 
@@ -217,8 +266,91 @@ function fulfillCrossBranchRequest($conn, $request_id, $fulfilling_user_id, $app
         $stmt = $conn->prepare($sql);
         $stmt->execute([$fulfilling_user_id, $request_id]);
 
-        $conn->commit();
-        return true;
+    // Close other pending sibling requests for the same shift to avoid multiple acceptances
+        // Build a human-friendly note
+        $fuStmt = $conn->prepare("SELECT username, branch_id FROM users WHERE id = ? LIMIT 1");
+        $fuStmt->execute([$fulfilling_user_id]);
+        $fu = $fuStmt->fetch(PDO::FETCH_ASSOC);
+        $fulfillerName = $fu['username'] ?? 'A user';
+        $fulfillerBranchName = null;
+        if (!empty($fu['branch_id'])) {
+            $bstmt = $conn->prepare("SELECT name FROM branches WHERE id = ? LIMIT 1");
+            $bstmt->execute([$fu['branch_id']]);
+            $fulfillerBranchName = $bstmt->fetchColumn();
+        }
+
+        $noteParts = ["Fulfilled by {$fulfillerName}"];
+        if ($fulfillerBranchName) $noteParts[] = "branch: {$fulfillerBranchName}";
+        $note = implode(' ', $noteParts);
+
+        $closeStmt = $conn->prepare(
+            "UPDATE cross_branch_shift_requests
+             SET status = 'declined', notes = ?, expires_at = NOW()
+             WHERE requesting_branch_id = ? AND shift_date = ? AND start_time = ? AND end_time = ? AND id != ? AND status = 'pending'"
+        );
+        $closeStmt->execute([
+            $note,
+            $request['requesting_branch_id'],
+            $request['shift_date'],
+            $request['start_time'],
+            $request['end_time'],
+            $request_id
+        ]);
+
+        // Notify the user who created the request that it was accepted
+        try {
+            $requesterId = (int)($request['requested_by_user_id'] ?? 0);
+            if ($requesterId > 0) {
+                $msg = "Your coverage request for {$request['shift_date']} {$request['start_time']}-{$request['end_time']} was accepted by {$fulfillerName}";
+                if (!empty($fulfillerBranchName)) {
+                    $msg .= " ({$fulfillerBranchName})";
+                }
+                // related_id = request id so UI can link back
+                addNotification($conn, $requesterId, $msg, 'success', $request_id);
+            }
+        } catch (Exception $e) {
+            // Don't block the main flow if notification fails; log for diagnostics
+            error_log('Failed to notify requester for fulfilled cross-branch request: ' . $e->getMessage());
+        }
+
+        // Notify requesting branch admins that a request was accepted
+        try {
+            $admSql2 = "(SELECT id FROM users WHERE branch_id = ? AND role IN ('admin','super_admin'))
+                       UNION
+                       (SELECT u.id FROM users u JOIN branch_permissions bp ON bp.user_id = u.id WHERE bp.branch_id = ? AND bp.permission_level = 'admin')";
+            $admStmt2 = $conn->prepare($admSql2);
+            $admStmt2->execute([$request['requesting_branch_id'], $request['requesting_branch_id']]);
+            $admins2 = $admStmt2->fetchAll(PDO::FETCH_COLUMN);
+            $adminMsg = "Coverage request for {$request['shift_date']} {$request['start_time']}-{$request['end_time']} has been accepted by {$fulfillerName}";
+            foreach ($admins2 as $aid) {
+                try { addNotification($conn, (int)$aid, $adminMsg, 'success', $request_id); } catch (Exception $e) { error_log('Failed to notify requesting branch admin: ' . $e->getMessage()); }
+            }
+        } catch (Exception $e) {
+            error_log('Failed to notify requesting branch admins for fulfilled request: ' . $e->getMessage());
+        }
+
+    // Audit: cross-branch request fulfilled
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $approving_user_id ?? ($_SESSION['user_id'] ?? null), 'cross_branch_request_fulfilled', ['shift_id' => $shift_id, 'fulfiller_user_id' => $fulfilling_user_id, 'approving_user_id' => $approving_user_id], $request_id, 'cross_branch_request', session_id()); } catch (Exception $e) {}
+
+            // If the original requester provided a source_shift_id (they requested coverage for their own shift), remove that original shift now
+            if (!empty($request['source_shift_id'])) {
+                try {
+                    // Only remove if the shift still exists and belongs to the requesting user
+                    $sstmt = $conn->prepare("SELECT user_id FROM shifts WHERE id = ? LIMIT 1");
+                    $sstmt->execute([(int)$request['source_shift_id']]);
+                    $owner = $sstmt->fetchColumn();
+                    if ($owner && (int)$owner === (int)$request['requested_by_user_id']) {
+                        $dstmt = $conn->prepare("DELETE FROM shifts WHERE id = ?");
+                        $dstmt->execute([(int)$request['source_shift_id']]);
+                    }
+                } catch (Exception $e) {
+                    // Don't block fulfillment on this cleanup; log instead
+                    error_log('Failed to remove source shift after fulfillment: ' . $e->getMessage());
+                }
+            }
+
+    $conn->commit();
+    return true;
 
     } catch (Exception $e) {
         $conn->rollback();

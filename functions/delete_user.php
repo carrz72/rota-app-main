@@ -45,6 +45,9 @@ if (isset($_GET['id'])) {
 
         $_SESSION['success_message'] = "User '" . htmlspecialchars($user['username']) . "' has been deleted successfully.";
 
+    // Audit deletion
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'], 'delete_user', ['username' => $user['username']], $id, 'user', session_id()); } catch (Exception $e) {}
+
     } catch (Exception $e) {
         // Rollback transaction on error
         $conn->rollback();

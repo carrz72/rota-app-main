@@ -26,11 +26,20 @@ if (!$adminBranchId || !$user_branch) {
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['create_request'])) {
-        $target_branch_id = $_POST['target_branch_id'];
+        // Expecting comma-separated branch ids from the multi-select hidden input
+        $raw_target_ids = $_POST['target_branch_ids'] ?? '';
+        $target_branch_ids = array_filter(array_map('intval', explode(',', $raw_target_ids)));
+        // Limit to 5
+        $target_branch_ids = array_slice($target_branch_ids, 0, 5);
+        if (empty($target_branch_ids)) {
+            $_SESSION['error_message'] = 'Please select at least one target branch (up to 5).';
+            header("Location: cross_branch_requests.php");
+            exit();
+        }
         $shift_date = $_POST['shift_date'];
         $start_time = $_POST['start_time'];
         $end_time = $_POST['end_time'];
-        $role_required = $_POST['role_required'];
+    $role_id = isset($_POST['role_required']) && $_POST['role_required'] !== '' ? (int)$_POST['role_required'] : null; // role id or null for Any
         $urgency_level = $_POST['urgency_level'];
         $description = $_POST['description'];
         $expires_hours = $_POST['expires_hours'];
@@ -38,27 +47,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Calculate expiration time
         $expires_at = date('Y-m-d H:i:s', strtotime("+$expires_hours hours"));
 
-        $request_data = [
-            'requesting_branch_id' => $user_branch['id'],
-            'target_branch_id' => $target_branch_id,
-            'shift_date' => $shift_date,
-            'start_time' => $start_time,
-            'end_time' => $end_time,
-            'role_required' => $role_required,
-            'urgency_level' => $urgency_level,
-            'description' => $description,
-            'requested_by_user_id' => $user_id,
-            'expires_at' => $expires_at
-        ];
+        $successCount = 0;
+        $errors = [];
+        foreach ($target_branch_ids as $target_branch_id) {
+            $request_data = [
+                'requesting_branch_id' => $user_branch['id'],
+                'target_branch_id' => $target_branch_id,
+                'shift_date' => $shift_date,
+                'start_time' => $start_time,
+                'end_time' => $end_time,
+                'role_id' => $role_id,
+                'urgency_level' => $urgency_level,
+                'description' => $description,
+                'requested_by_user_id' => $user_id,
+                'expires_at' => $expires_at
+            ];
 
-        try {
-            if (createCrossBranchRequest($conn, $request_data)) {
-                $_SESSION['success_message'] = "Cross-branch coverage request sent successfully!";
-            } else {
-                $_SESSION['error_message'] = "Failed to create request.";
+            try {
+                if (createCrossBranchRequest($conn, $request_data)) {
+                    $successCount++;
+                } else {
+                    $errors[] = "Failed to create request for branch ID {$target_branch_id}";
+                }
+            } catch (Exception $e) {
+                $errors[] = "Error for branch ID {$target_branch_id}: " . $e->getMessage();
             }
-        } catch (Exception $e) {
-            $_SESSION['error_message'] = "Error: " . $e->getMessage();
+        }
+
+        if ($successCount > 0) {
+            $_SESSION['success_message'] = "Cross-branch coverage request sent to {$successCount} branch(es).";
+            if (!empty($errors)) {
+                $_SESSION['error_message'] = implode('\n', $errors);
+            }
+        } else {
+            $_SESSION['error_message'] = "No requests created. " . implode('\n', $errors);
         }
 
         header("Location: cross_branch_requests.php");
@@ -88,6 +110,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare($sql);
         $stmt->execute([$notes, $request_id]);
 
+        // Notify the requester that their request was declined
+        try {
+            require_once __DIR__ . '/../functions/addNotification.php';
+            $rstmt = $conn->prepare("SELECT requested_by_user_id, shift_date, start_time, end_time FROM cross_branch_shift_requests WHERE id = ? LIMIT 1");
+            $rstmt->execute([$request_id]);
+            $r = $rstmt->fetch(PDO::FETCH_ASSOC);
+            if ($r && !empty($r['requested_by_user_id'])) {
+                $msg = "Your coverage request for {$r['shift_date']} {$r['start_time']}-{$r['end_time']} was declined.";
+                addNotification($conn, (int)$r['requested_by_user_id'], $msg, 'error', $request_id);
+            }
+        } catch (Exception $e) {
+            error_log('Failed to notify requester about decline: ' . $e->getMessage());
+        }
+
         $_SESSION['success_message'] = "Request declined.";
         header("Location: cross_branch_requests.php");
         exit();
@@ -97,16 +133,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get all branches for dropdown
 $all_branches = getAllBranches($conn);
 
+// Get roles for dropdown
+$rolesStmt = $conn->prepare("SELECT id, name FROM roles ORDER BY name");
+$rolesStmt->execute();
+$all_roles = $rolesStmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Get pending requests for user's branch
 $pending_requests = getPendingRequestsForBranch($conn, $user_branch['id']);
 
-// Get user's own pending requests
-$sql = "SELECT cbr.*, tb.name as target_branch_name 
-        FROM cross_branch_shift_requests cbr
-        JOIN branches tb ON cbr.target_branch_id = tb.id
-        WHERE cbr.requested_by_user_id = ? 
-        AND cbr.status = 'pending'
-        ORDER BY cbr.created_at DESC";
+// Get user's own requests (show pending and fulfilled, include fulfiller info)
+$sql = "SELECT cbr.*, tb.name as target_branch_name, uf.username AS fulfilled_by_username, fb.name AS accepted_by_branch
+    FROM cross_branch_shift_requests cbr
+    JOIN branches tb ON cbr.target_branch_id = tb.id
+    LEFT JOIN users uf ON cbr.fulfilled_by_user_id = uf.id
+    LEFT JOIN branches fb ON uf.branch_id = fb.id
+    WHERE cbr.requested_by_user_id = ? 
+    AND cbr.status IN ('pending','fulfilled')
+    ORDER BY cbr.created_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_id]);
 $my_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -132,6 +175,18 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <title>Cross-Branch Coverage Requests - Admin</title>
     <link rel="stylesheet" href="../css/admin_dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Multi-select styles */
+        .multi-select { position: relative; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+        .multi-select input#branch-search { width: 100%; padding: 6px; border: 1px solid #eee; border-radius: 4px; }
+    .options-list { max-height: 150px; overflow: auto; margin-top: 8px; border-top: 1px dashed #f0f0f0; padding-top: 8px; display: none; position: absolute; left: 8px; right: 8px; background: #fff; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .options-list .option { padding: 6px; cursor: pointer; border-radius: 4px; }
+        .options-list .option:hover { background: #f4f4f4; }
+        .selected-list { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .chip { background: #eee; padding: 4px 8px; border-radius: 16px; display: inline-flex; align-items: center; gap: 6px; }
+        .chip-remove { cursor: pointer; padding-left: 6px; color: #777; }
+        .hint { display:block; font-size: 12px; color: #666; margin-top:4px; }
+    </style>
 </head>
 
 <body>
@@ -177,20 +232,25 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <form method="POST" class="admin-form">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="target_branch_id">
-                                <i class="fas fa-building"></i> Request Coverage From:
+                            <label for="target_branch_ids">
+                                <i class="fas fa-building"></i> Request Coverage From (select up to 5):
                             </label>
-                            <select id="target_branch_id" name="target_branch_id" required>
-                                <option value="">Select a branch...</option>
-                                <?php foreach ($all_branches as $branch): ?>
-                                    <?php if ($branch['id'] != $user_branch['id']): ?>
-                                        <option value="<?php echo $branch['id']; ?>">
-                                            <?php echo htmlspecialchars($branch['name']); ?>
-                                            (<?php echo htmlspecialchars($branch['code']); ?>)
-                                        </option>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </select>
+                            <div id="branch-multi-select" class="multi-select">
+                                <input type="text" id="branch-search" placeholder="Search branches..." autocomplete="off">
+                                <div id="branch-selected" class="selected-list"></div>
+                                <div id="branch-options" class="options-list">
+                                    <?php foreach ($all_branches as $branch): ?>
+                                        <?php if ($branch['id'] != $user_branch['id']): ?>
+                                            <div class="option" data-id="<?php echo $branch['id']; ?>">
+                                                <?php echo htmlspecialchars($branch['name']); ?>
+                                                <span class="muted">(<?php echo htmlspecialchars($branch['code']); ?>)</span>
+                                            </div>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                                <input type="hidden" id="target_branch_ids" name="target_branch_ids" value="">
+                                <small class="hint">Type to search, click to select. Max 5 branches.</small>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="urgency_level">
@@ -238,8 +298,12 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <label for="role_required">
                                 <i class="fas fa-user-tag"></i> Role/Position Required:
                             </label>
-                            <input type="text" id="role_required" name="role_required"
-                                placeholder="e.g., Cashier, Manager, Sales Associate">
+                            <select id="role_required" name="role_required">
+                                <option value="">Any role</option>
+                                <?php foreach ($all_roles as $role): ?>
+                                    <option value="<?php echo $role['id']; ?>"><?php echo htmlspecialchars($role['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label for="description">
@@ -395,7 +459,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                         <?php echo ucfirst($request['urgency_level']); ?> Priority
                                     </span>
                                 </h3>
-                                <span class="badge info">Pending Response</span>
+                                <?php if ($request['status'] === 'fulfilled'): ?>
+                                    <span class="badge success">Accepted</span>
+                                <?php elseif ($request['status'] === 'declined'): ?>
+                                    <span class="badge error">Declined</span>
+                                <?php else: ?>
+                                    <span class="badge info">Pending Response</span>
+                                <?php endif; ?>
                             </div>
                             <div class="admin-panel-body">
                                 <div class="form-grid">
@@ -423,6 +493,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                         <?php echo nl2br(htmlspecialchars($request['description'])); ?>
                                     </div>
                                 <?php endif; ?>
+                                <?php if ($request['status'] === 'fulfilled'): ?>
+                                    <div class="info-message" style="margin-top: 15px; background:#f4fff4; padding:8px; border-radius:6px;">
+                                        <strong><i class="fas fa-check-circle"></i> Accepted</strong>
+                                        <p>Accepted by: <strong><?php echo htmlspecialchars($request['fulfilled_by_username'] ?? 'a user'); ?></strong>
+                                        <?php if (!empty($request['accepted_by_branch'])): ?>
+                                            (<?php echo htmlspecialchars($request['accepted_by_branch']); ?>)
+                                        <?php endif; ?></p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -432,6 +511,95 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     </div>
 
     <script>
+        // Branch multi-select logic
+        (function() {
+            const search = document.getElementById('branch-search');
+            const optionsList = document.getElementById('branch-options');
+            const options = document.querySelectorAll('#branch-options .option');
+            const selectedContainer = document.getElementById('branch-selected');
+            const hiddenInput = document.getElementById('target_branch_ids');
+            const maxSelect = 5;
+            let selected = [];
+
+            function renderSelected() {
+                selectedContainer.innerHTML = '';
+                selected.forEach(id => {
+                    const opt = Array.from(options).find(o => o.dataset.id === String(id));
+                    if (!opt) return;
+                    const chip = document.createElement('div');
+                    chip.className = 'chip';
+                    chip.innerText = opt.textContent.trim();
+                    const remove = document.createElement('span');
+                    remove.className = 'chip-remove';
+                    remove.innerText = '×';
+                    remove.onclick = () => { selected = selected.filter(x => x !== id); renderSelected(); };
+                    chip.appendChild(remove);
+                    selectedContainer.appendChild(chip);
+                });
+                hiddenInput.value = selected.join(',');
+            }
+
+            function filterOptions(q) {
+                const term = q.trim().toLowerCase();
+                Array.from(options).forEach(o => {
+                    const txt = o.textContent.toLowerCase();
+                    o.style.display = txt.indexOf(term) === -1 ? 'none' : 'block';
+                });
+            }
+
+            // Show options when search focused
+            function positionOptions() {
+                const container = document.getElementById('branch-multi-select');
+                const selectedRect = selectedContainer.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                // place options-list immediately under selectedContainer inside the multi-select
+                optionsList.style.top = (selectedContainer.offsetTop + selectedContainer.offsetHeight + 6) + 'px';
+                optionsList.style.left = '8px';
+                optionsList.style.right = '8px';
+            }
+
+            function showOptions() { positionOptions(); optionsList.style.display = 'block'; }
+            function hideOptions() { optionsList.style.display = 'none'; }
+
+            // Hide options when clicking outside
+            document.addEventListener('click', function(e) {
+                const container = document.getElementById('branch-multi-select');
+                if (!container) return;
+                if (!container.contains(e.target)) {
+                    hideOptions();
+                }
+            });
+
+            // Hide options on Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') hideOptions();
+            });
+
+            Array.from(options).forEach(o => {
+                o.addEventListener('click', () => {
+                    const id = parseInt(o.dataset.id, 10);
+                    if (selected.includes(id)) return;
+                    if (selected.length >= maxSelect) {
+                        alert('You can select up to ' + maxSelect + ' branches.');
+                        return;
+                    }
+                    selected.push(id);
+                    renderSelected();
+                    // reposition and keep options visible for further selection
+                    positionOptions();
+                    showOptions();
+                });
+            });
+
+            if (search) {
+                search.addEventListener('input', (e) => {
+                    filterOptions(e.target.value);
+                });
+                search.addEventListener('focus', () => { filterOptions(search.value); showOptions(); });
+            }
+        })();
+
+    
         function showTab(tabName) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {

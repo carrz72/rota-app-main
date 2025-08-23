@@ -57,18 +57,26 @@ if ($user_id) {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item notification-<?php echo $notification['type']; ?>"
-                                data-id="<?php echo $notification['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
-                                    <a class="shit-invt"
-                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -91,7 +99,7 @@ if ($user_id) {
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-                <?php if ($_SESSION['role'] === 'admin'): ?>
+                <?php if ($_SESSION['role'] === 'super_admin'): ?>
                     <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
                 <?php endif; ?>
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
@@ -148,11 +156,10 @@ if ($user_id) {
                                         <div class="pay-value">£<?php echo number_format($role['base_pay'], 2); ?> per hour</div>
                                     </div>
                                 <?php else: ?>
-                                    <!-- Monthly Salary -->
+                                    <!-- Monthly Salary: show to admins, hide for others -->
                                     <div class="pay-detail">
                                         <div class="pay-label"><i class="fa fa-money"></i> Monthly Salary:</div>
-                                        <div class="pay-value">£<?php echo number_format($role['monthly_salary'], 2); ?> per month
-                                        </div>
+                                        <div class="pay-value">Confidential per month</div>
                                     </div>
                                 <?php endif; ?>
 
@@ -173,6 +180,7 @@ if ($user_id) {
                                 <?php endif; ?>
                             </div>
                         </div>
+                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin'): ?>
                         <div class="role-actions">
                             <button class="action-btn edit-btn" onclick="editRole(<?php echo $role['id']; ?>)">
                                 <i class="fa fa-pencil"></i> Edit
@@ -182,6 +190,11 @@ if ($user_id) {
                                 <i class="fa fa-trash"></i> Delete
                             </button>
                         </div>
+                        <?php else: ?>
+                        <div class="role-actions">
+                            <span class="muted">Only administrators can edit or delete roles.</span>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
@@ -190,6 +203,7 @@ if ($user_id) {
         </section>
 
         <!-- Add New Role Form -->
+    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin'): ?>
         <section class="form-card">
             <h2><i class="fa fa-plus-circle"></i> Add New Role</h2>
             <form action="../functions/create_role.php" method="POST" id="roleForm">
@@ -213,9 +227,9 @@ if ($user_id) {
                     </div>
 
                     <div class="form-group" id="salary_pay_group" style="display: none;">
-                        <label for="monthly_salary">Monthly Salary (£):</label>
-                        <input type="number" step="0.01" min="0" id="monthly_salary" name="monthly_salary"
-                            placeholder="e.g. 2500.00">
+                        <label for="annual_salary">Annual Salary (£):</label>
+                        <input type="number" step="0.01" min="0" id="annual_salary" name="annual_salary"
+                            placeholder="e.g. 30000.00">
                     </div>
 
                     <div class="form-full-width" id="night_pay_toggle">
@@ -257,6 +271,12 @@ if ($user_id) {
                 </div>
             </form>
         </section>
+        <?php else: ?>
+        <section class="form-card">
+            <h2><i class="fa fa-lock"></i> Add New Role</h2>
+            <div class="muted">Only administrators can create new roles. If you need a new role, please contact your admin.</div>
+        </section>
+        <?php endif; ?>
 
         <div style="margin-top: 20px; text-align: center;">
             <a href="dashboard.php">Back to Dashboard</a>
@@ -276,9 +296,9 @@ if ($user_id) {
                     <input type="text" id="edit_name" name="edit_name" required>
                 </div>
 
-                <div class="form-group">
-                    <label for="edit_employment_type">Employment Type:</label>
-                    <select id="edit_employment_type" name="edit_employment_type" onchange="toggleEditPayFields()"
+                    <div class="form-group">
+                            <label for="edit_employment_type">Employment Type:</label>
+                            <select id="edit_employment_type" name="edit_employment_type" onchange="toggleEditPayFields()"
                         required>
                         <option value="hourly">Hourly Paid</option>
                         <option value="salaried">Salaried</option>
@@ -291,8 +311,8 @@ if ($user_id) {
                 </div>
 
                 <div id="edit_salary_pay_group" class="form-group" style="display: none;">
-                    <label for="edit_monthly_salary">Monthly Salary (£):</label>
-                    <input type="number" step="0.01" min="0" id="edit_monthly_salary" name="edit_monthly_salary">
+                    <label for="edit_annual_salary">Annual Salary (£):</label>
+                    <input type="number" step="0.01" min="0" id="edit_annual_salary" name="edit_annual_salary">
                 </div>
 
                 <div id="edit_night_pay_toggle" class="form-group">
@@ -404,17 +424,19 @@ if ($user_id) {
                 nightPayFields.style.display = 'none';
                 hasNightPay.checked = false;
 
-                // Make salary required, hourly not required
-                document.getElementById("monthly_salary").required = true;
+                // Make annual salary required, hourly not required
+                const annual = document.getElementById("annual_salary");
+                if (annual) annual.required = true;
                 document.getElementById("base_pay").required = false;
             } else {
                 hourlyGroup.style.display = 'block';
                 salaryGroup.style.display = 'none';
                 nightPayToggle.style.display = 'block';
 
-                // Make hourly required, salary not required
+                // Make hourly required, annual salary not required
                 document.getElementById("base_pay").required = true;
-                document.getElementById("monthly_salary").required = false;
+                const annual = document.getElementById("annual_salary");
+                if (annual) annual.required = false;
             }
         }
 
@@ -462,18 +484,19 @@ if ($user_id) {
                 nightPayToggle.style.display = 'none';
                 nightPayFields.style.display = 'none';
                 hasNightPay.checked = false;
-
-                // Make salary required, hourly not required
-                document.getElementById("edit_monthly_salary").required = true;
+                // Make annual salary required, hourly not required
+                const editAnnual = document.getElementById("edit_annual_salary");
+                if (editAnnual) editAnnual.required = true;
                 document.getElementById("edit_base_pay").required = false;
             } else {
                 hourlyGroup.style.display = 'block';
                 salaryGroup.style.display = 'none';
                 nightPayToggle.style.display = 'block';
 
-                // Make hourly required, salary not required
+                // Make hourly required, annual salary not required
                 document.getElementById("edit_base_pay").required = true;
-                document.getElementById("edit_monthly_salary").required = false;
+                const editAnnual = document.getElementById("edit_annual_salary");
+                if (editAnnual) editAnnual.required = false;
             }
         }
 
@@ -519,7 +542,9 @@ if ($user_id) {
                     if (employmentType === 'hourly') {
                         document.getElementById("edit_base_pay").value = role.base_pay;
                     } else {
-                        document.getElementById("edit_monthly_salary").value = role.monthly_salary;
+                        // Convert stored monthly salary to annual for editing
+                        const annual = role.monthly_salary ? (parseFloat(role.monthly_salary) * 12).toFixed(2) : '';
+                        document.getElementById("edit_annual_salary").value = annual;
                     }
 
                     // Handle night shift settings (only for hourly employees)
@@ -561,7 +586,9 @@ if ($user_id) {
             if (employmentType === 'hourly') {
                 roleData.base_pay = document.getElementById("edit_base_pay").value;
             } else {
-                roleData.monthly_salary = document.getElementById("edit_monthly_salary").value;
+                // Convert annual salary input to monthly before sending to server
+                const annualVal = document.getElementById("edit_annual_salary").value;
+                roleData.monthly_salary = annualVal !== '' ? (parseFloat(annualVal) / 12).toFixed(2) : '';
             }
 
             // Add night shift data if enabled (only for hourly employees)
@@ -579,24 +606,47 @@ if ($user_id) {
                 },
                 body: JSON.stringify(roleData),
             })
-                .then(response => response.text())
-                .then(result => {
+                .then(response => response.json())
+                .then(data => {
+                    if (!data) {
+                        throw new Error('Empty response from server');
+                    }
+                    if (data.error) {
+                        console.error('Server error:', data.error);
+                        alert('Error updating role: ' + data.error);
+                        return;
+                    }
+                    // success
                     closeModal();
-                    // Reload page to show updated data
                     window.location.reload();
                 })
                 .catch(error => {
                     console.error('Error updating role:', error);
-                    alert("Error updating role. Please try again.");
+                    alert("Error updating role. Please try again. See console for details.");
                 });
         });
 
         // Delete confirmation
         function confirmDelete(roleId, roleName) {
-            if (confirm(`Are you sure you want to delete the role "${roleName}"?`)) {
-                // Submit to delete endpoint
-                window.location.href = `../functions/delete_role.php?id=${roleId}`;
-            }
+            if (!confirm(`Are you sure you want to delete the role "${roleName}"?`)) return;
+
+            fetch('../functions/delete_role.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: roleId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error deleting role: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error deleting role. See console for details.');
+            });
         }
 
         // Ensure the correct display on page load

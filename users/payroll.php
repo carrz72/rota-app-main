@@ -76,18 +76,26 @@ if ($is_admin && $current_period) {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (isset($notifications) && !empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item notification-<?php echo $notification['type']; ?>"
-                                data-id="<?php echo $notification['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
-                                    <a class="shit-invt"
-                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">

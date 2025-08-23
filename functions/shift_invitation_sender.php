@@ -3,18 +3,51 @@ session_start();
 require_once '../includes/db.php';
 require_once '../functions/addNotification.php';
 
-// Only allow admin access.
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+// Only allow admin or super_admin access.
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'super_admin'], true)) {
+    // Not authorized - redirect to login (preserves existing behavior)
     header("Location: ../functions/login.php");
     exit;
 }
 
 $error = '';
 $message = '';
+// Keep location defined so we can reuse it for sticky form values.
+$location = '';
 
-// Fetch users excluding admin.
-$stmtUsers = $conn->prepare("SELECT id, username, email FROM users WHERE id <> ?");
-$stmtUsers->execute([$_SESSION['user_id']]);
+// Determine admin role and branch so we can apply branch-scoped rules like the rest of the app.
+$admin_id = $_SESSION['user_id'];
+$stmtAdmin = $conn->prepare("SELECT role, branch_id FROM users WHERE id = ? LIMIT 1");
+$stmtAdmin->execute([$admin_id]);
+$adminUser = $stmtAdmin->fetch(PDO::FETCH_ASSOC);
+$adminRole = $adminUser['role'] ?? '';
+$adminBranchId = isset($adminUser['branch_id']) ? $adminUser['branch_id'] : null;
+
+// Default location should be the branch name of the sending admin (if available).
+$defaultLocation = '';
+if (!is_null($adminBranchId)) {
+    $stmtBranch = $conn->prepare("SELECT name FROM branches WHERE id = ? LIMIT 1");
+    $stmtBranch->execute([$adminBranchId]);
+    $branchRow = $stmtBranch->fetch(PDO::FETCH_ASSOC);
+    if ($branchRow && !empty($branchRow['name'])) {
+        $defaultLocation = $branchRow['name'];
+    }
+}
+
+// Fetch users excluding the current admin. Scope to admin's branch if not super_admin.
+if ($adminRole === 'super_admin') {
+    $stmtUsers = $conn->prepare("SELECT id, username, email FROM users WHERE id <> ? ORDER BY username");
+    $stmtUsers->execute([$admin_id]);
+} else {
+    if (is_null($adminBranchId)) {
+        // Admin without a branch: show only users with no branch
+        $stmtUsers = $conn->prepare("SELECT id, username, email FROM users WHERE id <> ? AND branch_id IS NULL ORDER BY username");
+        $stmtUsers->execute([$admin_id]);
+    } else {
+        $stmtUsers = $conn->prepare("SELECT id, username, email FROM users WHERE id <> ? AND branch_id = ? ORDER BY username");
+        $stmtUsers->execute([$admin_id, $adminBranchId]);
+    }
+}
 $users = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all roles for the dropdown.
@@ -37,18 +70,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($invited_user_id_input) || empty($shift_date) || empty($start_time) || empty($end_time) || empty($role_id) || empty($location)) {
         $error = "All fields are required.";
     } else {
+        // Validate targeted invitee belongs to admin's branch (unless super_admin)
+        if (!is_null($invited_user_id)) {
+            // ensure numeric id
+            $invited_user_id = (int)$invited_user_id;
+            $checkStmt = $conn->prepare("SELECT id, branch_id FROM users WHERE id = ? LIMIT 1");
+            $checkStmt->execute([$invited_user_id]);
+            $targetUser = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$targetUser) {
+                $error = "Selected user not found.";
+            } else if ($adminRole !== 'super_admin') {
+                // Non-super admins may only invite users in their branch (including NULL branch if admin has no branch)
+                $targetBranch = isset($targetUser['branch_id']) ? $targetUser['branch_id'] : null;
+                if ($adminBranchId !== $targetBranch) {
+                    $error = "You can only invite users in your branch.";
+                }
+            }
+        }
+
         // Insert invitation into the database.
         $stmt = $conn->prepare("INSERT INTO shift_invitations (shift_date, start_time, end_time, role_id, location, admin_id, user_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
         $admin_id = $_SESSION['user_id'];
-        if ($stmt->execute([$shift_date, $start_time, $end_time, $role_id, $location, $admin_id, $invited_user_id])) {
+        if (empty($error) && $stmt->execute([$shift_date, $start_time, $end_time, $role_id, $location, $admin_id, $invited_user_id])) {
             // Get the invitation ID.
             $invitation_id = $conn->lastInsertId();
             $notif_message = "You have a new shift invitation. Click to view details.";
 
             if (is_null($invited_user_id)) {
-                // Broadcast: notify all non-admin users.
-                $stmtAll = $conn->prepare("SELECT id FROM users WHERE id <> ?");
-                $stmtAll->execute([$admin_id]);
+                // Broadcast: notify all non-admin users. For non-super admins only notify users in their branch.
+                if ($adminRole === 'super_admin') {
+                    $stmtAll = $conn->prepare("SELECT id FROM users WHERE id <> ?");
+                    $stmtAll->execute([$admin_id]);
+                } else {
+                    if (is_null($adminBranchId)) {
+                        $stmtAll = $conn->prepare("SELECT id FROM users WHERE id <> ? AND branch_id IS NULL");
+                        $stmtAll->execute([$admin_id]);
+                    } else {
+                        $stmtAll = $conn->prepare("SELECT id FROM users WHERE id <> ? AND branch_id = ?");
+                        $stmtAll->execute([$admin_id, $adminBranchId]);
+                    }
+                }
+
                 $allUsers = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($allUsers as $user) {
                     // Send a notification to each user.
@@ -59,7 +121,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 addNotification($conn, $invited_user_id, $notif_message, "shift-invite", $invitation_id);
             }
 
-            $message = "Shift invitation sent successfully.";
+                // Audit: shift invitation created
+                try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $admin_id, 'shift_invitation_created', ['invited_user_id' => $invited_user_id, 'shift_date' => $shift_date], $invitation_id, 'shift_invitation', session_id()); } catch (Exception $e) {}
+
+                $message = "Shift invitation sent successfully.";
         } else {
             $error = "Failed to send shift invitation.";
         }
@@ -166,7 +231,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="location">
                                 <i class="fas fa-map-marker-alt"></i> Location:
                             </label>
-                            <input type="text" name="location" id="location" required>
+                            <input type="text" name="location" id="location" required value="<?php echo htmlspecialchars((isset(
+                                $location) && $location !== '') ? $location : $defaultLocation); ?>">
                         </div>
                     </div>
 

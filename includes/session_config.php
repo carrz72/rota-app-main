@@ -12,7 +12,7 @@ define('SESSION_CHECK_INTERVAL', 60); // Check every minute on client side
 // Session security settings
 define('SESSION_REGENERATE_INTERVAL', 1800); // Regenerate ID every 30 minutes
 define('SESSION_COOKIE_LIFETIME', SESSION_TIMEOUT_DURATION);
-define('SESSION_COOKIE_SECURE', false); // Set to true for HTTPS only
+define('SESSION_COOKIE_SECURE', true); // Set to true for HTTPS only - ensure your site runs on HTTPS in production
 define('SESSION_COOKIE_HTTPONLY', true);
 define('SESSION_COOKIE_SAMESITE', 'Lax');
 

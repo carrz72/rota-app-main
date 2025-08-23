@@ -32,16 +32,59 @@ $user_branch = getUserHomeBranch($conn, $user_id);
 
 // Handle delete request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_request'])) {
-    $delete_id = $_POST['delete_request_id'];
-    // Remove any related coverage entries to satisfy foreign key constraints
-    $delCoverage = $conn->prepare("DELETE FROM shift_coverage WHERE request_id = ?");
-    $delCoverage->execute([$delete_id]);
+    $delete_id = isset($_POST['delete_request_id']) ? (int)$_POST['delete_request_id'] : 0;
+    if ($delete_id <= 0) {
+        $_SESSION['error_message'] = "Invalid request id.";
+        header("Location: coverage_requests.php");
+        exit();
+    }
 
-    $stmt = $conn->prepare("DELETE FROM cross_branch_shift_requests WHERE id = ? AND requested_by_user_id = ?");
-    $stmt->execute([$delete_id, $user_id]);
-    $_SESSION['success_message'] = "Coverage request deleted.";
-    header("Location: coverage_requests.php");
-    exit();
+    try {
+        // Verify the request exists and who created it
+        $chk = $conn->prepare("SELECT requested_by_user_id FROM cross_branch_shift_requests WHERE id = ? LIMIT 1");
+        $chk->execute([$delete_id]);
+        $owner = $chk->fetchColumn();
+
+        if (!$owner) {
+            $_SESSION['error_message'] = "Coverage request not found.";
+            header("Location: coverage_requests.php");
+            exit();
+        }
+
+        $isAdmin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin'], true);
+        if ((int)$owner !== (int)$user_id && !$isAdmin) {
+            $_SESSION['error_message'] = "You are not authorized to delete this request.";
+            header("Location: coverage_requests.php");
+            exit();
+        }
+
+        // Perform deletion inside a transaction
+        $conn->beginTransaction();
+
+        // Remove any related coverage entries to satisfy foreign key constraints
+        $delCoverage = $conn->prepare("DELETE FROM shift_coverage WHERE request_id = ?");
+        $delCoverage->execute([$delete_id]);
+
+        $stmt = $conn->prepare("DELETE FROM cross_branch_shift_requests WHERE id = ?");
+        $stmt->execute([$delete_id]);
+
+        if ($stmt->rowCount() === 0) {
+            $conn->rollBack();
+            $_SESSION['error_message'] = "Failed to delete coverage request.";
+            header("Location: coverage_requests.php");
+            exit();
+        }
+
+        $conn->commit();
+        $_SESSION['success_message'] = "Coverage request deleted.";
+        header("Location: coverage_requests.php");
+        exit();
+    } catch (Exception $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        $_SESSION['error_message'] = "Error deleting request: " . $e->getMessage();
+        header("Location: coverage_requests.php");
+        exit();
+    }
 }
 
 // Handle edit request (show edit form)
@@ -60,15 +103,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
     $shift_date = $_POST['shift_date'];
     $start_time = $_POST['start_time'];
     $end_time = $_POST['end_time'];
-    $role_id = $_POST['role_id'] ?? null;
+    $role_id = isset($_POST['role_id']) && $_POST['role_id'] !== '' ? (int)$_POST['role_id'] : null;
     $urgency_level = $_POST['urgency_level'];
     $description = $_POST['description'];
     $expires_hours = $_POST['expires_hours'];
     $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_hours} hours"));
+    $source_shift_id = isset($_POST['source_shift_id']) && $_POST['source_shift_id'] !== '' ? (int)$_POST['source_shift_id'] : null;
+
+    // derive role_required text if role_id provided
+    $role_required = null;
+    if ($role_id) {
+        $rstmt = $conn->prepare("SELECT name FROM roles WHERE id = ? LIMIT 1");
+        $rstmt->execute([$role_id]);
+        $role_required = $rstmt->fetchColumn();
+    }
 
     $stmt = $conn->prepare(
         "UPDATE cross_branch_shift_requests
-         SET target_branch_id = ?, shift_date = ?, start_time = ?, end_time = ?, role_id = ?, urgency_level = ?, description = ?, expires_at = ?
+         SET target_branch_id = ?, shift_date = ?, start_time = ?, end_time = ?, role_id = ?, role_required = ?, urgency_level = ?, description = ?, expires_at = ?
          WHERE id = ? AND requested_by_user_id = ?"
     );
     $stmt->execute([
@@ -77,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
         $start_time,
         $end_time,
         $role_id,
+        $role_required,
         $urgency_level,
         $description,
         $expires_at,
@@ -89,39 +142,189 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
     exit();
 }
 
-// Handle create request
+// Handle create request (supports selecting up to 5 target branches)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_request'])) {
-    $target_branch_id = $_POST['target_branch_id'];
+    $raw_target_ids = $_POST['target_branch_ids'] ?? '';
+    $target_branch_ids = array_filter(array_map('intval', explode(',', $raw_target_ids)));
+    // Limit to 5
+    $target_branch_ids = array_slice($target_branch_ids, 0, 5);
+    if (empty($target_branch_ids)) {
+        $_SESSION['error_message'] = 'Please select at least one target branch (up to 5).';
+        header("Location: coverage_requests.php");
+        exit();
+    }
+
     $shift_date = $_POST['shift_date'];
     $start_time = $_POST['start_time'];
     $end_time = $_POST['end_time'];
-    $role_id = $_POST['role_id'];
+    $role_id = isset($_POST['role_id']) && $_POST['role_id'] !== '' ? (int)$_POST['role_id'] : null;
     $urgency_level = $_POST['urgency_level'];
-    $description = $_POST['description'];
-    $expires_hours = $_POST['expires_hours'];
+    $description = $_POST['description'] ?? null;
+    $expires_hours = $_POST['expires_hours'] ?? 24;
+
+    // Optional: selected source shift from user's shifts
+    $source_shift_id = isset($_POST['source_shift_id']) && $_POST['source_shift_id'] !== '' ? (int)$_POST['source_shift_id'] : null;
+
+    // If a source_shift_id was provided, override the provided fields with the shift's details
+    if ($source_shift_id) {
+        $ps = $conn->prepare("SELECT shift_date, start_time, end_time, role_id FROM shifts WHERE id = ? AND user_id = ? LIMIT 1");
+        $ps->execute([$source_shift_id, $user_id]);
+        $shiftRow = $ps->fetch(PDO::FETCH_ASSOC);
+        if ($shiftRow) {
+            $shift_date = $shiftRow['shift_date'];
+            $start_time = $shiftRow['start_time'];
+            $end_time = $shiftRow['end_time'];
+            $role_id = $shiftRow['role_id'];
+        } else {
+            // invalid selection - ignore
+            $source_shift_id = null;
+        }
+    }
 
     $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_hours} hours"));
-    $request_data = [
-        'requesting_branch_id' => $user_branch_id,
-        'target_branch_id' => $target_branch_id,
-        'shift_date' => $shift_date,
-        'start_time' => $start_time,
-        'end_time' => $end_time,
-        'role_id' => $role_id,
-        'urgency_level' => $urgency_level,
-        'description' => $description,
-        'requested_by_user_id' => $user_id,
-        'expires_at' => $expires_at
-    ];
+
+    $successCount = 0;
+    $errors = [];
+    foreach ($target_branch_ids as $target_branch_id) {
+        $request_data = [
+            'requesting_branch_id' => $user_branch_id,
+            'target_branch_id' => $target_branch_id,
+            'shift_date' => $shift_date,
+            'start_time' => $start_time,
+            'end_time' => $end_time,
+            'role_id' => $role_id,
+            'urgency_level' => $urgency_level,
+            'description' => $description,
+            'requested_by_user_id' => $user_id,
+            'expires_at' => $expires_at,
+            'source_shift_id' => $source_shift_id
+        ];
+
+        try {
+            if (createCrossBranchRequest($conn, $request_data)) {
+                $successCount++;
+            } else {
+                $errors[] = "Failed to create request for branch ID {$target_branch_id}";
+            }
+        } catch (Exception $e) {
+            $errors[] = "Error for branch ID {$target_branch_id}: " . $e->getMessage();
+        }
+    }
+
+    if ($successCount > 0) {
+        $_SESSION['success_message'] = "Coverage request sent to {$successCount} branch(es).";
+        if (!empty($errors)) {
+            $_SESSION['error_message'] = implode('\n', $errors);
+        }
+    } else {
+        $_SESSION['error_message'] = "No requests created. " . implode('\n', $errors);
+    }
+
+    header("Location: coverage_requests.php");
+    exit();
+}
+
+// Handle clear (delete) of a fulfilled request by requester: remove the cross-branch request but keep the shift
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_request'])) {
+    $clear_id = isset($_POST['clear_request_id']) ? (int)$_POST['clear_request_id'] : 0;
+    if ($clear_id <= 0) {
+        $_SESSION['error_message'] = "Invalid request id.";
+        header("Location: coverage_requests.php");
+        exit();
+    }
 
     try {
-        if (createCrossBranchRequest($conn, $request_data)) {
-            $_SESSION['success_message'] = "Coverage request sent successfully!";
-        } else {
-            $_SESSION['error_message'] = "Failed to create request.";
+        $stmt = $conn->prepare("SELECT requested_by_user_id, status FROM cross_branch_shift_requests WHERE id = ? LIMIT 1");
+        $stmt->execute([$clear_id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            $_SESSION['error_message'] = "Coverage request not found.";
+            header("Location: coverage_requests.php");
+            exit();
         }
+
+        // Only the requester or an admin can clear
+        $isAdmin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin'], true);
+        if ((int)$row['requested_by_user_id'] !== (int)$user_id && !$isAdmin) {
+            $_SESSION['error_message'] = "You are not authorized to clear this request.";
+            header("Location: coverage_requests.php");
+            exit();
+        }
+
+        // Only allow clearing fulfilled requests (don't clear pending)
+        if ($row['status'] !== 'fulfilled') {
+            $_SESSION['error_message'] = "Only fulfilled requests can be cleared.";
+            header("Location: coverage_requests.php");
+            exit();
+        }
+
+        $conn->beginTransaction();
+
+        // Remove coverage entries but KEEP the shift record
+        $delCov = $conn->prepare("DELETE FROM shift_coverage WHERE request_id = ?");
+        $delCov->execute([$clear_id]);
+
+        // Delete the request itself
+        $delReq = $conn->prepare("DELETE FROM cross_branch_shift_requests WHERE id = ?");
+        $delReq->execute([$clear_id]);
+
+        $conn->commit();
+        $_SESSION['success_message'] = "Fulfilled coverage request cleared (shift remains in place).";
     } catch (Exception $e) {
-        $_SESSION['error_message'] = "Error: " . $e->getMessage();
+        if ($conn->inTransaction()) $conn->rollBack();
+        $_SESSION['error_message'] = "Error clearing request: " . $e->getMessage();
+    }
+
+    header("Location: coverage_requests.php");
+    exit();
+}
+
+// Handle clear/remove by the user who covered a request: remove the created shift and revert request to pending
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_covered'])) {
+    $clear_id = isset($_POST['clear_covered_request_id']) ? (int)$_POST['clear_covered_request_id'] : 0;
+    $shift_id = isset($_POST['clear_covered_shift_id']) ? (int)$_POST['clear_covered_shift_id'] : 0;
+    if ($clear_id <= 0 || $shift_id <= 0) {
+        $_SESSION['error_message'] = "Invalid request or shift id.";
+        header("Location: coverage_requests.php");
+        exit();
+    }
+
+    try {
+        // Verify the user is indeed the covering user for this request/shift
+        $chk = $conn->prepare("SELECT sc.covering_user_id, sc.shift_id, cbr.status FROM shift_coverage sc JOIN cross_branch_shift_requests cbr ON cbr.id = sc.request_id WHERE sc.request_id = ? AND sc.shift_id = ? LIMIT 1");
+        $chk->execute([$clear_id, $shift_id]);
+        $row = $chk->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            $_SESSION['error_message'] = "Coverage record not found.";
+            header("Location: coverage_requests.php");
+            exit();
+        }
+
+        if ((int)$row['covering_user_id'] !== (int)$user_id) {
+            $_SESSION['error_message'] = "You are not authorized to remove this shift.";
+            header("Location: coverage_requests.php");
+            exit();
+        }
+
+        $conn->beginTransaction();
+
+        // Delete the shift record
+        $delShift = $conn->prepare("DELETE FROM shifts WHERE id = ? AND user_id = ?");
+        $delShift->execute([$shift_id, $user_id]);
+
+        // Remove coverage record
+        $delCov = $conn->prepare("DELETE FROM shift_coverage WHERE request_id = ? AND shift_id = ?");
+        $delCov->execute([$clear_id, $shift_id]);
+
+        // Revert the original request back to pending so other branches can still accept if appropriate
+        $updReq = $conn->prepare("UPDATE cross_branch_shift_requests SET status = 'pending', fulfilled_by_user_id = NULL, fulfilled_at = NULL, notes = NULL WHERE id = ?");
+        $updReq->execute([$clear_id]);
+
+        $conn->commit();
+        $_SESSION['success_message'] = "Your coverage shift has been removed and request reverted to pending.";
+    } catch (Exception $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        $_SESSION['error_message'] = "Error removing covered shift: " . $e->getMessage();
     }
 
     header("Location: coverage_requests.php");
@@ -138,33 +341,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['offer_coverage'])) {
 
         if (!$request) {
             $_SESSION['error_message'] = "Coverage request not found.";
-        } elseif ($request['requesting_branch_id'] === $user_branch_id) {
-            $_SESSION['error_message'] = "You cannot offer coverage for your own branch's request.";
         } else {
-            $result = fulfillCrossBranchRequest($conn, $request_id, $user_id, $user_id);
-            if ($result) {
-                $update = $conn->prepare(
-                    "UPDATE cross_branch_shift_requests SET status='fulfilled', fulfilled_by_user_id=? WHERE id=?"
-                );
-                $update->execute([$user_id, $request_id]);
-
-                // Insert shift via SELECT
-                $shiftStmt = $conn->prepare(
-                    "INSERT INTO shifts (user_id, shift_date, start_time, end_time, branch_id, location, role_id)
-                     SELECT ?, shift_date, start_time, end_time, requesting_branch_id, branch_name, role_id
-                     FROM (
-                         SELECT cr.shift_date, cr.start_time, cr.end_time, cr.requesting_branch_id,
-                                CONCAT('Coverage at ', b.name) AS branch_name, cr.role_id
-                         FROM cross_branch_shift_requests cr
-                         JOIN branches b ON cr.requesting_branch_id=b.id
-                         WHERE cr.id=?
-                     ) AS data"
-                );
-                $shiftStmt->execute([$user_id, $request_id]);
-
-                $_SESSION['success_message'] = "Coverage offer submitted successfully!";
+            // Ensure request is still pending and not expired
+            if ($request['status'] !== 'pending' || (isset($request['expires_at']) && strtotime($request['expires_at']) <= time())) {
+                $_SESSION['error_message'] = "This coverage request is no longer available.";
+            // Prevent users from covering their own branch's request
+            } elseif ($request['requesting_branch_id'] === $user_branch_id) {
+                $_SESSION['error_message'] = "You cannot offer coverage for your own branch's request.";
+            // Ensure the current user is a member of the target branch (or an admin) before fulfilling
+            } elseif ($request['target_branch_id'] !== $user_branch_id && !in_array($_SESSION['role'] ?? '', ['admin', 'super_admin'], true)) {
+                $_SESSION['error_message'] = "You are not authorized to cover this request.";
             } else {
-                $_SESSION['error_message'] = "Failed to fulfill coverage request.";
+                $result = fulfillCrossBranchRequest($conn, $request_id, $user_id, $user_id);
+                if ($result) {
+                    $_SESSION['success_message'] = "Coverage offer submitted successfully!";
+                } else {
+                    $_SESSION['error_message'] = "Failed to fulfill coverage request.";
+                }
             }
         }
     } catch (Exception $e) {
@@ -179,6 +372,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['offer_coverage'])) {
 $all_branches = getAllBranches($conn);
 $roles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch the current user's upcoming shifts (eligible for requesting coverage)
+$userShiftsStmt = $conn->prepare("SELECT id, shift_date, start_time, end_time, location, branch_id FROM shifts WHERE user_id = ? AND shift_date >= CURDATE() ORDER BY shift_date, start_time");
+$userShiftsStmt->execute([$user_id]);
+$user_shifts = $userShiftsStmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Load available requests
 $sql = "SELECT cbr.*, rb.name AS requesting_branch_name, u.username AS requested_by_username
         FROM cross_branch_shift_requests cbr
@@ -190,21 +388,51 @@ $stmt = $conn->prepare($sql);
 $stmt->execute([$user_branch_id]);
 $available_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Load my requests
-$sql = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username
-        FROM cross_branch_shift_requests cbr
-        JOIN branches tb ON cbr.target_branch_id=tb.id
-        LEFT JOIN users uf ON cbr.fulfilled_by_user_id=uf.id
-        WHERE cbr.requested_by_user_id=? AND cbr.status IN ('pending','fulfilled')
-        ORDER BY cbr.created_at DESC";
+// Load my requests (only those I requested) — fulfilled requests I covered are shown separately in $my_fulfilled
+$sql = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username, fb.name AS accepted_by_branch
+    FROM cross_branch_shift_requests cbr
+    JOIN branches tb ON cbr.target_branch_id=tb.id
+    LEFT JOIN users uf ON cbr.fulfilled_by_user_id=uf.id
+    LEFT JOIN branches fb ON uf.branch_id = fb.id
+    WHERE cbr.requested_by_user_id = ? AND cbr.status IN ('pending','fulfilled')
+    ORDER BY cbr.created_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_id]);
 $my_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Additionally load requests the current user has fulfilled (so they appear under "Requests I Covered")
+$sqlFulfilled = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username,
+    (SELECT b.name FROM branches b WHERE b.id = cbr.requesting_branch_id LIMIT 1) AS requesting_branch_name
+    FROM cross_branch_shift_requests cbr
+    JOIN branches tb ON cbr.target_branch_id=tb.id
+    LEFT JOIN users uf ON cbr.fulfilled_by_user_id=uf.id
+    LEFT JOIN shift_coverage sc ON sc.request_id = cbr.id
+    WHERE cbr.fulfilled_by_user_id = ? AND cbr.status = 'fulfilled'
+    ORDER BY cbr.fulfilled_at DESC";
+$stmt2 = $conn->prepare($sqlFulfilled);
+$stmt2->execute([$user_id]);
+$my_fulfilled = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
 // Flash messages
 $success_message = $_SESSION['success_message'] ?? null;
 $error_message = $_SESSION['error_message'] ?? null;
 unset($_SESSION['success_message'], $_SESSION['error_message']);
+
+// If a source_shift_id is provided via GET (e.g., from shifts list), prefill the form
+$prefill = ['shift_date' => '', 'start_time' => '', 'end_time' => '', 'role_id' => '', 'source_shift_id' => ''];
+if (!empty($_GET['source_shift_id'])) {
+    $ss = (int)$_GET['source_shift_id'];
+    $ps = $conn->prepare("SELECT id, shift_date, start_time, end_time, role_id FROM shifts WHERE id = ? AND user_id = ? LIMIT 1");
+    $ps->execute([$ss, $user_id]);
+    $psr = $ps->fetch(PDO::FETCH_ASSOC);
+    if ($psr) {
+        $prefill['shift_date'] = $psr['shift_date'];
+        $prefill['start_time'] = $psr['start_time'];
+        $prefill['end_time'] = $psr['end_time'];
+        $prefill['role_id'] = $psr['role_id'];
+        $prefill['source_shift_id'] = $psr['id'];
+    }
+}
 
 // Render HTML view below…
 ?>
@@ -229,6 +457,18 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../css/coverage_requests.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        /* Multi-select styles (matching admin) */
+        .multi-select { position: relative; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+        .multi-select input#branch-search { width: 100%; padding: 6px; border: 1px solid #eee; border-radius: 4px; }
+        .options-list { max-height: 150px; overflow: auto; margin-top: 8px; border-top: 1px dashed #f0f0f0; padding-top: 8px; display: none; position: absolute; left: 8px; right: 8px; background: #fff; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .options-list .option { padding: 6px; cursor: pointer; border-radius: 4px; }
+        .options-list .option:hover { background: #f4f4f4; }
+        .selected-list { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .chip { background: #eee; padding: 4px 8px; border-radius: 16px; display: inline-flex; align-items: center; gap: 6px; }
+        .chip-remove { cursor: pointer; padding-left: 6px; color: #777; }
+        .hint { display:block; font-size: 12px; color: #666; margin-top:4px; }
+    </style>
 </head>
 
 <body>
@@ -247,18 +487,26 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (isset($notifications) && !empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item notification-<?php echo $notification['type']; ?>"
-                                data-id="<?php echo $notification['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
-                                    <a class="shit-invt"
-                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -348,6 +596,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <div class="detail-item">
                                 <div class="detail-label">Requested By</div>
                                 <div class="detail-value"><?php echo htmlspecialchars($request['requested_by_username']); ?>
+                                From 
+                                <?php echo htmlspecialchars($request['requesting_branch_name']); ?>
                                 </div>
                             </div>
                             <div class="detail-item">
@@ -384,18 +634,23 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <form method="POST">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="target_branch_id">Request Coverage From:</label>
-                            <select id="target_branch_id" name="target_branch_id" required>
-                                <option value="">Select a branch...</option>
-                                <?php foreach ($all_branches as $branch): ?>
-                                    <?php if ($branch['id'] != $user_branch_id): ?>
-                                        <option value="<?php echo $branch['id']; ?>">
-                                            <?php echo htmlspecialchars($branch['name']); ?>
-                                            (<?php echo htmlspecialchars($branch['code']); ?>)
-                                        </option>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </select>
+                            <label for="target_branch_ids">Request Coverage From (select up to 5):</label>
+                            <div id="branch-multi-select" class="multi-select">
+                                <input type="text" id="branch-search" placeholder="Search branches..." autocomplete="off">
+                                <div id="branch-selected" class="selected-list"></div>
+                                <div id="branch-options" class="options-list">
+                                    <?php foreach ($all_branches as $branch): ?>
+                                        <?php if ($branch['id'] != $user_branch_id): ?>
+                                            <div class="option" data-id="<?php echo $branch['id']; ?>">
+                                                <?php echo htmlspecialchars($branch['name']); ?>
+                                                <span class="muted">(<?php echo htmlspecialchars($branch['code']); ?>)</span>
+                                            </div>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                                <input type="hidden" id="target_branch_ids" name="target_branch_ids" value="">
+                                <small class="hint">Type to search, click to select. Max 5 branches.</small>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="urgency_level">Urgency Level:</label>
@@ -409,7 +664,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <div class="form-group">
                             <label for="shift_date">Shift Date:</label>
                             <input type="date" id="shift_date" name="shift_date" required
-                                min="<?php echo date('Y-m-d'); ?>">
+                                min="<?php echo date('Y-m-d'); ?>" value="<?php echo htmlspecialchars($prefill['shift_date'] ?? ''); ?>">
                         </div>
                         <div class="form-group">
                             <label for="expires_hours">Request Expires In:</label>
@@ -423,23 +678,24 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         </div>
                         <div class="form-group">
                             <label for="start_time">Start Time:</label>
-                            <input type="time" id="start_time" name="start_time" required>
+                            <input type="time" id="start_time" name="start_time" required value="<?php echo htmlspecialchars($prefill['start_time'] ?? ''); ?>">
                         </div>
                         <div class="form-group">
                             <label for="end_time">End Time:</label>
-                            <input type="time" id="end_time" name="end_time" required>
+                            <input type="time" id="end_time" name="end_time" required value="<?php echo htmlspecialchars($prefill['end_time'] ?? ''); ?>">
                         </div>
                         <div class="form-group">
                             <label for="role_id">Role/Position:</label>
                             <select id="role_id" name="role_id" required>
                                 <option value="">Select a role...</option>
                                 <?php foreach ($roles as $role): ?>
-                                    <option value="<?php echo $role['id']; ?>">
+                                    <option value="<?php echo $role['id']; ?>" <?php if (!empty($prefill['role_id']) && $prefill['role_id'] == $role['id']) echo 'selected'; ?>>
                                         <?php echo htmlspecialchars($role['name']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <!-- source_shift_id selector removed: users now pick branches and the form uses explicit fields only -->
                         <div class="form-group">
                             <label for="description">Additional Details:</label>
                             <textarea id="description" name="description" rows="3"
@@ -503,9 +759,11 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <div class="detail-item">
                                 <div class="detail-label">Status</div>
                                 <div class="detail-value">
-                                    <?php if ($request['status'] === 'accepted'): ?>
+                                    <?php if ($request['status'] === 'fulfilled'): ?>
                                         Accepted by
-                                        <?php echo htmlspecialchars($request['accepted_by_username'] ?: 'another user'); ?>
+                                        <?php echo htmlspecialchars($request['fulfilled_by_username'] ?: 'another user'); ?>
+                                        From
+                                        <?php echo htmlspecialchars($request['accepted_by_branch'] ?? $request['target_branch_name'] ?? 'unknown branch'); ?>
                                     <?php else: ?>
                                         Pending Response
                                     <?php endif; ?>
@@ -537,6 +795,44 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <button type="submit" name="delete_request" class="btn btn-danger btn-sm"><i
                                         class="fas fa-trash"></i> Delete</button>
                             </form>
+                            <?php if ($request['status'] === 'fulfilled'): ?>
+                                <form method="POST" style="display:inline; margin-left:8px;" onsubmit="return confirm('Clear this fulfilled request (shift stays in place)?');">
+                                    <input type="hidden" name="clear_request_id" value="<?php echo $request['id']; ?>">
+                                    <button type="submit" name="clear_request" class="btn btn-secondary btn-sm"><i class="fas fa-eraser"></i> Clear</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+
+            <!-- Requests I Covered -->
+            <h2 style="margin-top:30px;"><i class="fas fa-check"></i> Requests I Covered</h2>
+            <?php if (empty($my_fulfilled)): ?>
+                <div class="request-card">
+                    <p><i class="fas fa-info-circle"></i> You haven't covered any requests yet.</p>
+                </div>
+            <?php else: ?>
+                <?php foreach ($my_fulfilled as $f): ?>
+                    <div class="request-card fulfilled">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3><i class="fas fa-user-check"></i> Covered: <?php echo htmlspecialchars($f['requesting_branch_name'] ?? 'requesting branch'); ?></h3>
+                            <span><?php echo date('M j, Y', strtotime($f['fulfilled_at'] ?? $f['created_at'])); ?></span>
+                        </div>
+                        <div class="request-details">
+                            <div class="detail-item"><div class="detail-label">When</div><div class="detail-value"><?php echo date('M j, Y', strtotime($f['shift_date'])); ?> <?php echo date('g:i A', strtotime($f['start_time'])); ?> - <?php echo date('g:i A', strtotime($f['end_time'])); ?></div></div>
+                            <div class="detail-item"><div class="detail-label">Target Branch</div><div class="detail-value"><?php echo htmlspecialchars($f['target_branch_name']); ?></div></div>
+                            <div class="detail-item"><div class="detail-label">Notes</div><div class="detail-value"><?php echo nl2br(htmlspecialchars($f['description'] ?? '')); ?></div></div>
+                        </div>
+                        <div style="margin-top:10px; text-align:right;">
+                            <a href="coverage_requests.php#request-<?php echo (int)$f['id']; ?>" class="btn btn-secondary btn-sm">View</a>
+                            <?php if (!empty($f['shift_id'])): ?>
+                                <form method="POST" style="display:inline; margin-left:8px;" onsubmit="return confirm('Remove the created shift and revert request to pending? This will delete the shift for you.');">
+                                    <input type="hidden" name="clear_covered_request_id" value="<?php echo (int)$f['id']; ?>">
+                                    <input type="hidden" name="clear_covered_shift_id" value="<?php echo (int)$f['shift_id']; ?>">
+                                    <button type="submit" name="clear_covered" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Remove Shift</button>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -637,6 +933,93 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     </div>
 
     <script>
+        (function() {
+            const maxSelect = 5;
+            const selectedContainer = document.getElementById('branch-selected');
+            const optionsList = document.getElementById('branch-options');
+            const options = optionsList ? optionsList.querySelectorAll('.option') : [];
+            const search = document.getElementById('branch-search');
+            const hiddenInput = document.getElementById('target_branch_ids');
+            let selected = [];
+
+            function renderSelected() {
+                selectedContainer.innerHTML = '';
+                selected.forEach(id => {
+                    const opt = Array.from(options).find(o => parseInt(o.dataset.id, 10) === id);
+                    if (!opt) return;
+                    const chip = document.createElement('span');
+                    chip.className = 'chip';
+                    chip.textContent = opt.textContent.trim();
+                    const rem = document.createElement('span');
+                    rem.className = 'chip-remove';
+                    rem.innerHTML = '&times;';
+                    rem.addEventListener('click', () => {
+                        selected = selected.filter(s => s !== id);
+                        updateHidden();
+                        renderSelected();
+                    });
+                    chip.appendChild(rem);
+                    selectedContainer.appendChild(chip);
+                });
+            }
+
+            function updateHidden() {
+                if (hiddenInput) hiddenInput.value = selected.join(',');
+            }
+
+            function filterOptions(q) {
+                const term = q.trim().toLowerCase();
+                Array.from(options).forEach(o => {
+                    const txt = o.textContent.toLowerCase();
+                    o.style.display = txt.indexOf(term) === -1 ? 'none' : 'block';
+                });
+            }
+
+            function positionOptions() {
+                const container = document.getElementById('branch-multi-select');
+                const selectedRect = selectedContainer.getBoundingClientRect();
+                optionsList.style.top = (selectedContainer.offsetTop + selectedContainer.offsetHeight + 6) + 'px';
+                optionsList.style.left = '8px';
+                optionsList.style.right = '8px';
+            }
+
+            function showOptions() { positionOptions(); optionsList.style.display = 'block'; }
+            function hideOptions() { optionsList.style.display = 'none'; }
+
+            document.addEventListener('click', function(e) {
+                const container = document.getElementById('branch-multi-select');
+                if (!container) return;
+                if (!container.contains(e.target)) {
+                    hideOptions();
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') hideOptions();
+            });
+
+            Array.from(options).forEach(o => {
+                o.addEventListener('click', () => {
+                    const id = parseInt(o.dataset.id, 10);
+                    if (selected.includes(id)) return;
+                    if (selected.length >= maxSelect) {
+                        alert('You can select up to ' + maxSelect + ' branches.');
+                        return;
+                    }
+                    selected.push(id);
+                    updateHidden();
+                    renderSelected();
+                    positionOptions();
+                    showOptions();
+                });
+            });
+
+            if (search) {
+                search.addEventListener('input', (e) => { filterOptions(e.target.value); });
+                search.addEventListener('focus', () => { filterOptions(search.value); showOptions(); });
+            }
+        })();
+
         function showTab(tabName) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {

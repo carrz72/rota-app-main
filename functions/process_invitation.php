@@ -17,6 +17,8 @@ $status = ($action === 'accept') ? 'accepted' : 'declined';
 $stmt = $conn->prepare("UPDATE shift_invitations SET status = ? WHERE id = ? AND user_id = ?");
 if($stmt->execute([$status, $invitation_id, $user_id])){
     // Optionally, you could send a notification back or update other tables.
+    // Audit: invitation processed by user
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $user_id, 'process_shift_invitation', ['action' => $action], $invitation_id, 'shift_invitation', session_id()); } catch (Exception $e) {}
     header("Location: ../users/shifts.php");
     exit;
 } else {

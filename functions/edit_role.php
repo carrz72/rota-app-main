@@ -7,40 +7,79 @@ if (!isset($_SESSION['user_id'])) {
     die(json_encode(['error' => 'Unauthorized access']));
 }
 
+// Only admin users may edit roles
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    die(json_encode(['error' => 'Only administrators can edit roles']));
+}
+
+// Parse input
 $data = json_decode(file_get_contents("php://input"), true);
-if (!$data) {
+if (!$data || !isset($data['id'])) {
+    header('Content-Type: application/json');
     die(json_encode(['error' => 'Invalid data received']));
 }
 
-$id = $data['id'] ?? '';
-$name = $data['name'] ?? '';
-$employment_type = $data['employment_type'] ?? 'hourly';
-$base_pay = $employment_type === 'hourly' ? ($data['base_pay'] ?? '') : null;
-$monthly_salary = $employment_type === 'salaried' ? ($data['monthly_salary'] ?? '') : null;
-$has_night_pay = $data['has_night_pay'] ?? 0;
+$id = (int) $data['id'];
 $user_id = $_SESSION['user_id'];
 
-// Basic validation
-if (empty($id) || empty($name)) {
-    die(json_encode(['error' => 'Missing required fields']));
+// Fetch existing role to allow partial updates and preserve values when fields are blank
+$stmt = $conn->prepare("SELECT * FROM roles WHERE id = ?");
+$stmt->execute([$id]);
+$existing = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$existing) {
+    header('Content-Type: application/json');
+    die(json_encode(['error' => 'Role not found']));
 }
 
-if ($employment_type === 'hourly' && (empty($base_pay) || !is_numeric($base_pay) || $base_pay < 0)) {
-    die(json_encode(['error' => 'Invalid hourly rate']));
-}
+$name = isset($data['name']) && $data['name'] !== '' ? trim($data['name']) : $existing['name'];
+$employment_type = isset($data['employment_type']) && $data['employment_type'] !== '' ? $data['employment_type'] : $existing['employment_type'];
+$has_night_pay = isset($data['has_night_pay']) ? (int)$data['has_night_pay'] : (int)$existing['has_night_pay'];
 
-if ($employment_type === 'salaried' && (empty($monthly_salary) || !is_numeric($monthly_salary) || $monthly_salary < 0)) {
-    die(json_encode(['error' => 'Invalid monthly salary']));
+// Determine pay fields, prefer provided values, otherwise keep existing
+if ($employment_type === 'hourly') {
+    if (isset($data['base_pay']) && $data['base_pay'] !== '') {
+        if (!is_numeric($data['base_pay']) || $data['base_pay'] < 0) {
+            header('Content-Type: application/json');
+            die(json_encode(['error' => 'Invalid hourly rate']));
+        }
+        $base_pay = (float)$data['base_pay'];
+    } else {
+        $base_pay = $existing['base_pay'];
+    }
+    $monthly_salary = null;
+} else {
+    // salaried
+    if (isset($data['monthly_salary']) && $data['monthly_salary'] !== '') {
+        if (!is_numeric($data['monthly_salary']) || $data['monthly_salary'] < 0) {
+            header('Content-Type: application/json');
+            die(json_encode(['error' => 'Invalid monthly salary']));
+        }
+        $monthly_salary = (float)$data['monthly_salary'];
+    } else {
+        $monthly_salary = $existing['monthly_salary'];
+    }
+    // ensure base_pay is numeric and non-null for DB constraints
+    $base_pay = 0.0;
 }
 
 // Update basic role information
 $stmt = $conn->prepare("UPDATE roles SET name = ?, employment_type = ?, base_pay = ?, monthly_salary = ?, has_night_pay = ? WHERE id = ?");
-if ($stmt->execute([$name, $employment_type, $base_pay, $monthly_salary, $has_night_pay, $id])) {
+try {
+    $ok = $stmt->execute([$name, $employment_type, $base_pay, $monthly_salary, $has_night_pay, $id]);
+} catch (Exception $e) {
+    header('Content-Type: application/json');
+    die(json_encode(['error' => 'Database error: ' . $e->getMessage()]));
+}
+
+if ($ok) {
     $message = "Role updated successfully!";
     $status = 'success';
+    // Audit: role updated
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $user_id ?? $_SESSION['user_id'] ?? null, 'edit_role', ['name' => $name], $id, 'role', session_id()); } catch (Exception $e) {}
 } else {
     $message = "Error updating role!";
     $status = 'error';
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $user_id ?? $_SESSION['user_id'] ?? null, 'edit_role_error', [], $id, 'role', session_id()); } catch (Exception $e) {}
 }
 
 // Update night shift settings if applicable

@@ -25,7 +25,9 @@ try {
 
     // Check if user has permission to view this request
     $user_branch = getUserHomeBranch($conn, $_SESSION['user_id']);
-    if ($user_branch['id'] != $request['target_branch_id'] && !$_SESSION['role'] === 'admin') {
+    $userRole = $_SESSION['role'] ?? '';
+    // Allow branch admins (whose home branch matches the target) and global admins/super_admins
+    if ((empty($user_branch['id']) || $user_branch['id'] != $request['target_branch_id']) && !in_array($userRole, ['admin', 'super_admin'], true)) {
         echo json_encode(['error' => 'Access denied']);
         exit();
     }
