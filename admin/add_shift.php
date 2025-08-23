@@ -178,30 +178,45 @@ if ($adminBranchId) {
                             value="<?php echo $default_date; ?>" required>
                     </div>
 
-                    <div class="form-group">
-                        <label for="location">
-                            <i class="fas fa-map-marker-alt"></i>
-                            Location:
-                        </label>
-                        <input type="text" name="location" id="location" class="form-control"
-                            value="<?php echo htmlspecialchars($default_location); ?>" required>
-                    </div>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] !== 'super_admin'): ?>
+                        <div class="form-group">
+                            <label>
+                                <i class="fas fa-map-marker-alt"></i>
+                                Location / Branch:
+                            </label>
+                            <div style="padding:10px 12px; background:#f7f9fb; border-radius:8px; border:1px solid #e6e6e6;">
+                                <?php echo htmlspecialchars($default_location); ?>
+                            </div>
+                            <input type="hidden" name="location" value="<?php echo htmlspecialchars($default_location); ?>">
+                            <input type="hidden" name="branch_id" value="<?php echo htmlspecialchars($default_branch_id); ?>">
+                            <small class="hint">Shifts are restricted to your branch.</small>
+                        </div>
+                    <?php else: ?>
+                        <div class="form-group">
+                            <label for="location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Location:
+                            </label>
+                            <input type="text" name="location" id="location" class="form-control"
+                                value="<?php echo htmlspecialchars($default_location); ?>" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="branch_id">
-                            <i class="fas fa-code-branch"></i>
-                            Branch (optional):
-                        </label>
-                        <select name="branch_id" id="branch_id" class="form-control">
-                            <option value="">-- Keep as typed location --</option>
-                            <?php foreach ($all_branches as $b): ?>
-                                <option value="<?php echo $b['id']; ?>" <?php echo (isset($default_branch_id) && $default_branch_id == $b['id']) ? 'selected' : ''; ?> >
-                                    <?php echo htmlspecialchars($b['name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <small class="hint">Select a branch to prefill the location (admin only).</small>
-                    </div>
+                        <div class="form-group">
+                            <label for="branch_id">
+                                <i class="fas fa-code-branch"></i>
+                                Branch (optional):
+                            </label>
+                            <select name="branch_id" id="branch_id" class="form-control">
+                                <option value="">-- Keep as typed location --</option>
+                                <?php foreach ($all_branches as $b): ?>
+                                    <option value="<?php echo $b['id']; ?>" <?php echo (isset($default_branch_id) && $default_branch_id == $b['id']) ? 'selected' : ''; ?> >
+                                        <?php echo htmlspecialchars($b['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="hint">Select a branch to prefill the location (admin only).</small>
+                        </div>
+                    <?php endif; ?>
 
                     <div class="form-group">
                         <label for="start_time">
