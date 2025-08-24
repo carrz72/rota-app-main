@@ -114,6 +114,15 @@ class PermissionManager
         return $this->canEditUser($userId);
     }
 
+    /**
+     * Determine whether the current user can manage roles (create/edit/delete).
+     * By default admins (including super_admin) can manage roles.
+     */
+    public function canManageRoles()
+    {
+        return $this->isAdmin();
+    }
+
     // Shift permissions
     public function canViewShift($shiftId)
     {

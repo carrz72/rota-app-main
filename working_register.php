@@ -5,6 +5,20 @@
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_once 'includes/db.php';
 
+    // The app normally exposes the PDO connection as $conn (or $GLOBALS['conn']).
+    // Some standalone pages use $pdo; ensure $pdo references the available connection.
+    if (!isset($pdo)) {
+        if (isset($conn) && $conn instanceof PDO) {
+            $pdo = $conn;
+        } elseif (isset($GLOBALS['conn']) && $GLOBALS['conn'] instanceof PDO) {
+            $pdo = $GLOBALS['conn'];
+        }
+    }
+
+    if (!isset($pdo) || !($pdo instanceof PDO)) {
+        throw new Exception('Database connection not available');
+    }
+
     header('Content-Type: application/json');
 
     try {

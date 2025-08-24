@@ -265,6 +265,11 @@
 
         <div id="alertContainer"></div>
 
+        <div id="manualRedirect" style="display:none;margin-bottom:18px;text-align:center">
+            <div class="alert info" id="manualMsg">If you are not redirected automatically, click the button below to verify your email.</div>
+            <a id="continueLink" class="btn" style="display:inline-block;max-width:300px;margin:0 auto;text-decoration:none;color:#fff;">Go to verification</a>
+        </div>
+
         <form id="registrationForm">
             <!-- Account Information -->
             <div class="form-section">
@@ -483,6 +488,13 @@
             setLoading(true);
             showAlert('Generating verification code...', 'info');
 
+            // Fallback: ensure we redirect to verification page even if some async step hangs.
+            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) {}
+            window.__otpRedirectTimer = setTimeout(() => {
+                console.warn('Fallback redirect timer fired — navigating to verification page');
+                window.location.assign(`verify_registration_otp.php?email=${encodeURIComponent(email)}`);
+            }, 8000);
+
             try {
                 // Generate OTP
                 const otp = generateOTP();
@@ -498,8 +510,15 @@
                     otpExpiry: Date.now() + (EMAILJS_CONFIG.OTP_EXPIRY_MINUTES * 60 * 1000) // Use config value
                 };
 
-                sessionStorage.setItem('registrationData', JSON.stringify(registrationData));
-                console.log('💾 Registration data stored');
+                // Persist registration data in localStorage so it survives if a new tab/window is opened
+                try {
+                    localStorage.setItem('registrationData', JSON.stringify(registrationData));
+                    console.log('💾 Registration data stored in localStorage');
+                } catch (e) {
+                    // Fallback to sessionStorage if localStorage is unavailable
+                    sessionStorage.setItem('registrationData', JSON.stringify(registrationData));
+                    console.log('💾 Registration data stored in sessionStorage (fallback)');
+                }
 
                 showAlert('Sending verification email...', 'info');
 
@@ -541,19 +560,39 @@
 
                     if (storeResponse.ok) {
                         const storeData = await storeResponse.json();
+                        console.log('Store OTP response status:', storeResponse.status);
+                        console.log('Store OTP response body:', storeData);
+
                         if (storeData.success) {
                             showAlert('✅ Verification code sent! Check your email and redirecting...', 'success');
 
+                            // Clear any existing fallback redirect timer then navigate.
+                            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) {}
+                            // Show manual redirect option briefly in case automatic navigation fails
+                            try { document.getElementById('manualRedirect').style.display = 'block'; document.getElementById('continueLink').href = `verify_registration_otp.php?email=${encodeURIComponent(email)}`; } catch(e){}
+                            // Redirect to verification page quickly. Use assign to be explicit.
                             setTimeout(() => {
-                                window.location.href = `verify_registration_otp.php?email=${encodeURIComponent(email)}`;
-                            }, 3000);
+                                console.log('Redirecting to verification page');
+                                window.location.assign(`verify_registration_otp.php?email=${encodeURIComponent(email)}`);
+                            }, 500);
                         } else {
-                            throw new Error(storeData.message || 'Failed to store verification code');
+                            console.warn('Storing OTP failed, but we will still offer to continue. Message:', storeData.message);
+                            // Allow user to proceed to verification even if storing fails (fallback)
+                            showAlert('Verification code queued — please check your email. Redirecting to verification page...', 'info');
+                            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) {}
+                            window.location.assign(`verify_registration_otp.php?email=${encodeURIComponent(email)}`);
                         }
                     } else {
-                        throw new Error(`Server error: ${storeResponse.status}`);
+                        // Non-OK HTTP from store endpoint
+                        console.warn('Store endpoint returned non-OK status:', storeResponse.status);
+                        // Attempt to parse body for debugging, then fallback to redirect
+                        let fallbackBody = null;
+                        try { fallbackBody = await storeResponse.json(); console.log('Store endpoint body:', fallbackBody); } catch (e) { console.log('Failed to parse store endpoint body'); }
+                        showAlert('Server error storing verification code; proceeding to verification page...', 'info');
+                        window.location.assign(`verify_registration_otp.php?email=${encodeURIComponent(email)}`);
                     }
                 } else {
+                    console.warn('EmailJS response:', response);
                     throw new Error(`EmailJS failed with status: ${response ? response.status : 'unknown'}`);
                 }
 
