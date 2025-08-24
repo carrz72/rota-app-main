@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Terms & Conditions - Open Rota</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dark_mode.css">
     <style>
           body { font-family: Arial, Helvetica, sans-serif; background: url("images/backg3.jpg") no-repeat center center fixed; background-size: cover; margin:0; padding:20px; }
         .terms-container { max-width:920px; margin:40px auto; padding:28px; background:#fff; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,0.06); }
@@ -19,6 +20,12 @@
     </style>
 </head>
 <body>
+    <script>
+        try{
+            const saved = localStorage.getItem('rota_theme');
+            if(saved === 'dark') document.documentElement.setAttribute('data-theme','dark');
+        }catch(e){}
+    </script>
     <?php if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); } ?>
     <div class="terms-container">
         <h1>Terms & Conditions</h1>
@@ -37,4 +44,5 @@
         </div>
     </div>
 </body>
+<script src="js/darkmode.js"></script>
 </html>

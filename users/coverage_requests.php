@@ -444,6 +444,14 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -458,6 +466,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../css/coverage_requests.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
     <style>
         /* Multi-select styles (matching admin) */
         .multi-select { position: relative; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }

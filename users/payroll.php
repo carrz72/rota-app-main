@@ -46,6 +46,14 @@ if ($is_admin && $current_period) {
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -57,6 +65,92 @@ if ($is_admin && $current_period) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/payroll.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <style>
+    /* Payroll page dark-mode overrides */
+   
+
+    html[data-theme='dark'] .container,
+    html[data-theme='dark'] .page-header,
+    html[data-theme='dark'] .payroll-grid,
+    html[data-theme='dark'] .payroll-card,
+    html[data-theme='dark'] .upcoming-payments,
+    html[data-theme='dark'] .payment-item,
+    html[data-theme='dark'] .admin-section,
+    html[data-theme='dark'] .admin-table,
+    html[data-theme='dark'] .admin-table th,
+    html[data-theme='dark'] .admin-table td {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+        border-color: rgba(255,255,255,0.03) !important;
+        box-shadow: var(--card-shadow) !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
+    }
+
+    /* Neutralize inline light backgrounds (TOTAL PAYROLL row and other inline styles) */
+    html[data-theme='dark'] .admin-table tr[style],
+    html[data-theme='dark'] .admin-table tr:last-child,
+    html[data-theme='dark'] .payment-item [style],
+    html[data-theme='dark'] [style*="#f8f9fa"] {
+        background: transparent !important;
+        background-color: transparent !important;
+        color: var(--text) !important;
+    }
+
+    /* Tables: remove light hover */
+    html[data-theme='dark'] table tbody tr:hover,
+    html[data-theme='dark'] table tr:hover {
+        background: transparent !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Make badges, labels and small text visible */
+    html[data-theme='dark'] .employment-badge,
+    html[data-theme='dark'] .pay-amount,
+    html[data-theme='dark'] .pay-detail-label,
+    html[data-theme='dark'] .pay-detail-value {
+        color: var(--text) !important;
+    }
+
+    /* Links, icons and header controls */
+    html[data-theme='dark'] header, html[data-theme='dark'] header * { color: var(--text) !important; }
+    html[data-theme='dark'] .logo { color: var(--text) !important; }
+    html[data-theme='dark'] .notification-icon { color: var(--text) !important; }
+
+    /* Ensure small panels and no-data messages are readable */
+    html[data-theme='dark'] .no-data, html[data-theme='dark'] .payment-date, html[data-theme='dark'] .period-info {
+     color: #424242ff;
+    }
+    html[data-theme='dark'] h3{
+        color: var(--text) !important;
+    }
+
+    /* Catch common inline white backgrounds */
+    html[data-theme='dark'] [style*="background:#fff"],
+    html[data-theme='dark'] [style*="background: #fff"],
+    html[data-theme='dark'] [style*="background:#ffffff"],
+    html[data-theme='dark'] [style*="background: #ffffff"],
+    html[data-theme='dark'] [style*="background: white"] {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+    }
+    </style>
+    <?php
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {}
+    }
+    ?>
     <title>Payroll - Open Rota</title>
 </head>
 
@@ -116,6 +210,9 @@ if ($is_admin && $current_period) {
                     <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                     <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                     <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+                    <?php if ($is_admin): ?>
+                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                <?php endif; ?>
                     <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
                 </ul>
             </nav>
@@ -390,6 +487,7 @@ if ($is_admin && $current_period) {
             });
         });
     </script>
+    <script src="../js/darkmode.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>

@@ -161,6 +161,14 @@ if ($user_id) {
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -170,6 +178,21 @@ if ($user_id) {
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../images/icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <?php
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {}
+    }
+    ?>
     <title>Your Shifts - Open Rota</title>
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/navigation.css">
@@ -312,9 +335,7 @@ if ($user_id) {
             border-bottom: 1px solid #eee;
         }
 
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
+      
 
         .shift-actions {
             display: flex;
@@ -398,6 +419,34 @@ if ($user_id) {
 
         .close-modal:hover {
             color: #fd2b2b;
+        }
+        
+        #toggleAddShiftBtn {
+            background-color: #fd2b2b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #toggleAddShiftBtn:hover {
+            background-color: #e63946;
+        }
+
+        .btn.save-shift-btn {
+            background-color: #fd2b2b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #saveShiftBtn:hover {
+            background-color: #e63946;
         }
 
         @keyframes modalFadeIn {
@@ -834,6 +883,20 @@ if ($user_id) {
             #toggleAddShiftBtn i {
                 font-size: 0.9rem;
             }
+        }
+
+        /* Disable hover effects for responsive shifts table rows to keep dark mode and UX consistent */
+        .responsive-table table tbody tr:hover,
+        .responsive-table tbody tr:hover,
+        .responsive-table table tr:hover {
+            background: transparent !important;
+            transform: none !important;
+            box-shadow: none !important;
+            cursor: default !important;
+        }
+
+        html[data-theme='dark'] h3 {
+            color: var(--text) !important;
         }
     </style>
 </head>
@@ -1580,6 +1643,7 @@ if ($user_id) {
             });
         });
     </script>
+    <script src="../js/darkmode.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>

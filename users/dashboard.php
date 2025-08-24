@@ -132,6 +132,14 @@ foreach ($days_result as $day) {
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -141,6 +149,24 @@ foreach ($days_result as $day) {
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <?php
+    // If user is logged in, inline their saved theme early to prevent FOUC
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {
+            // ignore theme fetch errors
+        }
+    }
+    ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>Dashboard - Open Rota</title>
@@ -741,6 +767,10 @@ foreach ($days_result as $day) {
                 transform: translateZ(0);
             }
         }
+
+        html[data-theme='dark'] h3 {
+            color: var(--text) !important;
+        }
     </style>
 </head>
 
@@ -1207,6 +1237,7 @@ foreach ($days_result as $day) {
         });
     </script>
     <script src="../js/menu.js"></script>
+    <script src="../js/darkmode.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>
 </body>

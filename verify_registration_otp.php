@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Verify Registration - Open Rota</title>
     <link rel="stylesheet" href="css/loginandregister.css">
+    <link rel="stylesheet" href="css/dark_mode.css">
     <style>
         .center { max-width:420px; margin:60px auto; background:rgba(255,255,255,0.95); padding:28px; border-radius:12px; }
         .otp-inputs { display:flex; gap:8px; justify-content:center; margin:18px 0; }
@@ -19,6 +20,8 @@
     </style>
 </head>
 <body style="background: url('images/backg3.jpg') no-repeat center center fixed; background-size: cover;">
+    <script>try{ if(localStorage.getItem('rota_theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
+</script>
     <div class="center">
         <h2 style="text-align:center;color:#ff0808;margin-top:0">🔐 Verify your email</h2>
         <p id="subtitle" style="text-align:center;color:#444">Enter the 6-digit code sent to your email</p>

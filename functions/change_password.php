@@ -88,11 +88,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <title>Change Password - Open Rota</title>
     <link rel="stylesheet" href="../css/loginandregister.css">
     <link rel="stylesheet" href="../css/change_password.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Unified style: Use only the main app font and background from loginandregister.css -->
 </head>
 
 <body class="change-password-page">
+    <script>try{ if(localStorage.getItem('rota_theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
+</script>
     <div class="auth-container">
         <!-- Logo Header -->
         <div class="logo-header">
@@ -174,6 +177,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php endif; ?>
     </script>
     <?php include __DIR__ . '/../includes/privacy_footer.php'; ?>
+    <script src="../js/darkmode.js"></script>
 </body>
 
 </html>

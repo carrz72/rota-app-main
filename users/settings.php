@@ -238,8 +238,18 @@ if ($user_id) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Open Rota</title>
+    <script>
+        // Apply saved theme early to avoid flash-of-light; only if server didn't set it
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <link rel="stylesheet" href="../css/settings.css">
     <link rel="stylesheet" href="../css/navigation.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -570,6 +580,7 @@ if ($user_id) {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             color: #333;
+              text-decoration: none;
         }
 
         .action-card i {
@@ -919,6 +930,28 @@ if ($user_id) {
                     </button>
                 </form>
             </div>
+
+            <!-- Appearance / Theme -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-adjust"></i>
+                    </div>
+                    <h3 class="card-title">Appearance</h3>
+                </div>
+
+                <div style="padding-top:8px;">
+                    <label for="dark_mode_toggle" style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+                        <input type="checkbox" id="dark_mode_toggle" />
+                        <div>
+                            <div style="font-weight:600;">Dark Mode</div>
+                            <div style="font-size:0.9rem;color:#666;">Toggle the application theme</div>
+                        </div>
+                    </label>
+                </div>
+                <p class="form-text">Your theme preference is saved to your browser.</p>
+            </div>
+            </div>
         </div>
 
         <!-- Quick Actions -->
@@ -948,6 +981,20 @@ if ($user_id) {
             </a>
         </div>
     </div>
+    <script src="../js/darkmode.js"></script>
+    <script>
+        // Sync toggle state in case darkmode.js ran before the element was available
+        document.addEventListener('DOMContentLoaded', function(){
+            const toggle = document.getElementById('dark_mode_toggle');
+            try{
+                const saved = localStorage.getItem('rota_theme');
+                if(toggle){
+                    if(saved){ toggle.checked = (saved === 'dark'); }
+                    else { toggle.checked = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+                }
+            }catch(e){/* ignore */}
+        });
+    </script>
 
     <script>
         // Notification functionality

@@ -19,6 +19,14 @@ if (!$user) {
 <html>
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
@@ -31,6 +39,20 @@ if (!$user) {
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/profile.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <?php
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {}
+    }
+    ?>
 </head>
 
 <body>
@@ -81,6 +103,7 @@ if (!$user) {
         <a href="change_password.php">Change Password</a><br>
         <a href="dashboard.php">Back to Dashboard</a>
     </div>
+    <script src="../js/darkmode.js"></script>
     <script src="../js/menu.js"></script>
 </body>
 

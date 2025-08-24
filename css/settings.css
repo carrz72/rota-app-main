@@ -250,7 +250,7 @@ body {
     right: 2px;
     top: 60px;
     width: calc(100vw - 20px);
-    max-width: 300px;
+    max-width: 000px;
   }
 
   .notification-dropdown {

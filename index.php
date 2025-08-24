@@ -23,6 +23,7 @@ if (isset($_SESSION['user_id'])) {
     <link rel="icon" type="image/png" href="./images/icon.png">
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="./css/dark_mode.css">
     <link rel="apple-touch-icon" href="./images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Open Rota - Manage Your Work Schedule</title>
@@ -156,6 +157,13 @@ if (isset($_SESSION['user_id'])) {
 </head>
 
 <body>
+    <script>
+        // Apply saved theme early to avoid flash-of-unstyled (guest/localStorage)
+        try {
+            var saved = localStorage.getItem('rota_theme');
+            if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        } catch (e) { /* ignore */ }
+    </script>
     <main class="landing-container">
         <div class="logo">Open Rota</div>
 
@@ -215,5 +223,6 @@ if (isset($_SESSION['user_id'])) {
 </script>
 <script src="./js/pwa-debug.js"></script>
 <script src="./js/links.js"></script>
+<script src="./js/darkmode.js"></script>
 
 </html>

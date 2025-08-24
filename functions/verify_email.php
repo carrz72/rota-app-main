@@ -144,8 +144,11 @@ if (!$fp) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Email</title>
     <link rel="stylesheet" href="../css/verify_email.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
 </head>
 <body>
+    <script>try{ if(localStorage.getItem('rota_theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
+    </script>
     <h1>Email Verification</h1>
     <?php
         if (!empty($error)) {
@@ -159,4 +162,5 @@ if (!$fp) {
         <button type="submit">Verify Email</button>
     </form>
 </body>
+<script src="../js/darkmode.js"></script>
 </html>

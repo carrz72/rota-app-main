@@ -29,6 +29,14 @@ if ($user_id) {
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -42,6 +50,110 @@ if ($user_id) {
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/role.css">
     <link rel="stylesheet" href="../css/navigation.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <style>
+    /* Page-specific dark mode fixes for Roles page */
+    html[data-theme='dark'] body {
+    
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] .container {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+        box-shadow: var(--card-shadow) !important;
+        background-image: none !important;
+    }
+
+    html[data-theme='dark'] form,
+    html[data-theme='dark'] .form-card,
+    html[data-theme='dark'] .role-card,
+    html[data-theme='dark'] table,
+    html[data-theme='dark'] table thead,
+    html[data-theme='dark'] table tbody,
+    html[data-theme='dark'] table td,
+    html[data-theme='dark'] table th {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+        border-color: rgba(255,255,255,0.03) !important;
+        box-shadow: var(--card-shadow) !important;
+    }
+
+    /* Remove light hover and keep rows neutral */
+    html[data-theme='dark'] table tbody tr:hover,
+    html[data-theme='dark'] table tr:hover {
+        background: transparent !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Ensure headings, labels and inputs are readable */
+    html[data-theme='dark'] h1, html[data-theme='dark'] h2, html[data-theme='dark'] label, html[data-theme='dark'] .role-name {
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] input[type="text"],
+    html[data-theme='dark'] input[type="number"],
+    html[data-theme='dark'] input[type="time"],
+    html[data-theme='dark'] select {
+        background: #08101a !important;
+        color: var(--text) !important;
+        border-color: #17232b !important;
+    }
+
+    /* Buttons and action controls */
+    html[data-theme='dark'] button,
+    html[data-theme='dark'] .action-btn,
+    html[data-theme='dark'] a {
+        background: linear-gradient(135deg,var(--accent),#ff3b3b) !important;
+        color: #fff !important;
+        border: none !important;
+    }
+    html[data-theme='dark'] button:hover, html[data-theme='dark'] .action-btn:hover, html[data-theme='dark'] a:hover {
+        background: #ff3b3b !important;
+        transform: none !important;
+    }
+
+    /* Header, nav and icons */
+    html[data-theme='dark'] header, html[data-theme='dark'] header * {
+        background: transparent !important;
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] .notification-icon { color: var(--text) !important; }
+
+    /* Catch inline white backgrounds */
+    html[data-theme='dark'] [style*="background:#fff"],
+    html[data-theme='dark'] [style*="background: #fff"],
+    html[data-theme='dark'] [style*="background:#ffffff"],
+    html[data-theme='dark'] [style*="background: #ffffff"],
+    html[data-theme='dark'] [style*="background: white"] {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] .toggle-container, #night_pay_fields {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+    }
+    html[data-theme='dark'] #night_pay_fields h3 {
+        color: var(--text) !important;
+    }
+    </style>
+    <?php
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {}
+    }
+    ?>
 </head>
 
 <body>
@@ -664,6 +776,7 @@ if ($user_id) {
         });
     </script>
 
+    <script src="../js/darkmode.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>

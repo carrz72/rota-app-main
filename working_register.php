@@ -95,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Open Rota</title>
     <link rel="stylesheet" href="css/loginandregister.css">
+        <link rel="stylesheet" href="css/dark_mode.css">
     <style>
         .working-form {
             max-width: 500px;
@@ -236,6 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="logo-header">
             <div class="logo">Open Rota</div>
         </div>
+    <script>try{ if(localStorage.getItem('rota_theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}</script>
 
         <div class="working-form">
             <div class="form-header">

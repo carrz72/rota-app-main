@@ -24,6 +24,23 @@ if ($user_id) {
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="../css/navigation.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <?php
+    // If user is logged in, attempt to load their saved theme and inline it so the page loads in the right theme
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {
+            // ignore theme fetch errors
+        }
+    }
+    ?>
     <link rel="apple-touch-icon" href="../images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -210,6 +227,7 @@ if ($user_id) {
     <script src="../js/session-timeout.js"></script>
     <script src="../js/session-protection.js"></script>
     <script src="../js/menu.js"></script>
+    <script src="../js/darkmode.js"></script>
 
     <script>
         // Initialize session configuration
