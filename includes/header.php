@@ -63,25 +63,25 @@ if ($user_id) {
                         <?php foreach ($notifications as $notif): ?>
                             <?php if ($notif['type'] === 'shift-invite' && !empty($notif['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notif['type']; ?>"
-                                   data-id="<?php echo $notif['id']; ?>"
-                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
+                                    data-id="<?php echo $notif['id']; ?>"
+                                    href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </a>
                             <?php elseif ($notif['type'] === 'shift-swap' && !empty($notif['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notif['type']; ?>"
-                                   data-id="<?php echo $notif['id']; ?>"
-                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
+                                    data-id="<?php echo $notif['id']; ?>"
+                                    href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </a>
                             <?php else: ?>
-                                <div class="notification-item notification-<?php echo $notif['type']; ?>" data-id="<?php echo $notif['id']; ?>">
+                                <div class="notification-item notification-<?php echo $notif['type']; ?>"
+                                    data-id="<?php echo $notif['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </div>
                             <?php endif; ?>
-                        <?php endforeach; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -188,40 +188,40 @@ if ($user_id) {
     </script>
     <script>
         function markAsRead(notificationElem) {
-                const notifId = notificationElem && notificationElem.getAttribute && notificationElem.getAttribute('data-id');
-                if (!notifId) return;
+            const notifId = notificationElem && notificationElem.getAttribute && notificationElem.getAttribute('data-id');
+            if (!notifId) return;
 
-                fetch('../functions/mark_notification.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: notifId })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data && data.success) {
-                            // Hide/remove the notification element
-                            if (notificationElem && notificationElem.parentNode) {
-                                notificationElem.parentNode.removeChild(notificationElem);
-                            }
-
-                            // Recalculate remaining visible notifications
-                            const dropdown = document.getElementById('notification-dropdown');
-                            const remaining = dropdown ? dropdown.querySelectorAll('.notification-item[data-id]') : [];
-                            const badge = document.querySelector('.notification-badge');
-
-                            if (!remaining || remaining.length === 0) {
-                                if (dropdown) dropdown.innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
-                                if (badge) badge.style.display = 'none';
-                            } else if (badge) {
-                                badge.textContent = remaining.length;
-                                badge.style.display = 'flex';
-                            }
-                        } else {
-                            console.error('Failed to mark notification as read:', data && data.error ? data.error : data);
+            fetch('../functions/mark_notification.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: notifId })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        // Hide/remove the notification element
+                        if (notificationElem && notificationElem.parentNode) {
+                            notificationElem.parentNode.removeChild(notificationElem);
                         }
-                    })
-                    .catch(err => console.error('Error marking notification as read:', err));
-            }
+
+                        // Recalculate remaining visible notifications
+                        const dropdown = document.getElementById('notification-dropdown');
+                        const remaining = dropdown ? dropdown.querySelectorAll('.notification-item[data-id]') : [];
+                        const badge = document.querySelector('.notification-badge');
+
+                        if (!remaining || remaining.length === 0) {
+                            if (dropdown) dropdown.innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                            if (badge) badge.style.display = 'none';
+                        } else if (badge) {
+                            badge.textContent = remaining.length;
+                            badge.style.display = 'flex';
+                        }
+                    } else {
+                        console.error('Failed to mark notification as read:', data && data.error ? data.error : data);
+                    }
+                })
+                .catch(err => console.error('Error marking notification as read:', err));
+        }
     </script>
     <!-- Session Management Scripts -->
     <script src="../js/session-timeout.js"></script>

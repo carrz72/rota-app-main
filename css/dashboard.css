@@ -44,7 +44,7 @@ p {
 a {
   display: inline-block;
   padding: 8px 14px;
-  background-color: #fd2b2b;
+  background-color: #c0bebe;
   color: #fff;
   text-decoration: none;
   border-radius: 6px;
@@ -830,8 +830,6 @@ table td {
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
 }
-
-
 
 /* =======================================
     8. FORMS AND INPUTS
