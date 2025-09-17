@@ -179,6 +179,13 @@ body {
   margin-top: 2px;
 }
 
+.form-group-checkbox{
+  width: 18px;
+  height: 18px;
+  accent-color: #fd2b2b;
+  margin-top: 2px;
+}
+
 /* ========== BUTTON STYLES ========== */
 .btn {
   display: inline-flex;

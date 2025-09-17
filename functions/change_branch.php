@@ -75,22 +75,23 @@ try {
     $updateStmt = $conn->prepare($updateSql);
 
     if ($updateStmt->execute([$newBranchId, $userId])) {
-        // Log the branch change for audit purposes
-        $logSql = "INSERT INTO user_activity_log (user_id, action, details, created_at) 
-                   VALUES (?, 'branch_change', ?, NOW())";
-        $logStmt = $conn->prepare($logSql);
+        // Audit: branch change via audit_log
         $logDetails = json_encode([
             'old_branch_id' => $currentBranch['branch_id'],
             'old_branch_name' => $currentBranch['current_branch_name'],
             'new_branch_id' => $newBranchId,
             'new_branch_name' => $branch['name']
         ]);
-
-        // Try to log but don't fail if logging fails
-        try {
-            $logStmt->execute([$userId, $logDetails]);
-        } catch (Exception $logError) {
-            error_log("Branch change logging failed: " . $logError->getMessage());
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $userId, 'change_branch', json_decode($logDetails, true), $newBranchId, 'branch_change', session_id()); } catch (Exception $e) {
+            // Fallback: keep existing user_activity_log if audit_log unavailable
+            try {
+                $logSql = "INSERT INTO user_activity_log (user_id, action, details, created_at) 
+                           VALUES (?, 'branch_change', ?, NOW())";
+                $logStmt = $conn->prepare($logSql);
+                $logStmt->execute([$userId, $logDetails]);
+            } catch (Exception $logError) {
+                error_log("Branch change logging failed: " . $logError->getMessage());
+            }
         }
 
         echo json_encode([

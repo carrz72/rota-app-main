@@ -831,9 +831,7 @@ table td {
   border-right: 1px solid transparent;
 }
 
-table tr:hover {
-  background-color: #f1f1f1;
-}
+
 
 /* =======================================
     8. FORMS AND INPUTS
@@ -1364,6 +1362,15 @@ span {
 .upcoming-shifts-table td {
   padding: 12px 10px;
   border-bottom: 1px solid #eee;
+}
+
+/* Remove hover effects for rows inside the shifts table tbody to avoid visual noise */
+.upcoming-shifts-table tbody tr:hover,
+.upcoming-shifts tbody tr:hover,
+.upcoming-shifts-table tr:hover {
+  background: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .earnings-stats {

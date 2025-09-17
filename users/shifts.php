@@ -46,12 +46,17 @@ if ($period == 'week') {
 $stmtRoles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC");
 $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch all users for swap dropdown
+$stmtUsers = $conn->query("SELECT id, username FROM users ORDER BY username ASC");
+$all_users = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
+
 // Query shifts
 
 $stmtShifts = $conn->prepare(
-    "SELECT s.*, r.name as role, s.location, r.base_pay, r.has_night_pay, r.night_shift_pay, r.night_start_time, r.night_end_time 
+    "SELECT s.*, r.name as role, s.location, r.base_pay, r.has_night_pay, r.night_shift_pay, r.night_start_time, r.night_end_time, b.id AS branch_id, b.name AS branch_name 
     FROM shifts s 
     LEFT JOIN roles r ON s.role_id = r.id 
+    LEFT JOIN branches b ON s.branch_id = b.id 
     WHERE s.user_id = :user_id AND $periodSql 
     ORDER BY shift_date ASC, start_time ASC"
 );
@@ -73,6 +78,11 @@ $stmt_user_role = $conn->prepare("
 ");
 $stmt_user_role->execute([$user_id]);
 $user_role = $stmt_user_role->fetch(PDO::FETCH_ASSOC);
+
+// Fetch user's branch info to default the add-shift location
+$stmtUserBranch = $conn->prepare("SELECT b.id, b.name, b.address FROM users u LEFT JOIN branches b ON u.branch_id = b.id WHERE u.id = ? LIMIT 1");
+$stmtUserBranch->execute([$user_id]);
+$user_branch = $stmtUserBranch->fetch(PDO::FETCH_ASSOC);
 
 // Calculate pay for each shift using improved logic
 foreach ($shifts as &$shift) {
@@ -151,6 +161,14 @@ if ($user_id) {
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -160,6 +178,21 @@ if ($user_id) {
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../images/icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <?php
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {}
+    }
+    ?>
     <title>Your Shifts - Open Rota</title>
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/navigation.css">
@@ -302,17 +335,16 @@ if ($user_id) {
             border-bottom: 1px solid #eee;
         }
 
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
+      
 
         .shift-actions {
             display: flex;
             gap: 10px;
         }
 
-        .editBtn,
-        .deleteBtn {
+    .editBtn,
+    .deleteBtn,
+    .swapBtn {
             padding: 6px 12px;
             border: none;
             border-radius: 4px;
@@ -330,6 +362,11 @@ if ($user_id) {
 
         .deleteBtn {
             background-color: #dc3545;
+            color: white;
+        }
+
+        .swapBtn {
+            background-color: #6c757d;
             color: white;
         }
 
@@ -382,6 +419,34 @@ if ($user_id) {
 
         .close-modal:hover {
             color: #fd2b2b;
+        }
+        
+        #toggleAddShiftBtn {
+            background-color: #fd2b2b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #toggleAddShiftBtn:hover {
+            background-color: #e63946;
+        }
+
+        .btn.save-shift-btn {
+            background-color: #fd2b2b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #saveShiftBtn:hover {
+            background-color: #e63946;
         }
 
         @keyframes modalFadeIn {
@@ -819,6 +884,20 @@ if ($user_id) {
                 font-size: 0.9rem;
             }
         }
+
+        /* Disable hover effects for responsive shifts table rows to keep dark mode and UX consistent */
+        .responsive-table table tbody tr:hover,
+        .responsive-table tbody tr:hover,
+        .responsive-table table tr:hover {
+            background: transparent !important;
+            transform: none !important;
+            box-shadow: none !important;
+            cursor: default !important;
+        }
+
+        html[data-theme='dark'] h3 {
+            color: var(--text) !important;
+        }
     </style>
 </head>
 
@@ -838,18 +917,26 @@ if ($user_id) {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item notification-<?php echo $notification['type']; ?>"
-                                data-id="<?php echo $notification['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
-                                    <a class="shit-invt"
-                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -872,9 +959,9 @@ if ($user_id) {
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-                <?php if ($_SESSION['role'] === 'admin'): ?>
-                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
-                <?php endif; ?>
+               <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
+                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                    <?php endif; ?>
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
@@ -982,6 +1069,7 @@ if ($user_id) {
             <!-- Add Shift Form (Hidden by Default) -->
             <div id="addShiftSection" style="display:none;" class="add-shift-section">
                 <form id="addShiftForm" method="POST" action="../functions/add_shift.php">
+                    <div id="addShiftMessage" style="display:none; margin-bottom:10px; padding:8px; border-radius:4px;"></div>
                     <div class="add-shift-form">
                         <div class="form-group">
                             <label for="shift_date"><i class="fa fa-calendar-o"></i> Date:</label>
@@ -1007,9 +1095,14 @@ if ($user_id) {
                             <input type="time" id="end_time" name="end_time" required />
                         </div>
                         <div class="form-group">
+                            <label for="branch_search"><i class="fa fa-building"></i> Branch (default to your branch):</label>
+                            <input list="branches_list" id="branch_search" name="branch_search" placeholder="Search branch or keep your branch" value="<?php echo htmlspecialchars($user_branch['name'] ?? ''); ?>" />
+                            <datalist id="branches_list"></datalist>
+                            <input type="hidden" id="branch_id" name="branch_id" value="<?php echo htmlspecialchars($user_branch['id'] ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
                             <label for="location"><i class="fa fa-map-marker"></i> Location:</label>
-                            <input type="text" id="location" name="location" required
-                                placeholder="Enter work location" />
+                            <input type="text" id="location" name="location" required placeholder="Enter work location" value="<?php echo htmlspecialchars(isset($user_branch) && $user_branch ? ($user_branch['name']) : ''); ?>" />
                         </div>
                     </div>
                     <button class="btn save-shift-btn" type="submit"><i class="fa fa-save"></i> Save Shift</button>
@@ -1067,7 +1160,14 @@ if ($user_id) {
                                     </td>
                                     <!-- Location -->
                                     <td data-raw-location="<?php echo htmlspecialchars($shift['location']); ?>">
-                                        <?php echo htmlspecialchars($shift['location']); ?>
+                                        <?php
+                                        $loc = $shift['location'] ?? '';
+                                        if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                            echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                        } else {
+                                            echo htmlspecialchars($loc);
+                                        }
+                                        ?>
                                     </td>
                                     <!-- Pay -->
                                     <td>
@@ -1081,6 +1181,9 @@ if ($user_id) {
                                             </button>
                                             <button class="deleteBtn" data-id="<?php echo $shift['id']; ?>">
                                                 <i class="fa fa-trash"></i> Delete
+                                            </button>
+                                            <button class="swapBtn" data-id="<?php echo $shift['id']; ?>">
+                                                <i class="fa fa-exchange"></i> Swap
                                             </button>
                                         </div>
                                     </td>
@@ -1138,76 +1241,113 @@ if ($user_id) {
                 </form>
             </div>
         </div>
+        <!-- Swap Modal -->
+        <div id="swapModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Propose Shift Swap</h3>
+                    <span class="close-swap-modal close-modal">&times;</span>
+                </div>
+                <form id="swapForm">
+                    <input type="hidden" name="from_shift_id" id="swap_from_shift_id">
+                    <input type="hidden" name="action" value="propose">
+                    <div class="form-group">
+                        <label for="swap_to_user_id">Select User to swap with</label>
+                        <select id="swap_to_user_id" name="to_user_id" required>
+                            <option value="">-- Select user --</option>
+                            <?php foreach ($all_users as $u): ?>
+                                <?php if ($u['id'] == $user_id) continue; ?>
+                                <option value="<?php echo $u['id']; ?>"><?php echo htmlspecialchars($u['username']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <small id="swap-help">Only select the user you'd like to request a swap with — the recipient will choose which of their shifts to give when accepting.</small>
+                    </div>
+                    <button type="submit" class="editBtn save-shift-btn">Send Proposal</button>
+                </form>
+            </div>
+        </div>
     </div>
     <script>
-        // Notification functionality
-        function markAsRead(element) {
-            const notificationId = element.getAttribute('data-id');
-            console.log('Marking notification as read:', notificationId); // Debug log
+        // Notification functionality (robust)
+        function markAsRead(elementOrDescendant) {
+            // Ensure we have the notification item element
+            let notificationElem = null;
+            try {
+                if (!elementOrDescendant) return;
+                if (elementOrDescendant.classList && elementOrDescendant.classList.contains('notification-item')) {
+                    notificationElem = elementOrDescendant;
+                } else if (elementOrDescendant.closest) {
+                    notificationElem = elementOrDescendant.closest('.notification-item');
+                } else if (elementOrDescendant.parentElement) {
+                    // fallback
+                    notificationElem = elementOrDescendant.parentElement;
+                }
+            } catch (e) {
+                console.error('Invalid element passed to markAsRead', e);
+                return;
+            }
 
-            if (!notificationId) {
+            if (!notificationElem) {
+                console.error('No notification element found');
+                return;
+            }
+
+            const rawId = notificationElem.getAttribute('data-id');
+            const notificationId = rawId ? parseInt(rawId, 10) : 0;
+            console.log('Marking notification as read:', notificationId);
+
+            if (!notificationId || notificationId <= 0) {
                 console.error('No notification ID found');
                 return;
             }
 
             fetch('../functions/mark_notification.php', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: notificationId })
             })
-                .then(response => {
-                    console.log('Response status:', response.status); // Debug log
-                    return response.json();
+                .then(res => {
+                    console.log('Response status:', res.status);
+                    return res.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data); // Debug log
-                    if (data.success) {
-                        element.style.display = 'none';
+                    console.log('Response data:', data);
+                    if (data && data.success) {
+                        // remove element
+                        if (notificationElem.parentNode) notificationElem.parentNode.removeChild(notificationElem);
 
-                        // Count remaining visible notifications more reliably
+                        // update badge and dropdown
                         const allNotifications = document.querySelectorAll('.notification-item[data-id]');
                         let visibleCount = 0;
-
-                        allNotifications.forEach(notification => {
-                            const computedStyle = window.getComputedStyle(notification);
-                            if (computedStyle.display !== 'none') {
-                                visibleCount++;
-                            }
+                        allNotifications.forEach(n => {
+                            if (window.getComputedStyle(n).display !== 'none') visibleCount++;
                         });
 
-                        console.log('Total notifications with data-id:', allNotifications.length); // Debug log
-                        console.log('Visible notifications count:', visibleCount); // Debug log
-
+                        const badge = document.querySelector('.notification-badge');
+                        const dropdown = document.getElementById('notification-dropdown');
                         if (visibleCount === 0) {
-                            document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
-                            const badge = document.querySelector('.notification-badge');
-                            if (badge) {
-                                badge.style.display = 'none';
-                                console.log('Badge hidden - no notifications left'); // Debug log
-                            }
-                        } else {
-                            const badge = document.querySelector('.notification-badge');
-                            if (badge) {
-                                badge.textContent = visibleCount;
-                                badge.style.display = 'flex'; // Ensure badge is visible
-                                console.log('Badge updated to:', visibleCount); // Debug log
-                            }
+                            if (dropdown) dropdown.innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                            if (badge) badge.style.display = 'none';
+                        } else if (badge) {
+                            badge.textContent = visibleCount;
+                            badge.style.display = 'flex';
                         }
                     } else {
-                        console.error('Failed to mark notification as read:', data.error);
+                        console.error('Failed to mark notification as read:', data && data.error ? data.error : data);
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+                .catch(err => console.error('Error:', err));
         }
 
         document.addEventListener('DOMContentLoaded', function () {
             // Notification functionality
             var notificationIcon = document.getElementById('notification-icon');
             var dropdown = document.getElementById('notification-dropdown');
+
+            // Strip malformed notifications if any
+            if (typeof stripMalformedNotifications === 'function') stripMalformedNotifications();
 
             if (notificationIcon && dropdown) {
                 notificationIcon.addEventListener('click', function (e) {
@@ -1254,6 +1394,137 @@ if ($user_id) {
             if (shiftDate) {
                 shiftDate.valueAsDate = new Date();
             }
+
+            // AJAX submit for Add Shift form with inline messages
+            (function setupAddShiftAjax(){
+                const addForm = document.getElementById('addShiftForm');
+                const msgBox = document.getElementById('addShiftMessage');
+                if (!addForm) return;
+
+                addForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+                    if (!msgBox) return;
+                    msgBox.style.display = 'none';
+                    msgBox.textContent = '';
+
+                    const formData = new FormData(addForm);
+                    // indicate AJAX to server
+                    formData.append('ajax', '1');
+
+                    fetch(addForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(async res => {
+                        // Try JSON first
+                        let payload;
+                        try {
+                            payload = await res.json();
+                        } catch (err) {
+                            // Not JSON - try to read text
+                            try {
+                                const txt = await res.text();
+                                payload = { success: false, message: txt };
+                            } catch (t) {
+                                payload = { success: false, message: 'Unexpected server response.' };
+                            }
+                        }
+
+                        // Normalize message
+                        let userMessage = payload && payload.message ? String(payload.message) : '';
+                        // Map known server messages to friendlier versions
+                        if (userMessage.match(/manager/i) || userMessage.match(/manage/i)) {
+                            userMessage = 'Only users with manager-level access can add shifts at other branches.';
+                        } else if (userMessage.match(/Selected branch does not exist/i)) {
+                            userMessage = 'The selected branch could not be found. Please choose a valid branch.';
+                        } else if (userMessage.match(/All fields are required/i)) {
+                            userMessage = 'Please complete all required fields (date, times, role and location).';
+                        } else if (!userMessage) {
+                            userMessage = 'Failed to add shift.';
+                        }
+
+                        if (payload && payload.success) {
+                            msgBox.style.display = 'block';
+                            msgBox.style.background = '#e6ffed';
+                            msgBox.style.border = '1px solid #3cb371';
+                            msgBox.style.color = '#046b2f';
+                            msgBox.textContent = userMessage;
+                            setTimeout(() => { location.reload(); }, 900);
+                        } else {
+                            msgBox.style.display = 'block';
+                            msgBox.style.background = '#fff1f0';
+                            msgBox.style.border = '1px solid #e04b4b';
+                            msgBox.style.color = '#a10000';
+                            msgBox.textContent = userMessage;
+                        }
+                    })
+                    .catch(err => {
+                        msgBox.style.display = 'block';
+                        msgBox.style.background = '#fff1f0';
+                        msgBox.style.border = '1px solid #e04b4b';
+                        msgBox.style.color = '#a10000';
+                        msgBox.textContent = 'Network error while saving shift.';
+                        console.error('Add Shift AJAX error', err);
+                    });
+                });
+            })();
+
+            // Fetch branches and populate branch selector; default to user's branch
+            (function setupBranchSelector(){
+                const branchList = document.getElementById('branches_list');
+                const branchSearch = document.getElementById('branch_search');
+                const branchIdInput = document.getElementById('branch_id');
+                const locationInput = document.getElementById('location');
+
+                if (!branchList || !branchSearch || !branchIdInput) return;
+
+                fetch('../functions/get_branches.php')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data || !data.branches) return;
+                        data.branches.forEach(b => {
+                            // add option to datalist
+                            const option = document.createElement('option');
+                            option.value = b.name + (b.code ? ' (' + b.code + ')' : '');
+                            option.setAttribute('data-branch-id', b.id);
+                            option.setAttribute('data-branch-address', b.address || '');
+                            branchList.appendChild(option);
+
+                            // If this branch matches user's branch id, select it by default
+                            const userBranchId = '<?php echo htmlspecialchars($user_branch['id'] ?? ''); ?>';
+                            if (userBranchId && String(b.id) === String(userBranchId)) {
+                                branchSearch.value = option.value;
+                                branchIdInput.value = b.id;
+                                // Prefill location with branch name only (do not include address)
+                                locationInput.value = b.name;
+                            }
+                        });
+                    })
+                    .catch(err => console.error('Failed to load branches:', err));
+
+                // When user types/selects a branch from the datalist, try to set the branch_id and prefill location
+                branchSearch.addEventListener('input', function(e){
+                    const val = this.value;
+                    // find matching option
+                    const opts = branchList.querySelectorAll('option');
+                    let matched = null;
+                    opts.forEach(opt => {
+                        if (opt.value === val) matched = opt;
+                    });
+                    if (matched) {
+                        const bid = matched.getAttribute('data-branch-id');
+                        // Only set branch id and pref fill location with branch name (no address)
+                        branchIdInput.value = bid || '';
+                        locationInput.value = this.value;
+                    } else {
+                        // If user clears or types a custom location, clear branch_id so add_shift treats it as local entry
+                        branchIdInput.value = '';
+                    }
+                });
+            })();
 
             // Edit shift functionality
             const editBtns = document.querySelectorAll(".editBtn");
@@ -1314,6 +1585,52 @@ if ($user_id) {
                 });
             });
 
+            // Swap: open modal and submit proposal
+            const swapModal = document.getElementById('swapModal');
+            const swapForm = document.getElementById('swapForm');
+            const swapFromShift = document.getElementById('swap_from_shift_id');
+            const swapBtns = document.querySelectorAll('.swapBtn');
+            const closeSwap = document.querySelector('.close-swap-modal');
+
+            swapBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    swapFromShift.value = btn.getAttribute('data-id');
+                    if (swapModal) swapModal.style.display = 'block';
+                });
+            });
+
+            if (closeSwap) {
+                closeSwap.addEventListener('click', () => swapModal.style.display = 'none');
+            }
+            window.addEventListener('click', (e) => {
+                if (e.target === swapModal) swapModal.style.display = 'none';
+            });
+
+            // Submit a swap proposal (recipient will choose which of their shifts to give)
+            const swapUserSelect = document.getElementById('swap_to_user_id');
+            if (swapForm) {
+                swapForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const fd = new FormData(swapForm);
+                    fetch('../functions/shift_swap.php', {
+                        method: 'POST',
+                        body: fd,
+                    })
+                        .then(res => res.text())
+                        .then(txt => {
+                            if (txt.includes('proposed')) {
+                                alert('Swap proposal sent.');
+                                swapModal.style.display = 'none';
+                            } else if (txt.includes('invalid') || txt.includes('not_owner')) {
+                                alert('Invalid swap request.');
+                            } else {
+                                alert('Swap request failed: ' + txt);
+                            }
+                        })
+                        .catch(() => alert('Network error while proposing swap.'));
+                });
+            }
+
             // Make period navigation buttons work properly
             const navButtons = document.querySelectorAll('.period-nav-buttons a');
             navButtons.forEach(button => {
@@ -1326,6 +1643,7 @@ if ($user_id) {
             });
         });
     </script>
+    <script src="../js/darkmode.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>

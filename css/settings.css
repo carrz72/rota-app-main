@@ -250,7 +250,7 @@ body {
     right: 2px;
     top: 60px;
     width: calc(100vw - 20px);
-    max-width: 300px;
+    max-width: 000px;
   }
 
   .notification-dropdown {
@@ -290,3 +290,53 @@ body {
     top: 55px;
   }
 }
+
+/* Global anchor and action-card styles to ensure consistent look for links/buttons */
+a {
+  color: #fd2b2b;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #c82333;
+  text-decoration: underline;
+}
+
+/* Make anchor elements with .btn behave like buttons */
+a.btn, button.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Quick action cards (links) styling: ensure they look like cards and are accessible */
+.action-card {
+  display: block;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 22px;
+  border-radius: 12px;
+  color: #333;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.action-card:hover,
+.action-card:focus {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.12);
+  color: #333;
+}
+
+.action-card i { color: #fd2b2b; }
+
+/* Ensure logout action has red color preserved */
+.action-card[style*="color: #dc3545"] {
+  color: #dc3545 !important;
+}
+

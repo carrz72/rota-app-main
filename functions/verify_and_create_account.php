@@ -100,6 +100,12 @@ try {
     if ($insertUserStmt->execute([$username, $email, $hashedPassword, $branchId])) {
         $userId = $conn->lastInsertId();
 
+        // Audit account creation
+        try {
+            require_once __DIR__ . '/../includes/audit_log.php';
+            log_audit($conn, $userId, 'account_created', ['email' => $email, 'username' => $username], $userId, 'user', session_id());
+        } catch (Exception $e) {}
+
         echo json_encode([
             'success' => true,
             'message' => 'Account created successfully!',
@@ -108,6 +114,8 @@ try {
         ]);
 
     } else {
+        // Audit failure
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, null, 'account_create_failed', ['email' => $email], null, 'user', session_id()); } catch (Exception $e) {}
         throw new Exception('Failed to create user account');
     }
 

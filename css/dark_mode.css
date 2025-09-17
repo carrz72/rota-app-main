@@ -1,0 +1,200 @@
+/* Dark mode variables and overrides */
+:root[data-theme='dark'], html[data-theme='dark'] {
+  --bg: #0f1720;
+  --panel: #0b1220;
+  --muted: #9aa4b2;
+  --text: #e6eef6;
+  --accent: #ff6b6b;
+  --card-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+html[data-theme='dark'] body {
+  background-color: var(--bg) !important;
+
+}
+html[data-theme='dark'] h3
+{
+
+  color: var(--bg) !important;
+
+}
+
+html[data-theme='dark'] .settings-card,
+html[data-theme='dark'] .auth-container,
+html[data-theme='dark'] .reset_password {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+
+html[data-theme='dark'] .card-icon { background: linear-gradient(135deg, var(--accent), #ff3b3b) !important; }
+html[data-theme='dark'] .form-control { background: #08101a; border-color: #17232b; color: var(--text); }
+html[data-theme='dark'] .checkbox-item { background: #08101a; color: var(--text); }
+html[data-theme='dark'] .checkbox-item:hover { background: #0b1822; }
+html[data-theme='dark'] .btn-primary { background: linear-gradient(135deg, #ff6b6b, #ff3b3b); color: #fff; }
+html[data-theme='dark'] .btn-secondary { background: #334155; color: #fff; }
+html[data-theme='dark'] .auth-link { color: var(--accent); }
+
+
+
+/* Additional overrides for elements that use light backgrounds or inline styles */
+html[data-theme='dark'] .page-header h1,
+html[data-theme='dark'] .page-header p,
+html[data-theme='dark'] .current-branch-info,
+html[data-theme='dark'] .profile-overview,
+html[data-theme='dark'] .welcome-card,
+html[data-theme='dark'] .stat-card,
+html[data-theme='dark'] .dashboard-card,
+html[data-theme='dark'] .card,
+html[data-theme='dark'] .action-card,
+html[data-theme='dark'] .feature-card,
+html[data-theme='dark'] .settings-card,
+html[data-theme='dark'] .quick-actions .action-card,
+html[data-theme='dark'] .info-item,
+html[data-theme='dark'] .current-branch-info .info-item {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: rgba(255,255,255,0.03) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+
+html[data-theme='dark'] .page-header h1 {
+  color: var(--text) !important;
+}
+
+
+/* Ensure form controls and small panels are dark */
+html[data-theme='dark'] .form-control, html[data-theme='dark'] input, html[data-theme='dark'] select, html[data-theme='dark'] textarea {
+  background: #08101a !important;
+  color: var(--text) !important;
+  border-color: #17232b !important;
+}
+
+/* Notification dropdown */
+html[data-theme='dark'] .notification-dropdown, html[data-theme='dark'] .notification-item {
+  background: #071018 !important;
+  color: var(--text) !important;
+  border-color: rgba(255,255,255,0.03) !important;
+}
+
+/* Make sure links and icons are visible */
+html[data-theme='dark'] .logo { color: var(--bg) !important; }
+
+/* Stronger overrides for header and top panels to catch inline styles */
+html[data-theme='dark'] header,
+html[data-theme='dark'] header *,
+html[data-theme='dark'] .page-header,
+html[data-theme='dark'] .page-header *,
+html[data-theme='dark'] .current-branch-info,
+html[data-theme='dark'] .current-branch-info * {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--text) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+html[data-theme='dark'] .current-branch-info,
+html[data-theme='dark'] .current-branch-info * {
+    padding: 10px;
+}
+html[data-theme='dark'] .stat-label,h3,.period-selector label,.summary-box h4, .card-header form label, .period-navigation p, label{
+ color: var(--text) !important;
+}
+html[data-theme='dark'] .h1 {
+    color: var(--bg) !important;
+}
+
+html[data-theme='dark'] .pay-detail {
+    color: var(--text) !important;
+    background-color: #071018 !important;
+
+}
+
+html[data-theme='dark'] .summary-grid {
+    color: var(--text) !important;
+    background-color: #071018 !important;
+}
+html[data-theme='dark'] .summary-box {
+    color: var(--text) !important;
+    background-color: #071018 !important;
+    border-radius: 10px !important;
+}
+/* Specific fix for settings page header card which had a white padded background */
+html[data-theme='dark'] .settings-card, html[data-theme='dark'] .settings-card * {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+}
+
+/* Catch common inline white backgrounds and replace with dark panel color */
+html[data-theme='dark'] [style*="background:#fff"],
+html[data-theme='dark'] [style*="background: #fff"],
+html[data-theme='dark'] [style*="background:#ffffff"],
+html[data-theme='dark'] [style*="background: #ffffff"],
+html[data-theme='dark'] [style*="background: white"],
+html[data-theme='dark'] [style*="background:white"],
+html[data-theme='dark'] [style*="background-color:#fff"],
+html[data-theme='dark'] [style*="background-color: #fff"],
+html[data-theme='dark'] [style*="#fff3cd"],
+html[data-theme='dark'] [style*="#fff"] {
+  background: var(--panel) !important;
+  background-color: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: rgba(255,255,255,0.03) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .next-shift-details, html[data-theme='dark'] .next-shift-details, .earnings-stat-label,.earnings-stat-label, .next-shift-details * {
+    color: var(--text) !important;
+    background-color: var(--panel) !important;
+
+}
+html[data-theme='dark'] .earnings-stat-box {
+    background-color: var(--panel) !important;
+}
+
+html[data-theme='dark'] .modal-content {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: rgba(255,255,255,0.03) !important;
+}
+
+html[data-theme='dark'] .menu-toggle {
+  color: var(--bg) !important;
+  font-size: 1.6rem !important;
+  background: transparent !important;
+  border: none !important;
+  z-index: 2001 !important;
+  display: inline-block !important;
+}
+
+html[data-theme='dark'] .notification-icon, html[data-theme='dark'] .notification-icon i, html[data-theme='dark'] .fa, html[data-theme='dark'] .fa * {
+  color: var(--text) !important;
+}
+
+html[data-theme='dark'] .nav-links {
+  background: rgba(6,10,15,0.95) !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,255,255,0.04) !important;
+}
+
+html[data-theme='dark'] .nav-links ul li a {
+  color: var(--text) !important;
+  background: transparent !important;
+  padding: 10px 16px !important;
+  display: block !important;
+  text-decoration: none !important;
+}
+
+html[data-theme='dark'] .nav-links ul li a:hover {
+  background: rgba(255,255,255,0.03) !important;
+  color: var(--accent) !important;
+}
+
+/* Ensure menu is visible when toggled */
+html[data-theme='dark'] .nav-links.show { display: block !important; }
+
+/* Force header visible and ensure hamburger is clickable */
+html[data-theme='dark'] header { opacity: 1 !important; }
+html[data-theme='dark'] .menu-toggle { cursor: pointer !important; }
+
+

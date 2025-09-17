@@ -1,12 +1,15 @@
 <?php
-function addNotification($conn, $user_id, $message, $type)
-{
-    // Check if a similar unread notification already exists to avoid duplicates.
-    $stmt = $conn->prepare("SELECT id FROM notifications WHERE user_id = ? AND message = ? AND type = ? AND is_read = 0");
-    $stmt->execute([$user_id, $message, $type]);
-    if ($stmt->rowCount() == 0) {
-        $stmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, 0)");
-        $stmt->execute([$user_id, $type, $message]);
+// Avoid redeclaring addNotification if it's already defined in functions/addNotification.php
+if (!function_exists('addNotification')) {
+    function addNotification($conn, $user_id, $message, $type)
+    {
+        // Check if a similar unread notification already exists to avoid duplicates.
+        $stmt = $conn->prepare("SELECT id FROM notifications WHERE user_id = ? AND message = ? AND type = ? AND is_read = 0");
+        $stmt->execute([$user_id, $message, $type]);
+        if ($stmt->rowCount() == 0) {
+            $stmt = $conn->prepare("INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, 0)");
+            $stmt->execute([$user_id, $type, $message]);
+        }
     }
 }
 

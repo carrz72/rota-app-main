@@ -7,6 +7,7 @@
     <title>Forgot Password - Open Rota</title>
     <link rel="stylesheet" href="../css/loginandregister.css">
     <link rel="stylesheet" href="../css/forgot_password.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -78,6 +79,10 @@
             background: url("../images/backg3.jpg") no-repeat center center fixed;
             background-size: cover;
         }
+
+    </style>
+    <script>try{ if(localStorage.getItem('rota_theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
+    </script>
 
         @media (max-width: 480px) {
             .otp-inputs {
@@ -383,6 +388,7 @@
             resendBtn.textContent = 'Resend Code';
         });
     </script>
+    <script src="../js/darkmode.js"></script>
 </body>
 
 </html>

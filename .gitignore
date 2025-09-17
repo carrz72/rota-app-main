@@ -1,0 +1,8 @@
+config/enc_key
+\n+# Signing keys and secure runtime files
+/secure/
+/config/signing_private.pem
+
+# Ignore any local logs produced by retention/purge jobs
+/tools/purge_log_*.log
+.env

@@ -29,6 +29,14 @@ if ($user_id) {
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -42,6 +50,110 @@ if ($user_id) {
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/role.css">
     <link rel="stylesheet" href="../css/navigation.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <style>
+    /* Page-specific dark mode fixes for Roles page */
+    html[data-theme='dark'] body {
+    
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] .container {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+        box-shadow: var(--card-shadow) !important;
+        background-image: none !important;
+    }
+
+    html[data-theme='dark'] form,
+    html[data-theme='dark'] .form-card,
+    html[data-theme='dark'] .role-card,
+    html[data-theme='dark'] table,
+    html[data-theme='dark'] table thead,
+    html[data-theme='dark'] table tbody,
+    html[data-theme='dark'] table td,
+    html[data-theme='dark'] table th {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+        border-color: rgba(255,255,255,0.03) !important;
+        box-shadow: var(--card-shadow) !important;
+    }
+
+    /* Remove light hover and keep rows neutral */
+    html[data-theme='dark'] table tbody tr:hover,
+    html[data-theme='dark'] table tr:hover {
+        background: transparent !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Ensure headings, labels and inputs are readable */
+    html[data-theme='dark'] h1, html[data-theme='dark'] h2, html[data-theme='dark'] label, html[data-theme='dark'] .role-name {
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] input[type="text"],
+    html[data-theme='dark'] input[type="number"],
+    html[data-theme='dark'] input[type="time"],
+    html[data-theme='dark'] select {
+        background: #08101a !important;
+        color: var(--text) !important;
+        border-color: #17232b !important;
+    }
+
+    /* Buttons and action controls */
+    html[data-theme='dark'] button,
+    html[data-theme='dark'] .action-btn,
+    html[data-theme='dark'] a {
+        background: linear-gradient(135deg,var(--accent),#ff3b3b) !important;
+        color: #fff !important;
+        border: none !important;
+    }
+    html[data-theme='dark'] button:hover, html[data-theme='dark'] .action-btn:hover, html[data-theme='dark'] a:hover {
+        background: #ff3b3b !important;
+        transform: none !important;
+    }
+
+    /* Header, nav and icons */
+    html[data-theme='dark'] header, html[data-theme='dark'] header * {
+        background: transparent !important;
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] .notification-icon { color: var(--text) !important; }
+
+    /* Catch inline white backgrounds */
+    html[data-theme='dark'] [style*="background:#fff"],
+    html[data-theme='dark'] [style*="background: #fff"],
+    html[data-theme='dark'] [style*="background:#ffffff"],
+    html[data-theme='dark'] [style*="background: #ffffff"],
+    html[data-theme='dark'] [style*="background: white"] {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] .toggle-container, #night_pay_fields {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+    }
+    html[data-theme='dark'] #night_pay_fields h3 {
+        color: var(--text) !important;
+    }
+    </style>
+    <?php
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {}
+    }
+    ?>
 </head>
 
 <body>
@@ -60,18 +172,26 @@ if ($user_id) {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item notification-<?php echo $notification['type']; ?>"
-                                data-id="<?php echo $notification['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
-                                    <a class="shit-invt"
-                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
+                                   data-id="<?php echo $notification['id']; ?>"
+                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -94,9 +214,9 @@ if ($user_id) {
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-                <?php if ($permissions->isAdmin()): ?>
-                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
-                <?php endif; ?>
+               <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
+                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                    <?php endif; ?>
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
@@ -276,9 +396,9 @@ if ($user_id) {
                     <input type="text" id="edit_name" name="edit_name" required>
                 </div>
 
-                <div class="form-group">
-                    <label for="edit_employment_type">Employment Type:</label>
-                    <select id="edit_employment_type" name="edit_employment_type" onchange="toggleEditPayFields()"
+                    <div class="form-group">
+                            <label for="edit_employment_type">Employment Type:</label>
+                            <select id="edit_employment_type" name="edit_employment_type" onchange="toggleEditPayFields()"
                         required>
                         <option value="hourly">Hourly Paid</option>
                         <option value="salaried">Salaried</option>
@@ -291,8 +411,8 @@ if ($user_id) {
                 </div>
 
                 <div id="edit_salary_pay_group" class="form-group" style="display: none;">
-                    <label for="edit_monthly_salary">Monthly Salary (£):</label>
-                    <input type="number" step="0.01" min="0" id="edit_monthly_salary" name="edit_monthly_salary">
+                    <label for="edit_annual_salary">Annual Salary (£):</label>
+                    <input type="number" step="0.01" min="0" id="edit_annual_salary" name="edit_annual_salary">
                 </div>
 
                 <div id="edit_night_pay_toggle" class="form-group">
@@ -404,17 +524,19 @@ if ($user_id) {
                 nightPayFields.style.display = 'none';
                 hasNightPay.checked = false;
 
-                // Make salary required, hourly not required
-                document.getElementById("monthly_salary").required = true;
+                // Make annual salary required, hourly not required
+                const annual = document.getElementById("annual_salary");
+                if (annual) annual.required = true;
                 document.getElementById("base_pay").required = false;
             } else {
                 hourlyGroup.style.display = 'block';
                 salaryGroup.style.display = 'none';
                 nightPayToggle.style.display = 'block';
 
-                // Make hourly required, salary not required
+                // Make hourly required, annual salary not required
                 document.getElementById("base_pay").required = true;
-                document.getElementById("monthly_salary").required = false;
+                const annual = document.getElementById("annual_salary");
+                if (annual) annual.required = false;
             }
         }
 
@@ -462,18 +584,19 @@ if ($user_id) {
                 nightPayToggle.style.display = 'none';
                 nightPayFields.style.display = 'none';
                 hasNightPay.checked = false;
-
-                // Make salary required, hourly not required
-                document.getElementById("edit_monthly_salary").required = true;
+                // Make annual salary required, hourly not required
+                const editAnnual = document.getElementById("edit_annual_salary");
+                if (editAnnual) editAnnual.required = true;
                 document.getElementById("edit_base_pay").required = false;
             } else {
                 hourlyGroup.style.display = 'block';
                 salaryGroup.style.display = 'none';
                 nightPayToggle.style.display = 'block';
 
-                // Make hourly required, salary not required
+                // Make hourly required, annual salary not required
                 document.getElementById("edit_base_pay").required = true;
-                document.getElementById("edit_monthly_salary").required = false;
+                const editAnnual = document.getElementById("edit_annual_salary");
+                if (editAnnual) editAnnual.required = false;
             }
         }
 
@@ -519,7 +642,9 @@ if ($user_id) {
                     if (employmentType === 'hourly') {
                         document.getElementById("edit_base_pay").value = role.base_pay;
                     } else {
-                        document.getElementById("edit_monthly_salary").value = role.monthly_salary;
+                        // Convert stored monthly salary to annual for editing
+                        const annual = role.monthly_salary ? (parseFloat(role.monthly_salary) * 12).toFixed(2) : '';
+                        document.getElementById("edit_annual_salary").value = annual;
                     }
 
                     // Handle night shift settings (only for hourly employees)
@@ -561,7 +686,9 @@ if ($user_id) {
             if (employmentType === 'hourly') {
                 roleData.base_pay = document.getElementById("edit_base_pay").value;
             } else {
-                roleData.monthly_salary = document.getElementById("edit_monthly_salary").value;
+                // Convert annual salary input to monthly before sending to server
+                const annualVal = document.getElementById("edit_annual_salary").value;
+                roleData.monthly_salary = annualVal !== '' ? (parseFloat(annualVal) / 12).toFixed(2) : '';
             }
 
             // Add night shift data if enabled (only for hourly employees)
@@ -579,24 +706,47 @@ if ($user_id) {
                 },
                 body: JSON.stringify(roleData),
             })
-                .then(response => response.text())
-                .then(result => {
+                .then(response => response.json())
+                .then(data => {
+                    if (!data) {
+                        throw new Error('Empty response from server');
+                    }
+                    if (data.error) {
+                        console.error('Server error:', data.error);
+                        alert('Error updating role: ' + data.error);
+                        return;
+                    }
+                    // success
                     closeModal();
-                    // Reload page to show updated data
                     window.location.reload();
                 })
                 .catch(error => {
                     console.error('Error updating role:', error);
-                    alert("Error updating role. Please try again.");
+                    alert("Error updating role. Please try again. See console for details.");
                 });
         });
 
         // Delete confirmation
         function confirmDelete(roleId, roleName) {
-            if (confirm(`Are you sure you want to delete the role "${roleName}"?`)) {
-                // Submit to delete endpoint
-                window.location.href = `../functions/delete_role.php?id=${roleId}`;
-            }
+            if (!confirm(`Are you sure you want to delete the role "${roleName}"?`)) return;
+
+            fetch('../functions/delete_role.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: roleId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error deleting role: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error deleting role. See console for details.');
+            });
         }
 
         // Ensure the correct display on page load
@@ -626,6 +776,7 @@ if ($user_id) {
         });
     </script>
 
+    <script src="../js/darkmode.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>

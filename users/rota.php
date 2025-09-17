@@ -86,10 +86,12 @@ if (!empty($filterConditions)) {
 // Only show shifts for user's branch, including cover shifts
 $query = "
     SELECT s.*, u.username, r.name AS role_name, r.base_pay, r.has_night_pay, 
-           r.night_shift_pay, r.night_start_time, r.night_end_time
+           r.night_shift_pay, r.night_start_time, r.night_end_time,
+           b.name AS branch_name
     FROM shifts s
     JOIN users u ON s.user_id = u.id
     JOIN roles r ON s.role_id = r.id
+    LEFT JOIN branches b ON s.branch_id = b.id
     $sql
     AND s.branch_id = :user_branch_id
     ORDER BY s.shift_date ASC, s.start_time ASC
@@ -156,6 +158,14 @@ if ($period === 'week') {
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
@@ -167,6 +177,103 @@ if ($period === 'week') {
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <style>
+    /* Rota page specific dark-mode overrides */
+    html[data-theme='dark'] body {
+      
+        color: var(--text) !important;
+      
+    }
+
+    html[data-theme='dark'] .container,
+    html[data-theme='dark'] .filter-section,
+    html[data-theme='dark'] .calendar-day,
+    html[data-theme='dark'] .shift-card,
+    html[data-theme='dark'] table,
+    html[data-theme='dark'] thead,
+    html[data-theme='dark'] tbody,
+    html[data-theme='dark'] td,
+    html[data-theme='dark'] th {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+        border-color: rgba(255,255,255,0.03) !important;
+        box-shadow: var(--card-shadow) !important;
+    }
+
+    /* Calendar specific */
+    html[data-theme='dark'] .calendar-day-header {
+        background: transparent !important;
+        color: var(--text) !important;
+    }
+
+    /* Keep role-colour border but darken card */
+    html[data-theme='dark'] .shift-card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent) !important;
+        color: var(--text) !important;
+        border-left-width: 4px !important;
+    }
+
+    /* Day number contrast */
+    html[data-theme='dark'] .day-number, h1, .upcoming-shifts {
+        background-color: var(--accent) !important;
+        color: #fff !important;
+    }
+
+    /* Filters & controls */
+    html[data-theme='dark'] .filter-group label,
+    html[data-theme='dark'] .filter-group select,
+    html[data-theme='dark'] .view-toggle button {
+        color: var(--text) !important;
+    }
+
+    html[data-theme='dark'] .view-toggle button {
+        background: transparent !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
+    }
+
+    html[data-theme='dark'] .view-toggle button.active {
+        background: linear-gradient(135deg,var(--accent),#ff3b3b) !important;
+        color: #fff !important;
+        border-color: transparent !important;
+    }
+
+    /* Tables: neutral hover */
+    html[data-theme='dark'] table tbody tr:hover,
+    html[data-theme='dark'] table tr:hover,
+    html[data-theme='dark'] .calendar-day:hover {
+        background: transparent !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Header/nav/icon visibility */
+  
+    /* Catch inline white backgrounds */
+    html[data-theme='dark'] [style*="background:#fff"],
+    html[data-theme='dark'] [style*="background: #fff"],
+    html[data-theme='dark'] [style*="background:#ffffff"],
+    html[data-theme='dark'] [style*="background: #ffffff"],
+    html[data-theme='dark'] [style*="background: white"] {
+        background: var(--panel) !important;
+        color: var(--text) !important;
+    }
+
+    </style>
+    <?php
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {}
+    }
+    ?>
     <style>
         /* Navigation menu styling specific to rota page */
         .nav-links {
@@ -565,16 +672,22 @@ if ($period === 'week') {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
-                                    <a class="shit-invt" href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>" href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>" href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -597,9 +710,9 @@ if ($period === 'week') {
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-                <?php if ($_SESSION['role'] === 'admin'): ?>
-                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
-                <?php endif; ?>
+                 <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
+                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                    <?php endif; ?>
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
@@ -767,7 +880,16 @@ if ($period === 'week') {
                                         style="display:inline-block; width:12px; height:12px; background-color:<?php echo $roleColor; ?>; border-radius:50%; margin-right:5px;"></span>
                                     <?php echo htmlspecialchars($shift['role_name']); ?>
                                 </td>
-                                <td><?php echo htmlspecialchars($shift['location']); ?></td>
+                                <td>
+                                    <?php
+                                    $loc = $shift['location'] ?? '';
+                                    if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                        echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                    } else {
+                                        echo htmlspecialchars($loc);
+                                    }
+                                    ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -801,7 +923,16 @@ if ($period === 'week') {
                                             </div>
                                             <div class="shift-user"><?php echo htmlspecialchars($shift['username']); ?></div>
                                             <div class="shift-role"><?php echo htmlspecialchars($shift['role_name']); ?></div>
-                                            <small><?php echo htmlspecialchars($shift['location']); ?></small>
+                                            <small>
+                                                <?php
+                                                $loc = $shift['location'] ?? '';
+                                                if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                                    echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                                } else {
+                                                    echo htmlspecialchars($loc);
+                                                }
+                                                ?>
+                                            </small>
                                         </div>
                                     <?php
                                     endforeach;

@@ -4,6 +4,16 @@ require '../includes/auth.php';
 require_once '../functions/addNotification.php';
 requireAdmin();
 
+// Determine the branch of the admin performing the upload. We'll use this as the default
+// branch_id for any shifts created/updated by this upload process.
+$uploaderBranchId = null;
+if (isset($_SESSION['user_id'])) {
+    $stmt = $conn->prepare("SELECT branch_id FROM users WHERE id = ? LIMIT 1");
+    $stmt->execute([$_SESSION['user_id']]);
+    $u = $stmt->fetch(PDO::FETCH_ASSOC);
+    $uploaderBranchId = isset($u['branch_id']) ? $u['branch_id'] : null;
+}
+
 // Helper function to check if a string is a truncated version of another string
 function isPartialMatch($partial, $full)
 {
@@ -39,6 +49,17 @@ $error = '';
 $uploaded_shifts = 0;
 $failed_shifts = 0;
 $debug = [];
+
+// Load branches into a lookup map (lowercased name => id) to map locations like '(Mansfield)'
+$branchMap = [];
+try {
+    $rows = $conn->query("SELECT id, name FROM branches")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as $r) {
+        $branchMap[strtolower(trim($r['name']))] = $r['id'];
+    }
+} catch (Exception $e) {
+    // non-fatal — if branches table doesn't exist yet, we'll continue without mapping
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
     try {
@@ -522,7 +543,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         $debug[] = "Parsed shift: $startTime - $endTime ($location)";
 
                                         // Check if a shift already exists for this user on this date
-                                        $stmt = $conn->prepare("SELECT id, start_time, end_time, location, role_id 
+                                        $stmt = $conn->prepare("SELECT id, start_time, end_time, location, role_id, branch_id 
                                                                FROM shifts 
                                                                WHERE user_id = ? AND shift_date = ?");
                                         $stmt->execute([$currentUserId, $dateColumns[$col]]);
@@ -531,21 +552,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                         $conn->beginTransaction();
                                         if ($existingShift) {
                                             // Check if there are any changes to the shift
+                                            // Determine branch: default to uploader's branch, override if parsed location maps to a different branch
+                                            $calculatedBranchId = $uploaderBranchId;
+                                            $locKey = strtolower(trim($location));
+                                            if (isset($branchMap[$locKey])) {
+                                                $calculatedBranchId = $branchMap[$locKey];
+                                            }
+                                            $debug[] = "Calculated branch_id for shift: " . var_export($calculatedBranchId, true);
+
                                             if (
                                                 $existingShift['start_time'] != $startTime ||
                                                 $existingShift['end_time'] != $endTime ||
                                                 $existingShift['location'] != $location ||
-                                                $existingShift['role_id'] != $currentRoleId
+                                                $existingShift['role_id'] != $currentRoleId ||
+                                                (($existingShift['branch_id'] ?? null) != $calculatedBranchId)
                                             ) {
                                                 // Update the existing shift
                                                 $stmt = $conn->prepare("UPDATE shifts 
-                                                                      SET start_time = ?, end_time = ?, location = ?, role_id = ?
+                                                                      SET start_time = ?, end_time = ?, location = ?, role_id = ?, branch_id = ?
                                                                       WHERE id = ?");
                                                 $stmt->execute([
                                                     $startTime,
                                                     $endTime,
                                                     $location,
                                                     $currentRoleId,
+                                                    $calculatedBranchId,
                                                     $existingShift['id']
                                                 ]);
                                                 $uploaded_shifts++;
@@ -558,17 +589,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                                                 $debug[] = "Skipped unchanged shift for date: " . $dateColumns[$col];
                                             }
                                         } else {
-                                            // Insert new shift
+                                            // Insert new shift, include calculated branch id
+                                            $calculatedBranchId = $uploaderBranchId;
+                                            $locKey = strtolower(trim($location));
+                                            if (isset($branchMap[$locKey])) {
+                                                $calculatedBranchId = $branchMap[$locKey];
+                                            }
+
                                             $stmt = $conn->prepare("INSERT INTO shifts 
-                                                (user_id, shift_date, start_time, end_time, location, role_id) 
-                                                VALUES (?, ?, ?, ?, ?, ?)");
+                                                (user_id, shift_date, start_time, end_time, location, role_id, branch_id) 
+                                                VALUES (?, ?, ?, ?, ?, ?, ?)");
                                             $stmt->execute([
                                                 $currentUserId,
                                                 $dateColumns[$col],
                                                 $startTime,
                                                 $endTime,
                                                 $location,
-                                                $currentRoleId
+                                                $currentRoleId,
+                                                $calculatedBranchId
                                             ]);
                                             $uploaded_shifts++;
                                             $debug[] = "Added new shift to database";
@@ -598,8 +636,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         $message = "Successfully uploaded $uploaded_shifts shifts.";
                         if ($failed_shifts > 0)
                             $message .= " Failed: $failed_shifts shifts.";
+                        // Audit: upload summary
+                        try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts', ['uploaded' => $uploaded_shifts, 'failed' => $failed_shifts], null, 'shift_import', session_id()); } catch (Exception $e) {}
                     } else {
                         $error = "No shifts uploaded. Check file format or user/role matching.";
+                        try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts_empty', ['failed' => $failed_shifts], null, 'shift_import', session_id()); } catch (Exception $e) {}
                     }
                 }
             }
@@ -608,6 +649,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
         $error = "Error: " . $e->getMessage();
         $debug[] = "Exception: " . $e->getMessage();
         $debug[] = "Stack trace: " . $e->getTraceAsString();
+    // Audit: exception during upload
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts_error', ['error' => $e->getMessage()], null, 'shift_import', session_id()); } catch (Exception $ex) {}
     }
 }
 ?>

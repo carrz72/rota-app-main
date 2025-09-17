@@ -178,6 +178,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare($sql);
         $stmt->execute([$notes, $request_id]);
 
+        // Notify the requester that their request was declined
+        try {
+            require_once __DIR__ . '/../functions/addNotification.php';
+            $rstmt = $conn->prepare("SELECT requested_by_user_id, shift_date, start_time, end_time FROM cross_branch_shift_requests WHERE id = ? LIMIT 1");
+            $rstmt->execute([$request_id]);
+            $r = $rstmt->fetch(PDO::FETCH_ASSOC);
+            if ($r && !empty($r['requested_by_user_id'])) {
+                $msg = "Your coverage request for {$r['shift_date']} {$r['start_time']}-{$r['end_time']} was declined.";
+                addNotification($conn, (int)$r['requested_by_user_id'], $msg, 'error', $request_id);
+            }
+        } catch (Exception $e) {
+            error_log('Failed to notify requester about decline: ' . $e->getMessage());
+        }
+
         $_SESSION['success_message'] = "Request declined.";
         header("Location: cross_branch_requests.php");
         exit();
@@ -187,16 +201,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get all branches for dropdown
 $all_branches = getAllBranches($conn);
 
+// Get roles for dropdown
+$rolesStmt = $conn->prepare("SELECT id, name FROM roles ORDER BY name");
+$rolesStmt->execute();
+$all_roles = $rolesStmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Get pending requests for user's branch
 $pending_requests = getPendingRequestsForBranch($conn, $user_branch['id']);
 
-// Get user's own pending requests
-$sql = "SELECT cbr.*, tb.name as target_branch_name 
-        FROM cross_branch_shift_requests cbr
-        JOIN branches tb ON cbr.target_branch_id = tb.id
-        WHERE cbr.requested_by_user_id = ? 
-        AND cbr.status = 'pending'
-        ORDER BY cbr.created_at DESC";
+// Get user's own requests (show pending and fulfilled, include fulfiller info)
+$sql = "SELECT cbr.*, tb.name as target_branch_name, uf.username AS fulfilled_by_username, fb.name AS accepted_by_branch
+    FROM cross_branch_shift_requests cbr
+    JOIN branches tb ON cbr.target_branch_id = tb.id
+    LEFT JOIN users uf ON cbr.fulfilled_by_user_id = uf.id
+    LEFT JOIN branches fb ON uf.branch_id = fb.id
+    WHERE cbr.requested_by_user_id = ? 
+    AND cbr.status IN ('pending','fulfilled')
+    ORDER BY cbr.created_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_id]);
 $my_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -222,6 +243,18 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <title>Cross-Branch Coverage Requests - Admin</title>
     <link rel="stylesheet" href="../css/admin_dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Multi-select styles */
+        .multi-select { position: relative; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+        .multi-select input#branch-search { width: 100%; padding: 6px; border: 1px solid #eee; border-radius: 4px; }
+    .options-list { max-height: 150px; overflow: auto; margin-top: 8px; border-top: 1px dashed #f0f0f0; padding-top: 8px; display: none; position: absolute; left: 8px; right: 8px; background: #fff; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .options-list .option { padding: 6px; cursor: pointer; border-radius: 4px; }
+        .options-list .option:hover { background: #f4f4f4; }
+        .selected-list { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .chip { background: #eee; padding: 4px 8px; border-radius: 16px; display: inline-flex; align-items: center; gap: 6px; }
+        .chip-remove { cursor: pointer; padding-left: 6px; color: #777; }
+        .hint { display:block; font-size: 12px; color: #666; margin-top:4px; }
+    </style>
 </head>
 
 <body>
@@ -639,7 +672,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                         <?php echo ucfirst($request['urgency_level']); ?> Priority
                                     </span>
                                 </h3>
-                                <span class="badge info">Pending Response</span>
+                                <?php if ($request['status'] === 'fulfilled'): ?>
+                                    <span class="badge success">Accepted</span>
+                                <?php elseif ($request['status'] === 'declined'): ?>
+                                    <span class="badge error">Declined</span>
+                                <?php else: ?>
+                                    <span class="badge info">Pending Response</span>
+                                <?php endif; ?>
                             </div>
                             <div class="admin-panel-body">
                                 <div class="form-grid">
@@ -917,6 +956,95 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     </div>
 
     <script>
+        // Branch multi-select logic
+        (function() {
+            const search = document.getElementById('branch-search');
+            const optionsList = document.getElementById('branch-options');
+            const options = document.querySelectorAll('#branch-options .option');
+            const selectedContainer = document.getElementById('branch-selected');
+            const hiddenInput = document.getElementById('target_branch_ids');
+            const maxSelect = 5;
+            let selected = [];
+
+            function renderSelected() {
+                selectedContainer.innerHTML = '';
+                selected.forEach(id => {
+                    const opt = Array.from(options).find(o => o.dataset.id === String(id));
+                    if (!opt) return;
+                    const chip = document.createElement('div');
+                    chip.className = 'chip';
+                    chip.innerText = opt.textContent.trim();
+                    const remove = document.createElement('span');
+                    remove.className = 'chip-remove';
+                    remove.innerText = '×';
+                    remove.onclick = () => { selected = selected.filter(x => x !== id); renderSelected(); };
+                    chip.appendChild(remove);
+                    selectedContainer.appendChild(chip);
+                });
+                hiddenInput.value = selected.join(',');
+            }
+
+            function filterOptions(q) {
+                const term = q.trim().toLowerCase();
+                Array.from(options).forEach(o => {
+                    const txt = o.textContent.toLowerCase();
+                    o.style.display = txt.indexOf(term) === -1 ? 'none' : 'block';
+                });
+            }
+
+            // Show options when search focused
+            function positionOptions() {
+                const container = document.getElementById('branch-multi-select');
+                const selectedRect = selectedContainer.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                // place options-list immediately under selectedContainer inside the multi-select
+                optionsList.style.top = (selectedContainer.offsetTop + selectedContainer.offsetHeight + 6) + 'px';
+                optionsList.style.left = '8px';
+                optionsList.style.right = '8px';
+            }
+
+            function showOptions() { positionOptions(); optionsList.style.display = 'block'; }
+            function hideOptions() { optionsList.style.display = 'none'; }
+
+            // Hide options when clicking outside
+            document.addEventListener('click', function(e) {
+                const container = document.getElementById('branch-multi-select');
+                if (!container) return;
+                if (!container.contains(e.target)) {
+                    hideOptions();
+                }
+            });
+
+            // Hide options on Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') hideOptions();
+            });
+
+            Array.from(options).forEach(o => {
+                o.addEventListener('click', () => {
+                    const id = parseInt(o.dataset.id, 10);
+                    if (selected.includes(id)) return;
+                    if (selected.length >= maxSelect) {
+                        alert('You can select up to ' + maxSelect + ' branches.');
+                        return;
+                    }
+                    selected.push(id);
+                    renderSelected();
+                    // reposition and keep options visible for further selection
+                    positionOptions();
+                    showOptions();
+                });
+            });
+
+            if (search) {
+                search.addEventListener('input', (e) => {
+                    filterOptions(e.target.value);
+                });
+                search.addEventListener('focus', () => { filterOptions(search.value); showOptions(); });
+            }
+        })();
+
+    
         function showTab(tabName) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {

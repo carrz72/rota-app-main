@@ -42,6 +42,15 @@ try {
     $location = htmlspecialchars($_POST['location']);
     $role_id = filter_var($_POST['role_id'], FILTER_VALIDATE_INT);
 
+    // Optional branch_id for admin edits
+    $branch_id = null;
+    if (isset($_POST['branch_id']) && $_POST['branch_id'] !== '') {
+        $branch_id = filter_var($_POST['branch_id'], FILTER_VALIDATE_INT);
+        if ($branch_id === false) {
+            throw new Exception("Invalid branch ID");
+        }
+    }
+
     // Additional field specifically for admins
     $edited_user_id = isset($_POST['user_id']) && $is_admin ? filter_var($_POST['user_id'], FILTER_VALIDATE_INT) : $user_id;
 
@@ -69,9 +78,14 @@ try {
         $stmt = $conn->prepare("UPDATE shifts SET shift_date=?, start_time=?, end_time=?, location=?, role_id=? WHERE id=? AND user_id=?");
         $stmt->execute([$shift_date, $start_time, $end_time, $location, $role_id, $shift_id, $user_id]);
     } else {
-        // Admin can edit any shift
-        $stmt = $conn->prepare("UPDATE shifts SET shift_date=?, start_time=?, end_time=?, location=?, role_id=?, user_id=? WHERE id=?");
-        $stmt->execute([$shift_date, $start_time, $end_time, $location, $role_id, $edited_user_id, $shift_id]);
+        // Admin can edit any shift; include branch_id if provided
+        if (!is_null($branch_id)) {
+            $stmt = $conn->prepare("UPDATE shifts SET shift_date=?, start_time=?, end_time=?, location=?, role_id=?, user_id=?, branch_id=? WHERE id=?");
+            $stmt->execute([$shift_date, $start_time, $end_time, $location, $role_id, $edited_user_id, $branch_id, $shift_id]);
+        } else {
+            $stmt = $conn->prepare("UPDATE shifts SET shift_date=?, start_time=?, end_time=?, location=?, role_id=?, user_id=? WHERE id=?");
+            $stmt->execute([$shift_date, $start_time, $end_time, $location, $role_id, $edited_user_id, $shift_id]);
+        }
 
         // If admin is editing someone else's shift, add notification for that user
         if ($edited_user_id != $user_id) {
@@ -93,6 +107,8 @@ try {
 
     // Add success message to session for display after redirect
     $_SESSION['success_message'] = "Shift updated successfully!";
+    // Audit shift edit
+    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'edit_shift', ['edited_user' => $edited_user_id ?? null], $shift_id ?? null, 'shift', session_id()); } catch (Exception $e) {}
 
 } catch (Exception $e) {
     // Log the error

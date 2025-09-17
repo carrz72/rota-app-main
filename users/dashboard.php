@@ -35,9 +35,10 @@ if ($period == 'week') {
 // Query shifts for the current period along with role pay details and role name.
 $stmt = $conn->prepare(
     "SELECT s.*, r.base_pay, r.has_night_pay, r.night_shift_pay, 
-            r.night_start_time, r.night_end_time, r.name AS role_name 
+            r.night_start_time, r.night_end_time, r.name AS role_name, b.id AS branch_id, b.name AS branch_name 
      FROM shifts s 
      JOIN roles r ON s.role_id = r.id 
+     LEFT JOIN branches b ON s.branch_id = b.id 
      WHERE s.user_id = ? AND $periodSql"
 );
 $stmt->execute([$user_id]);
@@ -64,10 +65,11 @@ $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
 // Query the next upcoming shift (closest shift).
 $stmt_next = $conn->prepare(
     "SELECT s.*, r.base_pay, r.has_night_pay, r.night_shift_pay, 
-            r.night_start_time, r.night_end_time, r.name AS role_name
+            r.night_start_time, r.night_end_time, r.name AS role_name, b.name AS branch_name
      FROM shifts s
      JOIN roles r ON s.role_id = r.id
-     WHERE s.user_id = ? AND s.shift_date >= CURDATE()
+    LEFT JOIN branches b ON s.branch_id = b.id
+    WHERE s.user_id = ? AND s.shift_date >= CURDATE()
      ORDER BY s.shift_date ASC, s.start_time ASC
      LIMIT 1"
 );
@@ -84,7 +86,8 @@ $stmt2 = $conn->prepare(
             r.night_start_time, r.night_end_time, r.name AS role_name
      FROM shifts s
      JOIN roles r ON s.role_id = r.id
-     WHERE s.user_id = ? AND s.shift_date >= CURDATE()
+    LEFT JOIN branches b ON s.branch_id = b.id
+    WHERE s.user_id = ? AND s.shift_date >= CURDATE()
      ORDER BY s.shift_date ASC, s.start_time ASC
      LIMIT 5 OFFSET 1"
 );
@@ -129,6 +132,14 @@ foreach ($days_result as $day) {
 <html lang="en">
 
 <head>
+    <script>
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -138,7 +149,26 @@ foreach ($days_result as $day) {
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="manifest" href="../manifest.json">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
+    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <?php
+    // If user is logged in, inline their saved theme early to prevent FOUC
+    if (isset($_SESSION['user_id'])) {
+        try {
+            $stmtTheme = $conn->prepare('SELECT theme FROM users WHERE id = ? LIMIT 1');
+            $stmtTheme->execute([$_SESSION['user_id']]);
+            $row = $stmtTheme->fetch(PDO::FETCH_ASSOC);
+            $userTheme = $row && !empty($row['theme']) ? $row['theme'] : null;
+            if ($userTheme === 'dark') {
+                echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
+            }
+        } catch (Exception $e) {
+            // ignore theme fetch errors
+        }
+    }
+    ?>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>Dashboard - Open Rota</title>
     <style>
         /* Enhanced dashboard styles */
@@ -737,6 +767,10 @@ foreach ($days_result as $day) {
                 transform: translateZ(0);
             }
         }
+
+        html[data-theme='dark'] h3 {
+            color: var(--text) !important;
+        }
     </style>
 </head>
 
@@ -766,18 +800,26 @@ foreach ($days_result as $day) {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if ($notificationCount > 0): ?>
                         <?php foreach ($notifications as $notif): ?>
-                            <div class="notification-item notification-<?php echo $notif['type']; ?>"
-                                data-id="<?php echo $notif['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notif['type'] === 'shift-invite' && !empty($notif['related_id'])): ?>
-                                    <a class="shit-invt"
-                                        href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notif['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notif['type'] === 'shift-invite' && !empty($notif['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notif['type']; ?>"
+                                   data-id="<?php echo $notif['id']; ?>"
+                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notif['type'] === 'shift-swap' && !empty($notif['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notif['type']; ?>"
+                                   data-id="<?php echo $notif['id']; ?>"
+                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notif['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notif['type']; ?>" data-id="<?php echo $notif['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notif['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -894,7 +936,16 @@ foreach ($days_result as $day) {
 
                         <div class="next-shift-meta">
                             <i class="fas fa-map-marker-alt"></i>
-                            <span><?php echo htmlspecialchars($next_shift['location']); ?></span>
+                            <span>
+                                <?php
+                                $nloc = $next_shift['location'] ?? '';
+                                if ($nloc === 'Cross-branch coverage' && !empty($next_shift['branch_name'])) {
+                                    echo htmlspecialchars($nloc) . ' (' . htmlspecialchars($next_shift['branch_name']) . ')';
+                                } else {
+                                    echo htmlspecialchars($nloc);
+                                }
+                                ?>
+                            </span>
                         </div>
 
                         <div class="next-shift-meta">
@@ -1032,14 +1083,23 @@ foreach ($days_result as $day) {
                             <td><?php echo $formattedShiftDate; ?></td>
                             <td><?php echo $formattedStartTime; ?> - <?php echo $formattedEndTime; ?></td>
                             <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
-                            <td><?php echo htmlspecialchars($shift['location']); ?></td>
+                            <td>
+                                <?php
+                                $loc = $shift['location'] ?? '';
+                                if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                    echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                } else {
+                                    echo htmlspecialchars($loc);
+                                }
+                                ?>
+                            </td>
                             <td><strong>£<?php echo number_format($shift['estimated_pay'], 2); ?></strong></td>
                         </tr>
                     <?php endforeach; ?>
                 </table>
 
                 <div style="margin-top: 15px; text-align: right;">
-                    <a href="shifts.php" style="font-size: 0.9rem;">View all shifts <i class="fas fa-arrow-right"></i></a>
+                    <a href="shifts.php" style="font-size: 0.9rem;">View all shifts <i class="fa fa-arrow-right"></i></a>
                 </div>
             <?php else: ?>
                 <div style="text-align: center; padding: 30px; color: #777;">
@@ -1075,68 +1135,75 @@ foreach ($days_result as $day) {
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>
     <script>
-        // Notification functionality
-        function markAsRead(element) {
-            const notificationId = element.getAttribute('data-id');
-            console.log('Marking notification as read:', notificationId); // Debug log
+        // Notification functionality (robust)
+        function markAsRead(elementOrDescendant) {
+            // Ensure we have the notification item element
+            let notificationElem = null;
+            try {
+                if (!elementOrDescendant) return;
+                if (elementOrDescendant.classList && elementOrDescendant.classList.contains('notification-item')) {
+                    notificationElem = elementOrDescendant;
+                } else if (elementOrDescendant.closest) {
+                    notificationElem = elementOrDescendant.closest('.notification-item');
+                } else if (elementOrDescendant.parentElement) {
+                    // fallback
+                    notificationElem = elementOrDescendant.parentElement;
+                }
+            } catch (e) {
+                console.error('Invalid element passed to markAsRead', e);
+                return;
+            }
 
-            if (!notificationId) {
+            if (!notificationElem) {
+                console.error('No notification element found');
+                return;
+            }
+
+            const rawId = notificationElem.getAttribute('data-id');
+            const notificationId = rawId ? parseInt(rawId, 10) : 0;
+            console.log('Marking notification as read:', notificationId);
+
+            if (!notificationId || notificationId <= 0) {
                 console.error('No notification ID found');
                 return;
             }
 
             fetch('../functions/mark_notification.php', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: notificationId })
             })
-                .then(response => {
-                    console.log('Response status:', response.status); // Debug log
-                    return response.json();
+                .then(res => {
+                    console.log('Response status:', res.status);
+                    return res.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data); // Debug log
-                    if (data.success) {
-                        element.style.display = 'none';
+                    console.log('Response data:', data);
+                    if (data && data.success) {
+                        // remove element
+                        if (notificationElem.parentNode) notificationElem.parentNode.removeChild(notificationElem);
 
-                        // Count remaining visible notifications more reliably
+                        // update badge and dropdown
                         const allNotifications = document.querySelectorAll('.notification-item[data-id]');
                         let visibleCount = 0;
-
-                        allNotifications.forEach(notification => {
-                            const computedStyle = window.getComputedStyle(notification);
-                            if (computedStyle.display !== 'none') {
-                                visibleCount++;
-                            }
+                        allNotifications.forEach(n => {
+                            if (window.getComputedStyle(n).display !== 'none') visibleCount++;
                         });
 
-                        console.log('Total notifications with data-id:', allNotifications.length); // Debug log
-                        console.log('Visible notifications count:', visibleCount); // Debug log
-
+                        const badge = document.querySelector('.notification-badge');
+                        const dropdown = document.getElementById('notification-dropdown');
                         if (visibleCount === 0) {
-                            document.getElementById('notification-dropdown').innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
-                            const badge = document.querySelector('.notification-badge');
-                            if (badge) {
-                                badge.style.display = 'none';
-                                console.log('Badge hidden - no notifications left'); // Debug log
-                            }
-                        } else {
-                            const badge = document.querySelector('.notification-badge');
-                            if (badge) {
-                                badge.textContent = visibleCount;
-                                badge.style.display = 'flex'; // Ensure badge is visible
-                                console.log('Badge updated to:', visibleCount); // Debug log
-                            }
+                            if (dropdown) dropdown.innerHTML = '<div class="notification-item"><p>No notifications</p></div>';
+                            if (badge) badge.style.display = 'none';
+                        } else if (badge) {
+                            badge.textContent = visibleCount;
+                            badge.style.display = 'flex';
                         }
                     } else {
-                        console.error('Failed to mark notification as read:', data.error);
+                        console.error('Failed to mark notification as read:', data && data.error ? data.error : data);
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+                .catch(err => console.error('Error:', err));
         }
 
         // Debug script to test hamburger menu
@@ -1144,6 +1211,9 @@ foreach ($days_result as $day) {
             // Notification setup
             var notificationIcon = document.getElementById('notification-icon');
             var dropdown = document.getElementById('notification-dropdown');
+
+            // Strip malformed notifications if any
+            if (typeof stripMalformedNotifications === 'function') stripMalformedNotifications();
 
             if (notificationIcon && dropdown) {
                 notificationIcon.addEventListener('click', function (e) {
@@ -1167,6 +1237,7 @@ foreach ($days_result as $day) {
         });
     </script>
     <script src="../js/menu.js"></script>
+    <script src="../js/darkmode.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>
 </body>

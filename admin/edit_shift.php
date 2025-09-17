@@ -2,6 +2,7 @@
 require '../includes/auth.php';
 requireAdmin(); // Only admins can access
 require_once '../includes/db.php';
+require_once '../functions/branch_functions.php';
 
 $shift_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $return_url = isset($_GET['return']) ? $_GET['return'] : 'manage_shifts.php';
@@ -32,15 +33,32 @@ try {
         throw new Exception("Shift not found.");
     }
 
-    // Get all users for dropdown
-    $users_stmt = $conn->prepare("SELECT id, username FROM users ORDER BY username");
-    $users_stmt->execute();
+    // Determine admin's branch to limit which users can be assigned
+    $currentAdminId = $_SESSION['user_id'] ?? null;
+    $adminBranchId = null;
+    if ($currentAdminId) {
+        $bstmt = $conn->prepare("SELECT branch_id FROM users WHERE id = ? LIMIT 1");
+        $bstmt->execute([$currentAdminId]);
+        $adminBranchId = $bstmt->fetchColumn();
+    }
+
+    // Get all users for dropdown limited to admin's branch. Ensure the current shift user is included.
+    if ($adminBranchId) {
+        $users_stmt = $conn->prepare("SELECT id, username FROM users WHERE branch_id = ? OR id = ? ORDER BY username");
+        $users_stmt->execute([(int)$adminBranchId, (int)$shift['user_id']]);
+    } else {
+        $users_stmt = $conn->prepare("SELECT id, username FROM users ORDER BY username");
+        $users_stmt->execute();
+    }
     $users = $users_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get all roles for dropdown
     $roles_stmt = $conn->prepare("SELECT id, name FROM roles ORDER BY name");
     $roles_stmt->execute();
     $roles = $roles_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Load branches for branch picker
+    $all_branches = getAllBranches($conn);
 
 } catch (Exception $e) {
     $_SESSION['error_message'] = "Error loading shift: " . $e->getMessage();
@@ -320,6 +338,18 @@ try {
                 </div>
 
                 <div class="form-group">
+                    <label for="branch_id">Branch (optional):</label>
+                    <select name="branch_id" id="branch_id" class="form-control">
+                        <option value="">-- Default (no branch) --</option>
+                        <?php foreach ($all_branches as $b): ?>
+                            <option value="<?php echo $b['id']; ?>" <?php echo (isset($shift['branch_id']) && $shift['branch_id'] == $b['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($b['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label for="start_time">Start Time:</label>
                     <input type="time" name="start_time" id="start_time" class="form-control"
                         value="<?php echo $shift['start_time']; ?>" required>
@@ -342,6 +372,25 @@ try {
 
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
+    <script>
+        (function(){
+            const branchSelect = document.getElementById('branch_id');
+            const locationInput = document.getElementById('location');
+            if (!branchSelect) return;
+
+            branchSelect.addEventListener('change', function(){
+                const id = this.value;
+                if (!id) return;
+                const opt = this.options[this.selectedIndex];
+                if (opt && opt.text) {
+                    // Only overwrite if location looks like a previous branch name (basic heuristic)
+                    if (!locationInput.value || locationInput.value === '' || locationInput.value === '<?php echo addslashes($shift['location']); ?>') {
+                        locationInput.value = opt.text;
+                    }
+                }
+            });
+        })();
+    </script>
 </body>
 
 </html>

@@ -14,6 +14,21 @@ $adminBranchId = $adminUser['branch_id'];
 // Check if user is super admin
 $isSuperAdmin = isSuperAdmin($currentUserId, $conn);
 
+// Load retention-related settings for display to super admins (safe if table missing)
+$displayScheduleAdmin = '';
+$displayRetentionDays = '';
+try {
+    $stmt = $conn->prepare("SELECT v FROM app_settings WHERE `k` = ? LIMIT 1");
+    $stmt->execute(['SCHEDULE_ADMIN_ID']);
+    $displayScheduleAdmin = $stmt->fetchColumn();
+    $stmt->execute(['AUDIT_RETENTION_DAYS']);
+    $displayRetentionDays = $stmt->fetchColumn();
+} catch (PDOException $e) {
+    // app_settings table might not exist yet (migration not run). Fall back to empty defaults.
+    $displayScheduleAdmin = '';
+    $displayRetentionDays = '';
+}
+
 // Fetch total users (all for super admin, branch-specific for regular admin)
 $userCountQuery = "SELECT COUNT(*) FROM users";
 $userCountParams = [];
@@ -168,16 +183,20 @@ $nextDay = date('Y-m-d', strtotime('+1 day', strtotime($currentDay)));
 // Get all shifts with user and role info based on view type (only from admin's branch)
 if ($viewType === 'week') {
     $weekQuery = "
-        SELECT s.*, u.username, r.name as role_name
+        SELECT s.*, u.username, r.name as role_name, b.name as branch_name
         FROM shifts s
         JOIN users u ON s.user_id = u.id
         JOIN roles r ON s.role_id = r.id
+        LEFT JOIN branches b ON s.branch_id = b.id
         WHERE s.shift_date BETWEEN ? AND DATE_ADD(?, INTERVAL 6 DAY)";
     $weekParams = [$currentWeekStart, $currentWeekStart];
     
     if ($adminBranchId) {
-        $weekQuery .= " AND u.branch_id = ?";
-        $weekParams[] = $adminBranchId;
+            // Include shifts where either the user's home branch matches the admin's branch
+            // or the shift is explicitly scheduled at the admin's branch (s.branch_id)
+            $weekQuery .= " AND (u.branch_id = ? OR s.branch_id = ?)";
+            $weekParams[] = $adminBranchId;
+            $weekParams[] = $adminBranchId;
     }
     
     $weekQuery .= " ORDER BY s.shift_date, s.start_time";
@@ -186,16 +205,19 @@ if ($viewType === 'week') {
     $allShifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else { // day view
     $dayQuery = "
-        SELECT s.*, u.username, r.name as role_name
+        SELECT s.*, u.username, r.name as role_name, b.name as branch_name
         FROM shifts s
         JOIN users u ON s.user_id = u.id
         JOIN roles r ON s.role_id = r.id
+        LEFT JOIN branches b ON s.branch_id = b.id
         WHERE s.shift_date = ?";
     $dayParams = [$currentDay];
     
     if ($adminBranchId) {
-        $dayQuery .= " AND u.branch_id = ?";
-        $dayParams[] = $adminBranchId;
+    // Include shifts scheduled at admin's branch or performed by users from admin's branch
+    $dayQuery .= " AND (u.branch_id = ? OR s.branch_id = ?)";
+    $dayParams[] = $adminBranchId;
+    $dayParams[] = $adminBranchId;
     }
     
     $dayQuery .= " ORDER BY s.start_time";
@@ -260,10 +282,28 @@ if ($viewType === 'week') {
                     <i class="fas fa-paper-plane"></i>
                     <span>Send Invitations</span>
                 </a>
+                <a href="track_invitations.php" class="admin-nav-card" title="Track shift invitations and responses">
+                    <i class="fas fa-search"></i>
+                    <span>Track Invitations</span>
+                </a>
                 <a href="upload_shifts.php" class="admin-nav-card" title="Bulk upload shifts from file">
                     <i class="fas fa-upload"></i>
                     <span>Upload Shifts</span>
                 </a>
+                <?php if ($isSuperAdmin): ?>
+                <a href="audit_log.php" class="admin-nav-card" title="View audit log">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Audit Log</span>
+                </a>
+                <a href="audit_search.php" class="admin-nav-card" title="Search audit events">
+                    <i class="fas fa-search"></i>
+                    <span>Audit Search</span>
+                </a>
+                <a href="audit_settings.php" class="admin-nav-card" title="Audit log settings">
+                    <i class="fas fa-toggle-on"></i>
+                    <span>Audit Settings</span>
+                </a>
+                <?php endif; ?>
                 <a href="branch_management.php" class="admin-nav-card" title="Manage branches and locations">
                     <i class="fas fa-building"></i>
                     <span>Branches</span>
@@ -364,6 +404,21 @@ if ($viewType === 'week') {
                     </div>
                 </div>
             </div>
+            <?php if ($isSuperAdmin): ?>
+            <div class="stat-card retention">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo htmlspecialchars($displayRetentionDays ?: (365*3)); ?></div>
+                    <div class="stat-label">Audit retention (days)</div>
+                    <div class="stat-trend">
+                        <small>Scheduled admin: <?php echo htmlspecialchars($displayScheduleAdmin ?: '(not set)'); ?></small>
+                    </div>
+                    <div style="margin-top:8px;"><a href="retention_settings.php" class="admin-btn">Manage retention</a></div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="admin-panel">
@@ -673,20 +728,19 @@ if ($viewType === 'week') {
                                             <?php echo ucfirst(htmlspecialchars($user['role'])); ?>
                                         </span>
                                         <div class="quick-update-form">
-<form method="POST" class="inline-form" onsubmit="return true;">
-    <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-    <input type="hidden" name="update_role" value="1">
-    <select name="role" class="mini-select" title="Change user role">
-        <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User</option>
-        <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
-        <?php if ($isSuperAdmin): ?>
-        <option value="super_admin" <?php echo $user['role'] === 'super_admin' ? 'selected' : ''; ?>>Super Admin</option>
-        <?php endif; ?>
-    </select>
-    <button type="submit" class="mini-btn" title="Update role">
-        <i class="fas fa-check"></i>
-    </button>
-</form>
+                                            <form method="POST" class="inline-form">
+                                                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                                <select name="role" class="mini-select" title="Change user role">
+                                                    <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User</option>
+                                                    <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                                    <?php if ($isSuperAdmin): ?>
+                                                        <option value="super_admin" <?php echo $user['role'] === 'super_admin' ? 'selected' : ''; ?>>Super Admin</option>
+                                                    <?php endif; ?>
+                                                </select>
+                                                <button type="submit" name="update_role" class="mini-btn" title="Update role">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 </td>
@@ -707,7 +761,7 @@ if ($viewType === 'week') {
                                         <div class="quick-update-form">
                                             <form method="POST" class="inline-form">
                                                 <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-<select name="branch_id" class="mini-select" title="Change branch assignment">
+                                                <select name="branch_id" class="mini-select" title="Change branch assignment">
                                                     <option value="">No Branch</option>
                                                     <?php foreach ($branches as $branch): ?>
                                                         <option value="<?php echo $branch['id']; ?>" 
@@ -735,8 +789,8 @@ if ($viewType === 'week') {
                                             <i class="fas fa-plus"></i>
                                             <span>Add</span>
                                         </a>
-                                        <!-- Edit button removed as requested -->
-                                        <button type="button" onclick="confirmDelete(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
+                                        <!-- Edit removed: role changes are handled inline and profile edits limited to the user details page -->
+                                        <button onclick="confirmDelete(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
                                                 class="action-btn delete" title="Delete user">
                                             <i class="fas fa-trash"></i>
                                             <span>Delete</span>
@@ -797,6 +851,7 @@ if ($viewType === 'week') {
                 <table class="admin-table">
                     <thead>
                         <tr>
+                            <th style="width:56px;text-align:center">U</th>
                             <th>User</th>
                             <th>Date</th>
                             <th>Time</th>
@@ -808,7 +863,7 @@ if ($viewType === 'week') {
                     <tbody>
                         <?php if (empty($allShifts)): ?>
                             <tr>
-                                <td colspan="6" style="text-align: center; padding: 30px;">
+                                <td colspan="7" style="text-align: center; padding: 30px;">
                                     <i class="fas fa-calendar-times"
                                         style="font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block;"></i>
                                     <p style="margin: 0;">No shifts found for this period</p>
@@ -825,13 +880,27 @@ if ($viewType === 'week') {
                                     $currentDate = $shiftDate;
                                     ?>
                                     <tr>
-                                        <td colspan="6" class="day-header">
+                                        <td colspan="7" class="day-header">
                                             <i class="fas fa-calendar-day"></i>
                                             <?php echo date("l, F j, Y", strtotime($currentDate)); ?>
                                         </td>
                                     </tr>
                                 <?php endif; ?>
                                 <tr>
+                                    <?php
+                                    // compute compact username (initials)
+                                    $compactUsername = '';
+                                    $rawName = trim($shift['username'] ?? '');
+                                    if ($rawName !== '') {
+                                        $parts = preg_split('/\s+/', $rawName);
+                                        if (count($parts) >= 2) {
+                                            $compactUsername = strtoupper(substr($parts[0],0,1) . substr($parts[1],0,1));
+                                        } else {
+                                            $compactUsername = strtoupper(substr($rawName,0,2));
+                                        }
+                                    }
+                                    ?>
+                                    <td class="compact-col" data-label="U" style="text-align:center;font-weight:600"><?php echo htmlspecialchars($compactUsername); ?></td>
                                     <td data-label="User"><?php echo htmlspecialchars($shift['username']); ?></td>
                                     <td data-label="Date"><?php echo date("D, M j", strtotime($shift['shift_date'])); ?></td>
                                     <td data-label="Time">
@@ -839,15 +908,24 @@ if ($viewType === 'week') {
                                         <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
                                     </td>
                                     <td data-label="Role"><?php echo htmlspecialchars($shift['role_name']); ?></td>
-                                    <td data-label="Location"><?php echo htmlspecialchars($shift['location']); ?></td>
+                                    <td data-label="Location">
+                                        <?php
+                                        $loc = $shift['location'] ?? '';
+                                        if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                            echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                        } else {
+                                            echo htmlspecialchars($loc);
+                                        }
+                                        ?>
+                                    </td>
                                     <td class="actions" data-label="Actions">
                                         <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="delete_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn secondary"
-                                            onclick="return confirm('Are you sure you want to delete this shift?');">
+                                        <button type="button" class="admin-btn secondary"
+                                            onclick="confirmDeleteShift(<?php echo $shift['id']; ?>, '<?php echo addslashes(htmlspecialchars($shift['username'])); ?>', '<?php echo date('M j, Y', strtotime($shift['shift_date'])); ?>')">
                                             <i class="fas fa-trash"></i>
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -900,25 +978,7 @@ if ($viewType === 'week') {
             document.body.removeChild(downloadLink);
         }
 
-        // Enhanced form submission with loading states
-        document.querySelectorAll('.inline-form').forEach(form => {
-            form.addEventListener('submit', function() {
-                const button = this.querySelector('.mini-btn');
-                if (button) {
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    button.disabled = true;
-                }
-            });
-        });
-
-        // Auto-save functionality for quick updates
-        document.querySelectorAll('.mini-select').forEach(select => {
-            select.addEventListener('change', function() {
-                this.style.background = '#fff3cd';
-                this.style.borderColor = '#ffc107';
-                // No button disabling or spinner here
-            });
-        });
+    // Forms submit manually via the Update button now; no auto-submit on select change.
 
         // Add tooltips and better user feedback
         document.addEventListener('DOMContentLoaded', function() {
@@ -946,6 +1006,7 @@ if ($viewType === 'week') {
 
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
+    <!-- No AJAX role-change handling: selects do not auto-submit; use the Update button to submit changes. -->
 </body>
 
 </html>

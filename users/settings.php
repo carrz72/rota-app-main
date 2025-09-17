@@ -238,9 +238,20 @@ if ($user_id) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Open Rota</title>
+    <script>
+        // Apply saved theme early to avoid flash-of-light; only if server didn't set it
+        try {
+            if (!document.documentElement.getAttribute('data-theme')) {
+                var saved = localStorage.getItem('rota_theme');
+                if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <link rel="stylesheet" href="../css/settings.css">
     <link rel="stylesheet" href="../css/navigation.css">
+    <link rel="stylesheet" href="../css/dark_mode.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         /* Modern settings page styles matching application theme */
         body {
@@ -569,6 +580,7 @@ if ($user_id) {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             color: #333;
+              text-decoration: none;
         }
 
         .action-card i {
@@ -677,16 +689,22 @@ if ($user_id) {
                 <div class="notification-dropdown" id="notification-dropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
-                                <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
-                                <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
-                                    <a class="shit-invt" href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
-                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    </a>
-                                <?php else: ?>
+                            <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>" href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                <?php endif; ?>
-                            </div>
+                                </a>
+                            <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
+                                <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>" href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </a>
+                            <?php else: ?>
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="notification-item">
@@ -711,9 +729,9 @@ if ($user_id) {
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-                <?php if ($_SESSION['role'] === 'admin'): ?>
-                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
-                <?php endif; ?>
+                <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
+                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                    <?php endif; ?>
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
@@ -912,6 +930,28 @@ if ($user_id) {
                     </button>
                 </form>
             </div>
+
+            <!-- Appearance / Theme -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-adjust"></i>
+                    </div>
+                    <h3 class="card-title">Appearance</h3>
+                </div>
+
+                <div style="padding-top:8px;">
+                    <label for="dark_mode_toggle" style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+                        <input type="checkbox" id="dark_mode_toggle" />
+                        <div>
+                            <div style="font-weight:600;">Dark Mode</div>
+                            <div style="font-size:0.9rem;color:#666;">Toggle the application theme</div>
+                        </div>
+                    </label>
+                </div>
+                <p class="form-text">Your theme preference is saved to your browser.</p>
+            </div>
+            </div>
         </div>
 
         <!-- Quick Actions -->
@@ -941,6 +981,20 @@ if ($user_id) {
             </a>
         </div>
     </div>
+    <script src="../js/darkmode.js"></script>
+    <script>
+        // Sync toggle state in case darkmode.js ran before the element was available
+        document.addEventListener('DOMContentLoaded', function(){
+            const toggle = document.getElementById('dark_mode_toggle');
+            try{
+                const saved = localStorage.getItem('rota_theme');
+                if(toggle){
+                    if(saved){ toggle.checked = (saved === 'dark'); }
+                    else { toggle.checked = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+                }
+            }catch(e){/* ignore */}
+        });
+    </script>
 
     <script>
         // Notification functionality

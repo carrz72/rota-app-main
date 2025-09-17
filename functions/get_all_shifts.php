@@ -46,10 +46,12 @@ if ($period === 'week') {
     $periodSql = "1=1";
 }
 
-// Fetch shifts for the logged-in user with role names and additional fields
-$query = "SELECT s.*, r.name as role, r.base_pay, r.has_night_pay, r.night_shift_pay, r.night_start_time, r.night_end_time 
+// Fetch shifts for the logged-in user with role names, username and additional fields
+$query = "SELECT s.*, u.username AS username, r.name as role, r.base_pay, r.has_night_pay, r.night_shift_pay, r.night_start_time, r.night_end_time, b.id AS branch_id, b.name AS branch_name 
           FROM shifts s 
+          JOIN users u ON s.user_id = u.id
           JOIN roles r ON s.role_id = r.id 
+          LEFT JOIN branches b ON s.branch_id = b.id
           WHERE s.user_id = :user_id AND $periodSql";
 
 $stmt = $conn->prepare($query);

@@ -191,6 +191,28 @@ if (!function_exists('validateSession')) {
             exit;
         }
 
+        // Optional: if user_sessions table is used, ensure this session hasn't been invalidated server-side
+        if (isset($_SESSION['user_id']) && function_exists('getUserSessionValidation') === false) {
+            // keep backward compatibility; nothing to do
+        } else {
+            // We'll attempt a DB check if available
+            try {
+                if (isset($GLOBALS['conn']) && $GLOBALS['conn'] instanceof PDO && isset($_SESSION['user_id'])) {
+                    $stmt = $GLOBALS['conn']->prepare("SELECT session_id FROM user_sessions WHERE session_id = ? AND user_id = ?");
+                    $stmt->execute([session_id(), $_SESSION['user_id']]);
+                    $found = $stmt->fetchColumn();
+                    if (!$found) {
+                        // Session was invalidated elsewhere
+                        handleSessionTimeout();
+                        return false;
+                    }
+                }
+            } catch (Exception $e) {
+                // If any DB error occurs, ignore and continue (feature is optional)
+                error_log("user_sessions validation error: " . $e->getMessage());
+            }
+        }
+
         return true;
     }
 }
