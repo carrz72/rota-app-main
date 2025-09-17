@@ -52,6 +52,7 @@ if (isset($_SESSION['user_id'])) {
 
         .landing-container {
             background-color: rgba(255, 255, 255, 0.9);
+            margin: 40px auto;
             padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);

@@ -316,4 +316,7 @@ header {
   .btn {
     margin-bottom: 8px;
   }
+  .tab {
+    padding: 0 0;
+  }
 }

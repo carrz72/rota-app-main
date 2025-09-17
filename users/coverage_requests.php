@@ -864,6 +864,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     <?php if ($request['status'] === 'fulfilled'): ?>
                                         Picked up by
                                         <?php echo htmlspecialchars($request['fulfilled_by_username'] ?: 'another user'); ?>
+                                        From
+                                        <?php echo htmlspecialchars($request['target_branch_name'] ?: 'another branch'); ?>
                                     <?php else: ?>
                                         Pending Response
                                     <?php endif; ?>
