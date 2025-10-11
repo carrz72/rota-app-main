@@ -2027,6 +2027,7 @@ if ($user_id) {
 
                     // Check if we're in calendar view or table view
                     const shiftCard = this.closest(".shift-card");
+
                     if (shiftCard) {
                         // Calendar view - get data from shift card data attributes
                         document.getElementById("edit_shift_id").value = shiftId;
@@ -2050,11 +2051,11 @@ if ($user_id) {
                     }
 
                     // Show the modal
-                    editModal.style.display = "block";
+                    if (editModal) {
+                        editModal.style.display = "block";
+                    }
                 });
-            });
-
-            // Close modal when clicking the X
+            });            // Close modal when clicking the X
             if (closeModal) {
                 closeModal.addEventListener("click", function () {
                     editModal.style.display = "none";
