@@ -135,6 +135,55 @@ $whole_hours = floor($total_hours);
 $minutes = round(($total_hours - $whole_hours) * 60);
 $formatted_total_hours = "{$whole_hours} hr {$minutes} mins";
 
+// Helper function to organize shifts by date for calendar view
+function organizeShiftsByDate($shifts)
+{
+    $organized = [];
+    foreach ($shifts as $shift) {
+        $date = $shift['shift_date'];
+        if (!isset($organized[$date])) {
+            $organized[$date] = [];
+        }
+        $organized[$date][] = $shift;
+    }
+    return $organized;
+}
+
+// Organize shifts by date
+$shiftsByDate = organizeShiftsByDate($shifts);
+
+// Generate dates for the current period for calendar view
+$calendarDates = [];
+if ($period === 'week') {
+    for ($i = 0; $i < 7; $i++) {
+        $date = date('Y-m-d', strtotime("$weekStart +$i days"));
+        $calendarDates[] = $date;
+    }
+} elseif ($period === 'month') {
+    $firstDay = date('Y-m-01', strtotime("$year-$month-01"));
+    $lastDay = date('Y-m-t', strtotime("$year-$month-01"));
+    $currentDate = $firstDay;
+    while ($currentDate <= $lastDay) {
+        $calendarDates[] = $currentDate;
+        $currentDate = date('Y-m-d', strtotime("$currentDate +1 day"));
+    }
+}
+
+// Role colors for calendar display
+$roleColors = [
+    'default' => '#fd2b2b', // Default red
+    'Manager' => '#3366cc', // Blue
+    'Assistant Manager' => '#109618', // Green
+    'Supervisor' => '#ff9900', // Orange
+    'CSA' => '#990099', // Purple
+    'Customer Service Associate' => '#990099', // Purple
+    'Barista' => '#0099c6', // Teal
+    'Server' => '#dd4477', // Pink
+    'Cook' => '#66aa00', // Lime
+    'Host' => '#b82e2e', // Dark Red
+    'Dishwasher' => '#316395', // Dark Blue
+];
+
 // Fetch notifications data for header
 $notifications = [];
 $notificationCount = 0;
@@ -892,6 +941,135 @@ if ($user_id) {
         html[data-theme='dark'] h3 {
             color: var(--text) !important;
         }
+
+        /* Calendar View Styles */
+        .calendar-view {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        .calendar-day {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 120px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow-y: auto;
+            max-height: 250px;
+        }
+
+        .calendar-day-header {
+            background-color: #f5f5f5;
+            padding: 8px;
+            border-radius: 5px 5px 0 0;
+            margin: -10px -10px 10px -10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .day-number {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 25px;
+            height: 25px;
+            background-color: #fd2b2b;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Shift Card in Calendar */
+        .shift-card {
+            background-color: #f8f8f8;
+            border-left: 3px solid #fd2b2b;
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shift-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .shift-time {
+            font-weight: bold;
+        }
+
+        .shift-user {
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shift-role {
+            font-style: italic;
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* Calendar responsive adjustments */
+        @media (max-width: 1200px) {
+            .calendar-view {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 992px) {
+            .calendar-view {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .calendar-view {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-view {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dark mode calendar styles */
+        html[data-theme='dark'] .calendar-day,
+        html[data-theme='dark'] .shift-card {
+            background: var(--panel) !important;
+            color: var(--text) !important;
+            border-color: rgba(255,255,255,0.03) !important;
+            box-shadow: var(--card-shadow) !important;
+        }
+
+        html[data-theme='dark'] .calendar-day-header {
+            background: transparent !important;
+            color: var(--text) !important;
+        }
+
+        html[data-theme='dark'] .shift-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent) !important;
+            color: var(--text) !important;
+            border-left-width: 4px !important;
+        }
+
+        html[data-theme='dark'] .day-number {
+            background-color: var(--accent) !important;
+            color: #fff !important;
+        }
     </style>
 </head>
 
@@ -1223,7 +1401,104 @@ if ($user_id) {
                 </form>
             </div>
 
-            <div class="responsive-table">
+            <!-- Calendar View -->
+            <section id="calendar-view">
+                <h3><i class="fa fa-calendar"></i> Your Shifts Calendar</h3>
+                <?php if (count($shifts) > 0): ?>
+                    <div class="calendar-view">
+                        <?php
+                        if ($period === 'week' || $period === 'month'):
+                            foreach ($calendarDates as $date):
+                                $dayName = date('D', strtotime($date));
+                                $dayNumber = date('j', strtotime($date));
+                                $isToday = date('Y-m-d') === $date;
+                                ?>
+                                <div class="calendar-day" <?php echo $isToday ? 'style="border: 2px solid #fd2b2b;"' : ''; ?>>
+                                    <div class="calendar-day-header">
+                                        <?php echo $dayName; ?>
+                                        <span class="day-number"><?php echo $dayNumber; ?></span>
+                                    </div>
+                                    <?php if (isset($shiftsByDate[$date])): ?>
+                                        <?php foreach ($shiftsByDate[$date] as $shift): ?>
+                                            <?php
+                                            $roleColor = $roleColors[$shift['role']] ?? $roleColors['default'];
+                                            ?>
+                                            <div class="shift-card" style="border-left-color: <?php echo $roleColor; ?>;" 
+                                                 data-shift-id="<?php echo $shift['id']; ?>"
+                                                 data-shift-date="<?php echo $shift['shift_date']; ?>"
+                                                 data-start-time="<?php echo $shift['start_time']; ?>"
+                                                 data-end-time="<?php echo $shift['end_time']; ?>"
+                                                 data-role-id="<?php echo $shift['role_id']; ?>"
+                                                 data-location="<?php echo htmlspecialchars($shift['location']); ?>">
+                                                <div class="shift-time">
+                                                    <?php echo date("g:i A", strtotime($shift['start_time'])); ?> -
+                                                    <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
+                                                </div>
+                                                <div class="shift-role"><?php echo htmlspecialchars($shift['role']); ?></div>
+                                                <div class="shift-user">
+                                                    <?php
+                                                    $loc = $shift['location'] ?? '';
+                                                    if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                                        echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                                    } else {
+                                                        echo htmlspecialchars($loc);
+                                                    }
+                                                    ?>
+                                                </div>
+                                                <small><strong>£<?php echo number_format($shift['pay'], 2); ?></strong></small>
+                                                
+                                                <!-- Quick actions for calendar view -->
+                                                <div style="margin-top: 5px; display: flex; gap: 5px;">
+                                                    <button class="editBtn" data-id="<?php echo $shift['id']; ?>" 
+                                                            style="padding: 2px 6px; font-size: 10px; background: #3366cc; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                                        <i class="fa fa-pencil"></i>
+                                                    </button>
+                                                    <button class="deleteBtn" data-id="<?php echo $shift['id']; ?>" 
+                                                            style="padding: 2px 6px; font-size: 10px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                    <button class="swapBtn" data-id="<?php echo $shift['id']; ?>" 
+                                                            style="padding: 2px 6px; font-size: 10px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                                        <i class="fa fa-exchange"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            <?php
+                            endforeach;
+                        endif;
+                        ?>
+                    </div>
+                <?php else: ?>
+                    <div class="calendar-view">
+                        <?php
+                        if ($period === 'week' || $period === 'month'):
+                            foreach ($calendarDates as $date):
+                                $dayName = date('D', strtotime($date));
+                                $dayNumber = date('j', strtotime($date));
+                                $isToday = date('Y-m-d') === $date;
+                                ?>
+                                <div class="calendar-day" <?php echo $isToday ? 'style="border: 2px solid #fd2b2b;"' : ''; ?>>
+                                    <div class="calendar-day-header">
+                                        <?php echo $dayName; ?>
+                                        <span class="day-number"><?php echo $dayNumber; ?></span>
+                                    </div>
+                                </div>
+                            <?php
+                            endforeach;
+                        endif;
+                        ?>
+                    </div>
+                    <p style="text-align: center; color: #666; margin-top: 20px;">
+                        <i class="fa fa-calendar-o"></i> No shifts scheduled for this period.
+                    </p>
+                <?php endif; ?>
+            </section>
+
+            <!-- Legacy table view for actions - hidden but needed for JavaScript -->
+            <div class="responsive-table" style="display: none;">
                 <?php if (count($shifts) > 0): ?>
                     <table>
                         <thead>
@@ -1748,13 +2023,31 @@ if ($user_id) {
 
             editBtns.forEach(btn => {
                 btn.addEventListener("click", function () {
-                    const row = this.closest("tr");
-                    document.getElementById("edit_shift_id").value = this.dataset.id;
-                    document.getElementById("edit_shift_date").value = row.querySelector("td:nth-child(1)").dataset.rawDate;
-                    document.getElementById("edit_start_time").value = row.querySelector("td:nth-child(2)").dataset.rawStart;
-                    document.getElementById("edit_end_time").value = row.querySelector("td:nth-child(2)").dataset.rawEnd;
-                    document.getElementById("edit_location").value = row.querySelector("td:nth-child(4)").dataset.rawLocation;
-                    document.getElementById("edit_role_id").value = row.querySelector("td:nth-child(3)").dataset.rawRole;
+                    const shiftId = this.dataset.id;
+                    
+                    // Check if we're in calendar view or table view
+                    const shiftCard = this.closest(".shift-card");
+                    if (shiftCard) {
+                        // Calendar view - get data from shift card data attributes
+                        document.getElementById("edit_shift_id").value = shiftId;
+                        document.getElementById("edit_shift_date").value = shiftCard.dataset.shiftDate;
+                        document.getElementById("edit_start_time").value = shiftCard.dataset.startTime;
+                        document.getElementById("edit_end_time").value = shiftCard.dataset.endTime;
+                        document.getElementById("edit_location").value = shiftCard.dataset.location;
+                        document.getElementById("edit_role_id").value = shiftCard.dataset.roleId;
+                        
+                    } else {
+                        // Table view - original logic
+                        const row = this.closest("tr");
+                        if (row) {
+                            document.getElementById("edit_shift_id").value = this.dataset.id;
+                            document.getElementById("edit_shift_date").value = row.querySelector("td:nth-child(1)").dataset.rawDate;
+                            document.getElementById("edit_start_time").value = row.querySelector("td:nth-child(2)").dataset.rawStart;
+                            document.getElementById("edit_end_time").value = row.querySelector("td:nth-child(2)").dataset.rawEnd;
+                            document.getElementById("edit_location").value = row.querySelector("td:nth-child(4)").dataset.rawLocation;
+                            document.getElementById("edit_role_id").value = row.querySelector("td:nth-child(3)").dataset.rawRole;
+                        }
+                    }
 
                     // Show the modal
                     editModal.style.display = "block";

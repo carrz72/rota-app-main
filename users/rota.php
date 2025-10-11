@@ -22,7 +22,7 @@ $user_branch_id = $user['branch_id'] ?? null;
 
 // Determine filtering period from GET parameters (default to week)
 $period = $_GET['period'] ?? 'week';
-$view = $_GET['view'] ?? 'list'; // Add view option: list or calendar
+// Calendar view is now the only view available
 
 // Set up filtering conditions and variables
 if ($period === 'week') {
@@ -356,27 +356,7 @@ if ($period === 'week') {
             border-radius: 4px;
         }
 
-        .view-toggle {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .view-toggle button {
-            background-color: rgb(42, 42, 42);
-            border: 1px solid #ddd;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .view-toggle button.active {
-            background-color: #fd2b2b;
-            color: white;
-            border-color: #fd2b2b;
-        }
+        /* View toggle styles removed - calendar view is now the only option */
 
         /* Calendar View Styles */
         .calendar-view {
@@ -798,7 +778,6 @@ if ($period === 'week') {
                     </div>
                 <?php endif; ?>
 
-                <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
                 <noscript><button type="submit" class="btn">Apply Filters</button></noscript>
             </form>
 
@@ -806,98 +785,34 @@ if ($period === 'week') {
             <div class="filter-row">
                 <div>
                     <?php if ($period === 'week'): ?>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Previous Week</a>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Current Week</a>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Next Week</a>
                     <?php elseif ($period === 'month'): ?>
-                        <a href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Previous Month</a>
-                        <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Current Month</a>
-                        <a href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Next Month</a>
                     <?php elseif ($period === 'year'): ?>
-                        <a href="?period=year&year=<?php echo $year - 1; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=year&year=<?php echo $year - 1; ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Previous Year</a>
-                        <a href="?period=year&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=year&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Current Year</a>
-                        <a href="?period=year&year=<?php echo $year + 1; ?>&role_filter=<?php echo $roleFilter; ?>&location_filter=<?php echo $locationFilter; ?>&view=<?php echo $view; ?>"
+                        <a href="?period=year&year=<?php echo $year + 1; ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Next Year</a>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
 
-        <!-- View Toggle Buttons -->
-        <div class="view-toggle">
-            <button onclick="switchView('list')" class="<?php echo $view === 'list' ? 'active' : ''; ?>">
-                <i class="fa fa-list"></i> List View
-            </button>
-            <button onclick="switchView('calendar')" class="<?php echo $view === 'calendar' ? 'active' : ''; ?>">
-                <i class="fa fa-calendar"></i> Calendar View
-            </button>
-        </div>
-
         <?php if (!empty($shifts)): ?>
-            <!-- List View -->
-            <section class="upcoming-shifts" <?php echo $view === 'calendar' ? 'style="display:none;"' : ''; ?>
-                id="list-view">
-                <h3>Shifts for Selected Period</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Date</th>
-                            <th>Time</th>
-                            <th>Role</th>
-                            <th>Location</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $lastDate = '';
-                        foreach ($shifts as $shift):
-                            $currentDate = date("Y-m-d", strtotime($shift['shift_date']));
-                            $roleColor = $roleColors[$shift['role_name']] ?? $roleColors['default'];
-                            if ($currentDate !== $lastDate):
-                                // Output a day separator row.
-                                $lastDate = $currentDate;
-                                ?>
-                                <tr class="day-separator">
-                                    <td colspan="5"><?php echo date("l, F j, Y", strtotime($shift['shift_date'])); ?></td>
-                                </tr>
-                            <?php endif; ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($shift['username']); ?></td>
-                                <td><?php echo date("D, j M", strtotime($shift['shift_date'])); ?></td>
-                                <td><?php echo date("g:i A", strtotime($shift['start_time'])); ?> -
-                                    <?php echo date("g:i A", strtotime($shift['end_time'])); ?></td>
-                                <td>
-                                    <span
-                                        style="display:inline-block; width:12px; height:12px; background-color:<?php echo $roleColor; ?>; border-radius:50%; margin-right:5px;"></span>
-                                    <?php echo htmlspecialchars($shift['role_name']); ?>
-                                </td>
-                                <td>
-                                    <?php
-                                    $loc = $shift['location'] ?? '';
-                                    if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
-                                        echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
-                                    } else {
-                                        echo htmlspecialchars($loc);
-                                    }
-                                    ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </section>
-
             <!-- Calendar View -->
-            <section id="calendar-view" <?php echo $view === 'list' ? 'style="display:none;"' : ''; ?>>
+            <section id="calendar-view">
                 <h3>Calendar View</h3>
                 <div class="calendar-view">
                     <?php
@@ -1030,29 +945,7 @@ if ($period === 'week') {
             });
         });
 
-        // Switch between list and calendar views
-        function switchView(view) {
-            const listView = document.getElementById('list-view');
-            const calendarView = document.getElementById('calendar-view');
-            const viewParam = document.querySelector('input[name="view"]');
-
-            if (view === 'list') {
-                listView.style.display = 'block';
-                calendarView.style.display = 'none';
-                document.querySelectorAll('.view-toggle button')[0].classList.add('active');
-                document.querySelectorAll('.view-toggle button')[1].classList.remove('active');
-            } else {
-                listView.style.display = 'none';
-                calendarView.style.display = 'block';
-                document.querySelectorAll('.view-toggle button')[0].classList.remove('active');
-                document.querySelectorAll('.view-toggle button')[1].classList.add('active');
-            }
-
-            viewParam.value = view;
-        }
-
-        // Removed printRota() function
-        // Removed exportToCSV() function
+        // View switching functions removed - calendar view is now the only option
     </script>
     
     <script src="../js/menu.js"></script>
