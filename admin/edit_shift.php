@@ -57,7 +57,7 @@ try {
     // Get all users for dropdown limited to admin's branch. Ensure the current shift user is included.
     if ($adminBranchId) {
         $users_stmt = $conn->prepare("SELECT id, username FROM users WHERE branch_id = ? OR id = ? ORDER BY username");
-        $users_stmt->execute([(int)$adminBranchId, (int)$shift['user_id']]);
+        $users_stmt->execute([(int) $adminBranchId, (int) $shift['user_id']]);
     } else {
         $users_stmt = $conn->prepare("SELECT id, username FROM users ORDER BY username");
         $users_stmt->execute();
@@ -374,7 +374,8 @@ try {
                 </div>
 
                 <div class="form-buttons">
-                    <a href="<?php echo htmlspecialchars($return_url); ?>" class="btn btn-secondary" style="text-decoration: none; display: inline-block; text-align: center;">Cancel</a>
+                    <a href="<?php echo htmlspecialchars($return_url); ?>" class="btn btn-secondary"
+                        style="text-decoration: none; display: inline-block; text-align: center;">Cancel</a>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </div>
@@ -384,12 +385,12 @@ try {
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
     <script>
-        (function(){
+        (function () {
             const branchSelect = document.getElementById('branch_id');
             const locationInput = document.getElementById('location');
             if (!branchSelect) return;
 
-            branchSelect.addEventListener('change', function(){
+            branchSelect.addEventListener('change', function () {
                 const id = this.value;
                 if (!id) return;
                 const opt = this.options[this.selectedIndex];

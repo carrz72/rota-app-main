@@ -3,6 +3,7 @@ require_once '../includes/auth.php';
 requireAdmin(); // Only admins can access
 require_once '../functions/branch_functions.php';
 require_once '../includes/super_admin.php';
+require_once '../functions/calculate_pay.php';
 
 // Get current admin user's branch
 $currentUserId = $_SESSION['user_id'];
@@ -857,13 +858,14 @@ if ($viewType === 'week') {
                             <th>Time</th>
                             <th>Role</th>
                             <th>Location</th>
+                            <th>Pay</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($allShifts)): ?>
                             <tr>
-                                <td colspan="7" style="text-align: center; padding: 30px;">
+                                <td colspan="8" style="text-align: center; padding: 30px;">
                                     <i class="fas fa-calendar-times"
                                         style="font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block;"></i>
                                     <p style="margin: 0;">No shifts found for this period</p>
@@ -880,7 +882,7 @@ if ($viewType === 'week') {
                                     $currentDate = $shiftDate;
                                     ?>
                                     <tr>
-                                        <td colspan="7" class="day-header">
+                                        <td colspan="8" class="day-header">
                                             <i class="fas fa-calendar-day"></i>
                                             <?php echo date("l, F j, Y", strtotime($currentDate)); ?>
                                         </td>
@@ -917,6 +919,9 @@ if ($viewType === 'week') {
                                             echo htmlspecialchars($loc);
                                         }
                                         ?>
+                                    </td>
+                                    <td data-label="Pay">
+                                        <strong>£<?php echo number_format(calculatePay($conn, $shift['id']), 2); ?></strong>
                                     </td>
                                     <td class="actions" data-label="Actions">
                                         <a href="edit_shift.php?id=<?php echo $shift['id']; ?>&return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" class="admin-btn">

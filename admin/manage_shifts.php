@@ -2,6 +2,7 @@
 require '../includes/auth.php';
 requireAdmin();
 require_once '../includes/db.php';
+require_once '../functions/calculate_pay.php';
 // Include notification functionality
 if (!function_exists('addNotification')) {
     require_once '../functions/addNotification.php';
@@ -68,7 +69,7 @@ if ($userSql) {
     $shiftsQuery .= " $userSql";
 } elseif ($adminBranchId) {
     // Include shifts where either the user's home branch matches admin branch or the shift is scheduled at admin branch
-    $shiftsQuery .= " AND (u.branch_id = " . (int)$adminBranchId . " OR s.branch_id = " . (int)$adminBranchId . ")";
+    $shiftsQuery .= " AND (u.branch_id = " . (int) $adminBranchId . " OR s.branch_id = " . (int) $adminBranchId . ")";
 }
 
 $shiftsQuery .= " ORDER BY s.shift_date ASC, s.start_time ASC";
@@ -82,13 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_shift'])) {
     try {
         $stmt = $conn->prepare("DELETE FROM shifts WHERE id = ?");
         $stmt->execute([$shift_id]);
-        
+
         if ($stmt->rowCount() > 0) {
             $successMessage = "Shift deleted successfully";
-            
+
             // Add notification
             addNotification($conn, $_SESSION['user_id'], "Shift deleted successfully from manage shifts", "success");
-            
+
             // Audit logging
             try {
                 require_once __DIR__ . '/../includes/audit_log.php';
@@ -96,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_shift'])) {
             } catch (Exception $e) {
                 // Audit logging failed, but don't show error to user
             }
-            
+
             // Refresh shifts list
             $shifts = $conn->query($shiftsQuery)->fetchAll(PDO::FETCH_ASSOC);
         } else {
@@ -299,6 +300,7 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                                 <th>Time</th>
                                 <th>Role</th>
                                 <th>Location</th>
+                                <th>Pay</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -313,7 +315,7 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                                     $current_date = $shift_date;
                                     ?>
                                     <tr>
-                                        <td colspan="7" class="day-header">
+                                        <td colspan="8" class="day-header">
                                             <i class="fas fa-calendar-day"></i>
                                             <?php echo date('l, F j, Y', strtotime($shift_date)); ?>
                                         </td>
@@ -327,13 +329,14 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                                     if ($rawName !== '') {
                                         $parts = preg_split('/\s+/', $rawName);
                                         if (count($parts) >= 2) {
-                                            $compactUsername = strtoupper(substr($parts[0],0,1) . substr($parts[1],0,1));
+                                            $compactUsername = strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
                                         } else {
-                                            $compactUsername = strtoupper(substr($rawName,0,2));
+                                            $compactUsername = strtoupper(substr($rawName, 0, 2));
                                         }
                                     }
                                     ?>
-                                    <td class="compact-col" data-label="U" style="text-align:center;font-weight:600"><?php echo htmlspecialchars($compactUsername); ?></td>
+                                    <td class="compact-col" data-label="U" style="text-align:center;font-weight:600">
+                                        <?php echo htmlspecialchars($compactUsername); ?></td>
                                     <td data-label="User"><?php echo htmlspecialchars($shift['username']); ?></td>
                                     <td data-label="Date"><?php echo date('D, M j', strtotime($shift['shift_date'])); ?></td>
                                     <td data-label="Time"><?php echo date('g:i A', strtotime($shift['start_time'])); ?> -
@@ -350,16 +353,18 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                                         }
                                         ?>
                                     </td>
+                                    <td data-label="Pay">
+                                        <strong>£<?php echo number_format(calculatePay($conn, $shift['id']), 2); ?></strong>
+                                    </td>
                                     <td class="actions" data-label="Actions">
-                                        <a href="edit_shift.php?id=<?php echo $shift['id']; ?>&return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" class="admin-btn"
-                                            title="Edit shift">
+                                        <a href="edit_shift.php?id=<?php echo $shift['id']; ?>&return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>"
+                                            class="admin-btn" title="Edit shift">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <form method="POST" style="display:inline;">
                                             <input type="hidden" name="shift_id" value="<?php echo $shift['id']; ?>">
                                             <input type="hidden" name="delete_shift" value="1">
-                                            <button type="submit" class="admin-btn delete-btn"
-                                                title="Delete shift"
+                                            <button type="submit" class="admin-btn delete-btn" title="Delete shift"
                                                 onclick="return confirm('Are you sure you want to delete the shift for <?php echo addslashes(htmlspecialchars($shift['username'])); ?> on <?php echo date('M j, Y', strtotime($shift['shift_date'])); ?>?');">
                                                 <i class="fas fa-trash"></i>
                                             </button>
