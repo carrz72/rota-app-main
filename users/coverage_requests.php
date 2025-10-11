@@ -675,56 +675,56 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
                 <h3>Propose a Swap</h3>
                 <form method="POST">
-                <div class="form-group">
-                    <label for="swap_request_id">Select Coverage Request to Swap With:</label>
-                    <select name="swap_request_id" required>
-                        <option value="">Select a coverage request...</option>
-                        <?php foreach ($available_requests as $req): ?>
-                            <option value="<?php echo $req['id']; ?>">
-                                <?php echo htmlspecialchars($req['requesting_branch_name']) . ' - ' . date('M j, Y', strtotime($req['shift_date'])) . ' ' . date('g:i A', strtotime($req['start_time'])) . ' - ' . date('g:i A', strtotime($req['end_time'])); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="offered_shift_id">Select One of Your Shifts to Offer:</label>
-                    <select name="offered_shift_id" required>
-                        <option value="">Select your shift...</option>
-                        <?php foreach ($my_shifts as $shift): ?>
-                            <option value="<?php echo $shift['id']; ?>">
-                                <?php echo date('M j, Y', strtotime($shift['shift_date'])) . ' ' . date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i A', strtotime($shift['end_time'])) . ' (' . htmlspecialchars($shift['role_name']) . ')'; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <button type="submit" name="propose_swap" class="btn btn-primary">Propose Swap</button>
-            </form>
-
-            <h3 style="margin-top:30px;">Swap Proposals</h3>
-            <?php if (empty($swap_proposals)): ?>
-                <div class="request-card">
-                    <p><i class="fas fa-info-circle"></i> No swap proposals yet.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach ($swap_proposals as $swap): ?>
-                    <div class="request-card">
-                        <div><strong>Proposed by:</strong> <?php echo htmlspecialchars($swap['proposer_name']); ?></div>
-                        <div><strong>Offered Shift:</strong>
-                            <?php echo date('M j, Y', strtotime($swap['shift_date'])) . ' ' . date('g:i A', strtotime($swap['start_time'])) . ' - ' . date('g:i A', strtotime($swap['end_time'])) . ' (' . htmlspecialchars($swap['role_name']) . ')'; ?>
-                        </div>
-                        <div><strong>For Coverage Request:</strong>
-                            <?php echo date('M j, Y', strtotime($swap['req_shift_date'])) . ' ' . date('g:i A', strtotime($swap['req_start_time'])) . ' - ' . date('g:i A', strtotime($swap['req_end_time'])); ?>
-                        </div>
-                        <div><strong>Status:</strong> <?php echo ucfirst($swap['status']); ?></div>
-                        <?php if ($swap['status'] === 'pending' && $swap['proposer_user_id'] != $user_id): ?>
-                            <form method="POST" style="margin-top:10px;">
-                                <input type="hidden" name="swap_id" value="<?php echo $swap['id']; ?>">
-                                <button type="submit" name="accept_swap" class="btn btn-success">Accept Swap</button>
-                            </form>
-                        <?php endif; ?>
+                    <div class="form-group">
+                        <label for="swap_request_id">Select Coverage Request to Swap With:</label>
+                        <select name="swap_request_id" required>
+                            <option value="">Select a coverage request...</option>
+                            <?php foreach ($available_requests as $req): ?>
+                                <option value="<?php echo $req['id']; ?>">
+                                    <?php echo htmlspecialchars($req['requesting_branch_name']) . ' - ' . date('M j, Y', strtotime($req['shift_date'])) . ' ' . date('g:i A', strtotime($req['start_time'])) . ' - ' . date('g:i A', strtotime($req['end_time'])); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                    <div class="form-group">
+                        <label for="offered_shift_id">Select One of Your Shifts to Offer:</label>
+                        <select name="offered_shift_id" required>
+                            <option value="">Select your shift...</option>
+                            <?php foreach ($my_shifts as $shift): ?>
+                                <option value="<?php echo $shift['id']; ?>">
+                                    <?php echo date('M j, Y', strtotime($shift['shift_date'])) . ' ' . date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i A', strtotime($shift['end_time'])) . ' (' . htmlspecialchars($shift['role_name']) . ')'; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <button type="submit" name="propose_swap" class="btn btn-primary">Propose Swap</button>
+                </form>
+
+                <h3 style="margin-top:30px;">Swap Proposals</h3>
+                <?php if (empty($swap_proposals)): ?>
+                    <div class="request-card">
+                        <p><i class="fas fa-info-circle"></i> No swap proposals yet.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($swap_proposals as $swap): ?>
+                        <div class="request-card">
+                            <div><strong>Proposed by:</strong> <?php echo htmlspecialchars($swap['proposer_name']); ?></div>
+                            <div><strong>Offered Shift:</strong>
+                                <?php echo date('M j, Y', strtotime($swap['shift_date'])) . ' ' . date('g:i A', strtotime($swap['start_time'])) . ' - ' . date('g:i A', strtotime($swap['end_time'])) . ' (' . htmlspecialchars($swap['role_name']) . ')'; ?>
+                            </div>
+                            <div><strong>For Coverage Request:</strong>
+                                <?php echo date('M j, Y', strtotime($swap['req_shift_date'])) . ' ' . date('g:i A', strtotime($swap['req_start_time'])) . ' - ' . date('g:i A', strtotime($swap['req_end_time'])); ?>
+                            </div>
+                            <div><strong>Status:</strong> <?php echo ucfirst($swap['status']); ?></div>
+                            <?php if ($swap['status'] === 'pending' && $swap['proposer_user_id'] != $user_id): ?>
+                                <form method="POST" style="margin-top:10px;">
+                                    <input type="hidden" name="swap_id" value="<?php echo $swap['id']; ?>">
+                                    <button type="submit" name="accept_swap" class="btn btn-success">Accept Swap</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -761,7 +761,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 </div>
                                 <div class="detail-value">
                                     <?php echo date('l, M j, Y', strtotime($request['shift_date'])); ?><br>
-                                    <?php echo date('g:i A', strtotime($request['start_time'])); ?> - 
+                                    <?php echo date('g:i A', strtotime($request['start_time'])); ?> -
                                     <?php echo date('g:i A', strtotime($request['end_time'])); ?>
                                 </div>
                             </div>
@@ -818,7 +818,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             <div class="form-section">
                 <h2><i class="fas fa-plus"></i> Request Coverage</h2>
                 <p>Request coverage from other branches when you need help with shifts.</p>
-                
+
                 <form method="POST">
                     <div class="form-grid">
                         <div class="form-group">
@@ -842,7 +842,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <?php
                                 $roles_stmt = $conn->query("SELECT id, name FROM roles ORDER BY name");
                                 while ($role = $roles_stmt->fetch(PDO::FETCH_ASSOC)):
-                                ?>
+                                    ?>
                                     <option value="<?php echo $role['id']; ?>">
                                         <?php echo htmlspecialchars($role['name']); ?>
                                     </option>
@@ -852,7 +852,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
                         <div class="form-group">
                             <label for="shift_date">Date:</label>
-                            <input type="date" name="shift_date" class="form-control" required min="<?php echo date('Y-m-d'); ?>">
+                            <input type="date" name="shift_date" class="form-control" required
+                                min="<?php echo date('Y-m-d'); ?>">
                         </div>
 
                         <div class="form-group">
@@ -878,7 +879,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
                     <div class="form-group">
                         <label for="description">Additional Details:</label>
-                        <textarea name="description" class="form-control" placeholder="Provide any additional information about this coverage request..."></textarea>
+                        <textarea name="description" class="form-control"
+                            placeholder="Provide any additional information about this coverage request..."></textarea>
                     </div>
 
                     <button type="submit" name="create_request" class="btn btn-primary">
@@ -888,119 +890,119 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 </form>
             </div>
         </div>
-                            <script>
-                                // Robust custom multi-select for branches (up to 5, mobile friendly, with search)
-                                document.addEventListener('DOMContentLoaded', function () {
-                                    function setupBranchMultiselect(multiselectId, dropdownId, selectedDivId, hiddenInputId, searchId, optionsListId) {
-                                        const multiselect = document.getElementById(multiselectId);
-                                        const selectedDiv = document.getElementById(selectedDivId);
-                                        const dropdown = document.getElementById(dropdownId);
-                                        const hiddenInput = document.getElementById(hiddenInputId);
-                                        const searchInput = document.getElementById(searchId);
-                                        const optionsList = document.getElementById(optionsListId);
-                                        if (!multiselect || !selectedDiv || !dropdown || !hiddenInput || !searchInput || !optionsList) return;
-                                        let selected = [];
-                                        // Prepopulate if checkboxes are checked
-                                        function getBranchName(cb) {
-                                            return cb.parentElement.textContent.trim();
-                                        }
-                                        function updateSelectedDisplay() {
-                                            selectedDiv.innerHTML = '';
-                                            let any = false;
-                                            optionsList.querySelectorAll('.branch-checkbox').forEach(cb => {
-                                                if (cb.checked) {
-                                                    any = true;
-                                                    const badge = document.createElement('span');
-                                                    badge.textContent = getBranchName(cb);
-                                                    badge.style.cssText = 'background:#007bff;color:#fff;padding:3px 10px;border-radius:12px;margin:2px 6px 2px 0;font-size:14px;display:inline-flex;align-items:center;';
-                                                    const remove = document.createElement('span');
-                                                    remove.textContent = '×';
-                                                    remove.style.cssText = 'margin-left:7px;cursor:pointer;font-weight:bold;';
-                                                    remove.onclick = function (e) {
-                                                        e.stopPropagation();
-                                                        cb.checked = false;
-                                                        updateSelectedDisplay();
-                                                        updateHiddenInput();
-                                                    };
-                                                    badge.appendChild(remove);
-                                                    selectedDiv.appendChild(badge);
-                                                }
-                                            });
-                                            if (!any) selectedDiv.textContent = 'Select branches...';
-                                        }
-                                        function updateHiddenInput() {
-                                            const checked = Array.from(optionsList.querySelectorAll('.branch-checkbox:checked')).map(cb => cb.value);
-                                            hiddenInput.value = checked.join(',');
-                                        }
-                                        // Toggle dropdown
-                                        selectedDiv.onclick = function (e) {
-                                            if (dropdown.style.display === 'block') {
-                                                dropdown.style.display = 'none';
-                                            } else {
-                                                dropdown.style.display = 'block';
-                                                searchInput.value = '';
-                                                filterOptions('');
-                                                searchInput.focus();
-                                            }
-                                            e.stopPropagation();
-                                        };
-                                        // Prevent closing when clicking inside dropdown or multiselect
-                                        dropdown.addEventListener('mousedown', function (e) { e.stopPropagation(); });
-                                        multiselect.addEventListener('mousedown', function (e) { e.stopPropagation(); });
-                                        // Close dropdown on outside click
-                                        document.addEventListener('mousedown', function (e) {
-                                            if (!multiselect.contains(e.target)) {
-                                                dropdown.style.display = 'none';
-                                            }
-                                        });
-                                        // Limit selection to 5
-                                        optionsList.querySelectorAll('.branch-checkbox').forEach(cb => {
-                                            cb.onchange = function () {
-                                                const checked = optionsList.querySelectorAll('.branch-checkbox:checked');
-                                                if (checked.length > 5) {
-                                                    cb.checked = false;
-                                                    alert('You can select up to 5 branches.');
-                                                }
-                                                updateSelectedDisplay();
-                                                updateHiddenInput();
-                                            };
-                                        });
-                                        // Search filter
-                                        function filterOptions(query) {
-                                            const q = query.trim().toLowerCase();
-                                            optionsList.querySelectorAll('.branch-option').forEach(opt => {
-                                                if (!q || opt.getAttribute('data-name').includes(q)) {
-                                                    opt.style.display = 'block';
-                                                } else {
-                                                    opt.style.display = 'none';
-                                                }
-                                            });
-                                        }
-                                        searchInput.addEventListener('input', function () {
-                                            filterOptions(this.value);
-                                        });
-                                        // Keyboard accessibility
-                                        selectedDiv.addEventListener('keydown', function (e) {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                if (dropdown.style.display === 'block') {
-                                                    dropdown.style.display = 'none';
-                                                } else {
-                                                    dropdown.style.display = 'block';
-                                                    searchInput.value = '';
-                                                    filterOptions('');
-                                                    searchInput.focus();
-                                                }
-                                            }
-                                        });
-                                        // Initial state
-                                        updateSelectedDisplay();
-                                        updateHiddenInput();
-                                    }
-                                    // Setup for create request
-                                    setupBranchMultiselect('branch-multiselect', 'branch-dropdown', 'selected-branches', 'target_branch_ids', 'branch-search', 'branch-options-list');
-                                });
-                            </script>
+        <script>
+            // Robust custom multi-select for branches (up to 5, mobile friendly, with search)
+            document.addEventListener('DOMContentLoaded', function () {
+                function setupBranchMultiselect(multiselectId, dropdownId, selectedDivId, hiddenInputId, searchId, optionsListId) {
+                    const multiselect = document.getElementById(multiselectId);
+                    const selectedDiv = document.getElementById(selectedDivId);
+                    const dropdown = document.getElementById(dropdownId);
+                    const hiddenInput = document.getElementById(hiddenInputId);
+                    const searchInput = document.getElementById(searchId);
+                    const optionsList = document.getElementById(optionsListId);
+                    if (!multiselect || !selectedDiv || !dropdown || !hiddenInput || !searchInput || !optionsList) return;
+                    let selected = [];
+                    // Prepopulate if checkboxes are checked
+                    function getBranchName(cb) {
+                        return cb.parentElement.textContent.trim();
+                    }
+                    function updateSelectedDisplay() {
+                        selectedDiv.innerHTML = '';
+                        let any = false;
+                        optionsList.querySelectorAll('.branch-checkbox').forEach(cb => {
+                            if (cb.checked) {
+                                any = true;
+                                const badge = document.createElement('span');
+                                badge.textContent = getBranchName(cb);
+                                badge.style.cssText = 'background:#007bff;color:#fff;padding:3px 10px;border-radius:12px;margin:2px 6px 2px 0;font-size:14px;display:inline-flex;align-items:center;';
+                                const remove = document.createElement('span');
+                                remove.textContent = '×';
+                                remove.style.cssText = 'margin-left:7px;cursor:pointer;font-weight:bold;';
+                                remove.onclick = function (e) {
+                                    e.stopPropagation();
+                                    cb.checked = false;
+                                    updateSelectedDisplay();
+                                    updateHiddenInput();
+                                };
+                                badge.appendChild(remove);
+                                selectedDiv.appendChild(badge);
+                            }
+                        });
+                        if (!any) selectedDiv.textContent = 'Select branches...';
+                    }
+                    function updateHiddenInput() {
+                        const checked = Array.from(optionsList.querySelectorAll('.branch-checkbox:checked')).map(cb => cb.value);
+                        hiddenInput.value = checked.join(',');
+                    }
+                    // Toggle dropdown
+                    selectedDiv.onclick = function (e) {
+                        if (dropdown.style.display === 'block') {
+                            dropdown.style.display = 'none';
+                        } else {
+                            dropdown.style.display = 'block';
+                            searchInput.value = '';
+                            filterOptions('');
+                            searchInput.focus();
+                        }
+                        e.stopPropagation();
+                    };
+                    // Prevent closing when clicking inside dropdown or multiselect
+                    dropdown.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+                    multiselect.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+                    // Close dropdown on outside click
+                    document.addEventListener('mousedown', function (e) {
+                        if (!multiselect.contains(e.target)) {
+                            dropdown.style.display = 'none';
+                        }
+                    });
+                    // Limit selection to 5
+                    optionsList.querySelectorAll('.branch-checkbox').forEach(cb => {
+                        cb.onchange = function () {
+                            const checked = optionsList.querySelectorAll('.branch-checkbox:checked');
+                            if (checked.length > 5) {
+                                cb.checked = false;
+                                alert('You can select up to 5 branches.');
+                            }
+                            updateSelectedDisplay();
+                            updateHiddenInput();
+                        };
+                    });
+                    // Search filter
+                    function filterOptions(query) {
+                        const q = query.trim().toLowerCase();
+                        optionsList.querySelectorAll('.branch-option').forEach(opt => {
+                            if (!q || opt.getAttribute('data-name').includes(q)) {
+                                opt.style.display = 'block';
+                            } else {
+                                opt.style.display = 'none';
+                            }
+                        });
+                    }
+                    searchInput.addEventListener('input', function () {
+                        filterOptions(this.value);
+                    });
+                    // Keyboard accessibility
+                    selectedDiv.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            if (dropdown.style.display === 'block') {
+                                dropdown.style.display = 'none';
+                            } else {
+                                dropdown.style.display = 'block';
+                                searchInput.value = '';
+                                filterOptions('');
+                                searchInput.focus();
+                            }
+                        }
+                    });
+                    // Initial state
+                    updateSelectedDisplay();
+                    updateHiddenInput();
+                }
+                // Setup for create request
+                setupBranchMultiselect('branch-multiselect', 'branch-dropdown', 'selected-branches', 'target_branch_ids', 'branch-search', 'branch-options-list');
+            });
+        </script>
 
 
         <!-- My Requests Tab -->
@@ -1019,8 +1021,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <?php foreach ($my_requests as $request): ?>
                     <?php
                     $status_class = $request['status'];
-                    $status_icon = $request['status'] === 'fulfilled' ? 'check-circle' : 
-                                  ($request['status'] === 'pending' ? 'clock' : 'times-circle');
+                    $status_icon = $request['status'] === 'fulfilled' ? 'check-circle' :
+                        ($request['status'] === 'pending' ? 'clock' : 'times-circle');
                     ?>
                     <div class="request-card">
                         <div class="card-header">
@@ -1041,7 +1043,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 </div>
                                 <div class="detail-value">
                                     <?php echo date('l, M j, Y', strtotime($request['shift_date'])); ?><br>
-                                    <?php echo date('g:i A', strtotime($request['start_time'])); ?> - 
+                                    <?php echo date('g:i A', strtotime($request['start_time'])); ?> -
                                     <?php echo date('g:i A', strtotime($request['end_time'])); ?>
                                 </div>
                             </div>
@@ -1083,7 +1085,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
                         <?php if ($request['status'] === 'pending'): ?>
                             <div class="card-actions">
-                                <form method="POST" style="display: inline-block;" onsubmit="return confirm('Are you sure you want to delete this request?')">
+                                <form method="POST" style="display: inline-block;"
+                                    onsubmit="return confirm('Are you sure you want to delete this request?')">
                                     <input type="hidden" name="delete_request_id" value="<?php echo $request['id']; ?>">
                                     <button type="submit" name="delete_request" class="btn btn-danger">
                                         <i class="fas fa-trash"></i>
@@ -1097,7 +1100,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             <?php endif; ?>
 
             <!-- Requests I Covered -->
-            <div style="background: white; border-radius: 8px; padding: 16px 20px; margin: 30px 0 16px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+            <div
+                style="background: white; border-radius: 8px; padding: 16px 20px; margin: 30px 0 16px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
                 <h2 style="margin: 0;"><i class="fas fa-check"></i> Requests I Covered</h2>
             </div>
             <?php if (empty($my_fulfilled)): ?>
@@ -1109,7 +1113,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <div class="request-card fulfilled">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <h3><i class="fas fa-user-check"></i> Covered:
-                                <?php echo htmlspecialchars($f['requesting_branch_name'] ?? 'requesting branch'); ?></h3>
+                                <?php echo htmlspecialchars($f['requesting_branch_name'] ?? 'requesting branch'); ?>
+                            </h3>
                             <span><?php echo date('M j, Y', strtotime($f['fulfilled_at'] ?? $f['created_at'])); ?></span>
                         </div>
                         <div class="request-details">
@@ -1117,7 +1122,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <div class="detail-label">When</div>
                                 <div class="detail-value"><?php echo date('M j, Y', strtotime($f['shift_date'])); ?>
                                     <?php echo date('g:i A', strtotime($f['start_time'])); ?> -
-                                    <?php echo date('g:i A', strtotime($f['end_time'])); ?></div>
+                                    <?php echo date('g:i A', strtotime($f['end_time'])); ?>
+                                </div>
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">Target Branch</div>
@@ -1639,7 +1645,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         // Tab functionality - make sure it's global
         function showTab(tabName) {
             console.log('showTab called with:', tabName); // Debug log
-            
+
             // Hide all tab contents
             const allTabContents = document.querySelectorAll('.tab-content');
             console.log('Found tab contents:', allTabContents.length);
@@ -1647,19 +1653,19 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 content.classList.remove('active');
                 console.log('Hiding:', content.id);
             });
-            
+
             // Remove active class from all tabs
             const allTabs = document.querySelectorAll('.tab');
             console.log('Found tabs:', allTabs.length);
             allTabs.forEach(tab => {
                 tab.classList.remove('active');
             });
-            
+
             // Show selected tab content
             const targetTabId = tabName + '-tab';
             const tabContent = document.getElementById(targetTabId);
             console.log('Looking for tab content:', targetTabId, 'Found:', !!tabContent);
-            
+
             if (tabContent) {
                 tabContent.classList.add('active');
                 console.log('Showing tab:', targetTabId);
@@ -1669,13 +1675,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 const allTabContents = document.querySelectorAll('[id$="-tab"]');
                 console.log('Available tab IDs:', Array.from(allTabContents).map(el => el.id));
             }
-            
+
             // Add active class to clicked tab - get event from global scope if available
             let clickedTab = null;
             if (typeof event !== 'undefined' && event.target) {
                 clickedTab = event.target.closest('.tab');
             }
-            
+
             // Fallback: find the tab button that corresponds to this tabName
             if (!clickedTab) {
                 const tabButtons = document.querySelectorAll('.tab');
@@ -1686,7 +1692,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     }
                 }
             }
-            
+
             if (clickedTab) {
                 clickedTab.classList.add('active');
                 console.log('Made tab active:', clickedTab);
@@ -1700,14 +1706,14 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             console.log('Testing tabs...');
             console.log('Available tab elements:', document.querySelectorAll('.tab-content'));
             console.log('Tab buttons:', document.querySelectorAll('.tab'));
-            
+
             // Test each tab
             ['available', 'create', 'my-requests', 'swap'].forEach(tabName => {
                 console.log(`Testing ${tabName}...`);
                 showTab(tabName);
             });
         }
-        
+
         // Make functions global for console access
         window.showTab = showTab;
         window.testTabs = testTabs;
@@ -1716,9 +1722,9 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             // Tab setup - add event listeners to all tab buttons
             const tabButtons = document.querySelectorAll('.tab');
             console.log('Setting up tabs, found buttons:', tabButtons.length);
-            
+
             tabButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
+                button.addEventListener('click', function (e) {
                     e.preventDefault();
                     const onclick = this.getAttribute('onclick');
                     if (onclick) {
@@ -1731,7 +1737,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     }
                 });
             });
-            
+
             // Notification setup
             var notificationIcon = document.getElementById('notification-icon');
             var dropdown = document.getElementById('notification-dropdown');
