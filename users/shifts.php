@@ -144,7 +144,7 @@ if ($user_id) {
                 var saved = localStorage.getItem('rota_theme');
                 if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
             }
-        } catch (e) {}
+        } catch (e) { }
     </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -156,7 +156,13 @@ if ($user_id) {
     <link rel="apple-touch-icon" href="../images/icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="../css/dark_mode.css">
-    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <style>
+        [data-theme="dark"] .page-header,
+        [data-theme="dark"] .current-branch-info {
+            background: transparent !important;
+            color: var(--text) !important;
+        }
+    </style>
     <?php
     if (isset($_SESSION['user_id'])) {
         try {
@@ -167,7 +173,8 @@ if ($user_id) {
             if ($userTheme === 'dark') {
                 echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
             }
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
     }
     ?>
     <title>Your Shifts - Open Rota</title>
@@ -312,16 +319,16 @@ if ($user_id) {
             border-bottom: 1px solid #eee;
         }
 
-      
+
 
         .shift-actions {
             display: flex;
             gap: 10px;
         }
 
-    .editBtn,
-    .deleteBtn,
-    .swapBtn {
+        .editBtn,
+        .deleteBtn,
+        .swapBtn {
             padding: 6px 12px;
             border: none;
             border-radius: 4px;
@@ -397,7 +404,7 @@ if ($user_id) {
         .close-modal:hover {
             color: #fd2b2b;
         }
-        
+
         #toggleAddShiftBtn {
             background-color: #fd2b2b;
             color: white;
@@ -896,20 +903,21 @@ if ($user_id) {
                         <?php foreach ($notifications as $notification): ?>
                             <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
-                                   data-id="<?php echo $notification['id']; ?>"
-                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    data-id="<?php echo $notification['id']; ?>"
+                                    href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </a>
                             <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
-                                   data-id="<?php echo $notification['id']; ?>"
-                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    data-id="<?php echo $notification['id']; ?>"
+                                    href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </a>
                             <?php else: ?>
-                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>"
+                                    data-id="<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </div>
@@ -936,9 +944,9 @@ if ($user_id) {
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-               <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
-                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
-                    <?php endif; ?>
+                <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
+                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                <?php endif; ?>
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
@@ -1046,7 +1054,8 @@ if ($user_id) {
             <!-- Add Shift Form (Hidden by Default) -->
             <div id="addShiftSection" style="display:none;" class="add-shift-section">
                 <form id="addShiftForm" method="POST" action="../functions/add_shift.php">
-                    <div id="addShiftMessage" style="display:none; margin-bottom:10px; padding:8px; border-radius:4px;"></div>
+                    <div id="addShiftMessage" style="display:none; margin-bottom:10px; padding:8px; border-radius:4px;">
+                    </div>
                     <div class="add-shift-form">
                         <div class="form-group">
                             <label for="shift_date"><i class="fa fa-calendar-o"></i> Date:</label>
@@ -1072,14 +1081,19 @@ if ($user_id) {
                             <input type="time" id="end_time" name="end_time" required />
                         </div>
                         <div class="form-group">
-                            <label for="branch_search"><i class="fa fa-building"></i> Branch (default to your branch):</label>
-                            <input list="branches_list" id="branch_search" name="branch_search" placeholder="Search branch or keep your branch" value="<?php echo htmlspecialchars($user_branch['name'] ?? ''); ?>" />
+                            <label for="branch_search"><i class="fa fa-building"></i> Branch (default to your
+                                branch):</label>
+                            <input list="branches_list" id="branch_search" name="branch_search"
+                                placeholder="Search branch or keep your branch"
+                                value="<?php echo htmlspecialchars($user_branch['name'] ?? ''); ?>" />
                             <datalist id="branches_list"></datalist>
-                            <input type="hidden" id="branch_id" name="branch_id" value="<?php echo htmlspecialchars($user_branch['id'] ?? ''); ?>">
+                            <input type="hidden" id="branch_id" name="branch_id"
+                                value="<?php echo htmlspecialchars($user_branch['id'] ?? ''); ?>">
                         </div>
                         <div class="form-group">
                             <label for="location"><i class="fa fa-map-marker"></i> Location:</label>
-                            <input type="text" id="location" name="location" required placeholder="Enter work location" value="<?php echo htmlspecialchars(isset($user_branch) && $user_branch ? ($user_branch['name']) : ''); ?>" />
+                            <input type="text" id="location" name="location" required placeholder="Enter work location"
+                                value="<?php echo htmlspecialchars(isset($user_branch) && $user_branch ? ($user_branch['name']) : ''); ?>" />
                         </div>
                     </div>
                     <button class="btn save-shift-btn" type="submit"><i class="fa fa-save"></i> Save Shift</button>
@@ -1233,13 +1247,16 @@ if ($user_id) {
                         <select id="swap_to_user_id" name="to_user_id" required>
                             <option value="">-- Select user --</option>
                             <?php foreach ($all_users as $u): ?>
-                                <?php if ($u['id'] == $user_id) continue; ?>
-                                <option value="<?php echo $u['id']; ?>"><?php echo htmlspecialchars($u['username']); ?></option>
+                                <?php if ($u['id'] == $user_id)
+                                    continue; ?>
+                                <option value="<?php echo $u['id']; ?>"><?php echo htmlspecialchars($u['username']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-group">
-                        <small id="swap-help">Only select the user you'd like to request a swap with — the recipient will choose which of their shifts to give when accepting.</small>
+                        <small id="swap-help">Only select the user you'd like to request a swap with — the recipient
+                            will choose which of their shifts to give when accepting.</small>
                     </div>
                     <button type="submit" class="editBtn save-shift-btn">Send Proposal</button>
                 </form>
@@ -1373,12 +1390,12 @@ if ($user_id) {
             }
 
             // AJAX submit for Add Shift form with inline messages
-            (function setupAddShiftAjax(){
+            (function setupAddShiftAjax() {
                 const addForm = document.getElementById('addShiftForm');
                 const msgBox = document.getElementById('addShiftMessage');
                 if (!addForm) return;
 
-                addForm.addEventListener('submit', function(e){
+                addForm.addEventListener('submit', function (e) {
                     e.preventDefault();
                     if (!msgBox) return;
                     msgBox.style.display = 'none';
@@ -1395,62 +1412,62 @@ if ($user_id) {
                             'Accept': 'application/json'
                         }
                     })
-                    .then(async res => {
-                        // Try JSON first
-                        let payload;
-                        try {
-                            payload = await res.json();
-                        } catch (err) {
-                            // Not JSON - try to read text
+                        .then(async res => {
+                            // Try JSON first
+                            let payload;
                             try {
-                                const txt = await res.text();
-                                payload = { success: false, message: txt };
-                            } catch (t) {
-                                payload = { success: false, message: 'Unexpected server response.' };
+                                payload = await res.json();
+                            } catch (err) {
+                                // Not JSON - try to read text
+                                try {
+                                    const txt = await res.text();
+                                    payload = { success: false, message: txt };
+                                } catch (t) {
+                                    payload = { success: false, message: 'Unexpected server response.' };
+                                }
                             }
-                        }
 
-                        // Normalize message
-                        let userMessage = payload && payload.message ? String(payload.message) : '';
-                        // Map known server messages to friendlier versions
-                        if (userMessage.match(/manager/i) || userMessage.match(/manage/i)) {
-                            userMessage = 'Only users with manager-level access can add shifts at other branches.';
-                        } else if (userMessage.match(/Selected branch does not exist/i)) {
-                            userMessage = 'The selected branch could not be found. Please choose a valid branch.';
-                        } else if (userMessage.match(/All fields are required/i)) {
-                            userMessage = 'Please complete all required fields (date, times, role and location).';
-                        } else if (!userMessage) {
-                            userMessage = 'Failed to add shift.';
-                        }
+                            // Normalize message
+                            let userMessage = payload && payload.message ? String(payload.message) : '';
+                            // Map known server messages to friendlier versions
+                            if (userMessage.match(/manager/i) || userMessage.match(/manage/i)) {
+                                userMessage = 'Only users with manager-level access can add shifts at other branches.';
+                            } else if (userMessage.match(/Selected branch does not exist/i)) {
+                                userMessage = 'The selected branch could not be found. Please choose a valid branch.';
+                            } else if (userMessage.match(/All fields are required/i)) {
+                                userMessage = 'Please complete all required fields (date, times, role and location).';
+                            } else if (!userMessage) {
+                                userMessage = 'Failed to add shift.';
+                            }
 
-                        if (payload && payload.success) {
-                            msgBox.style.display = 'block';
-                            msgBox.style.background = '#e6ffed';
-                            msgBox.style.border = '1px solid #3cb371';
-                            msgBox.style.color = '#046b2f';
-                            msgBox.textContent = userMessage;
-                            setTimeout(() => { location.reload(); }, 900);
-                        } else {
+                            if (payload && payload.success) {
+                                msgBox.style.display = 'block';
+                                msgBox.style.background = '#e6ffed';
+                                msgBox.style.border = '1px solid #3cb371';
+                                msgBox.style.color = '#046b2f';
+                                msgBox.textContent = userMessage;
+                                setTimeout(() => { location.reload(); }, 900);
+                            } else {
+                                msgBox.style.display = 'block';
+                                msgBox.style.background = '#fff1f0';
+                                msgBox.style.border = '1px solid #e04b4b';
+                                msgBox.style.color = '#a10000';
+                                msgBox.textContent = userMessage;
+                            }
+                        })
+                        .catch(err => {
                             msgBox.style.display = 'block';
                             msgBox.style.background = '#fff1f0';
                             msgBox.style.border = '1px solid #e04b4b';
                             msgBox.style.color = '#a10000';
-                            msgBox.textContent = userMessage;
-                        }
-                    })
-                    .catch(err => {
-                        msgBox.style.display = 'block';
-                        msgBox.style.background = '#fff1f0';
-                        msgBox.style.border = '1px solid #e04b4b';
-                        msgBox.style.color = '#a10000';
-                        msgBox.textContent = 'Network error while saving shift.';
-                        console.error('Add Shift AJAX error', err);
-                    });
+                            msgBox.textContent = 'Network error while saving shift.';
+                            console.error('Add Shift AJAX error', err);
+                        });
                 });
             })();
 
             // Fetch branches and populate branch selector; default to user's branch
-            (function setupBranchSelector(){
+            (function setupBranchSelector() {
                 const branchList = document.getElementById('branches_list');
                 const branchSearch = document.getElementById('branch_search');
                 const branchIdInput = document.getElementById('branch_id');
@@ -1483,7 +1500,7 @@ if ($user_id) {
                     .catch(err => console.error('Failed to load branches:', err));
 
                 // When user types/selects a branch from the datalist, try to set the branch_id and prefill location
-                branchSearch.addEventListener('input', function(e){
+                branchSearch.addEventListener('input', function (e) {
                     const val = this.value;
                     // find matching option
                     const opts = branchList.querySelectorAll('option');

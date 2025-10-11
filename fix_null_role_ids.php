@@ -20,12 +20,12 @@ if (empty($null_requests)) {
     foreach ($null_requests as $req) {
         echo "ID: {$req['id']}, Time: {$req['start_time']}-{$req['end_time']}, Status: {$req['status']}\n";
     }
-    
+
     // Update them to use CSA role (id=4) as default
     echo "\nUpdating NULL role_id values to CSA role (id=4)...\n";
     $update_stmt = $conn->prepare("UPDATE cross_branch_shift_requests SET role_id = 4 WHERE role_id IS NULL");
     $result = $update_stmt->execute();
-    
+
     if ($result) {
         $affected = $update_stmt->rowCount();
         echo "Successfully updated {$affected} records.\n";
