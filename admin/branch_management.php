@@ -287,10 +287,11 @@ $branches = $branchesStmt->fetchAll(PDO::FETCH_ASSOC);
                                                     <label>
                                                         <i class="fas fa-tag"></i> Branch Code *
                                                     </label>
-                                                    <input type="text" name="code" class="form-control" 
-                                                        value="<?php echo htmlspecialchars($branch['code']); ?>" 
-                                                        maxlength="10" style="text-transform: uppercase;" required>
-                                                    <small class="form-help">Unique identifier for this branch (e.g., NYC, LON, etc.)</small>
+                                                    <input type="text" name="code" class="form-control"
+                                                        value="<?php echo htmlspecialchars($branch['code']); ?>" maxlength="10"
+                                                        style="text-transform: uppercase;" required>
+                                                    <small class="form-help">Unique identifier for this branch (e.g., NYC, LON,
+                                                        etc.)</small>
                                                 </div>
                                                 <?php if ($isSuperAdmin): ?>
                                                     <div class="form-group">
@@ -438,13 +439,13 @@ $branches = $branchesStmt->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
-    
+
     <script>
         // Auto-uppercase branch code fields as users type
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const codeInputs = document.querySelectorAll('input[name="code"]');
-            codeInputs.forEach(function(input) {
-                input.addEventListener('input', function() {
+            codeInputs.forEach(function (input) {
+                input.addEventListener('input', function () {
                     this.value = this.value.toUpperCase();
                 });
             });
