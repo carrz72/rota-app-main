@@ -391,7 +391,7 @@ $sql = "SELECT cbr.*, rb.name AS requesting_branch_name, u.username AS requested
         JOIN branches rb ON cbr.requesting_branch_id=rb.id
         JOIN users u ON cbr.requested_by_user_id=u.id
         LEFT JOIN roles r ON cbr.role_id = r.id
-        WHERE cbr.target_branch_id=? AND cbr.status='pending' AND cbr.expires_at>NOW()
+        WHERE cbr.target_branch_id=? AND cbr.status='pending' AND cbr.expires_at>NOW() AND cbr.role_id IS NOT NULL
         ORDER BY cbr.urgency_level DESC, cbr.created_at ASC";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$user_branch_id]);

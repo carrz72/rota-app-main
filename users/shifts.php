@@ -3,6 +3,7 @@ require_once '../includes/auth.php';
 requireLogin();
 require_once '../includes/db.php';
 require_once '../functions/payroll_functions.php';
+require_once '../functions/calculate_pay.php';
 
 $user_id = $_SESSION['user_id'];
 
@@ -84,7 +85,7 @@ $stmtUserBranch = $conn->prepare("SELECT b.id, b.name, b.address FROM users u LE
 $stmtUserBranch->execute([$user_id]);
 $user_branch = $stmtUserBranch->fetch(PDO::FETCH_ASSOC);
 
-// Calculate pay for each shift using improved logic
+// Calculate pay for each shift using corrected payroll calculation
 foreach ($shifts as &$shift) {
     $start_time = strtotime($shift['start_time']);
     $end_time = strtotime($shift['end_time']);
@@ -104,40 +105,16 @@ foreach ($shifts as &$shift) {
         $working_days_per_month = 22; // Average working days
         $shift['pay'] = ($monthly_salary / $working_days_per_month) * ($hours / 8); // Assuming 8-hour standard day
     } else {
-        // For hourly employees, use detailed calculation
-        $base_rate = $user_role['base_pay'] ?? 10; // Default rate if not set
-        $night_rate = $user_role['night_shift_pay'] ?? $base_rate;
-
-        $regular_pay = 0;
-        $night_pay = 0;
-
-        if ($user_role['has_night_pay'] && $user_role['night_start_time'] && $user_role['night_end_time']) {
-            $night_start = strtotime($user_role['night_start_time']);
-            $night_end = strtotime($user_role['night_end_time']);
-
-            // Handle night period crossing midnight
-            if ($night_end < $night_start) {
-                $night_end += 86400;
-            }
-
-            // Calculate overlap with night hours
-            $overlap_start = max($start_time, $night_start);
-            $overlap_end = min($end_time, $night_end);
-
-            if ($overlap_start < $overlap_end) {
-                $night_hours = ($overlap_end - $overlap_start) / 3600;
-                $regular_hours = $hours - $night_hours;
-
-                $night_pay = $night_hours * $night_rate;
-                $regular_pay = $regular_hours * $base_rate;
-            } else {
-                $regular_pay = $hours * $base_rate;
-            }
-        } else {
-            $regular_pay = $hours * $base_rate;
-        }
-
-        $shift['pay'] = $regular_pay + $night_pay;
+        // For hourly employees, use the corrected calculation function
+        $shift['pay'] = calculateShiftPay(
+            $shift['start_time'],
+            $shift['end_time'],
+            $shift['base_pay'],
+            $shift['has_night_pay'],
+            $shift['night_shift_pay'],
+            $shift['night_start_time'],
+            $shift['night_end_time']
+        );
     }
 
     $total_earnings += $shift['pay'];
