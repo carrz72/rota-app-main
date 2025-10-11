@@ -57,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_branch'])) {
         $branchId = (int) $_POST['branch_id'];
         $name = trim($_POST['name'] ?? '');
+        $code = strtoupper(trim($_POST['code'] ?? ''));
         $phone = trim($_POST['phone'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $address = trim($_POST['address'] ?? '');
@@ -67,15 +68,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$canEdit) {
             $errorMessage = "You can only edit your own branch.";
-        } elseif (empty($name)) {
-            $errorMessage = "Branch name is required.";
+        } elseif (empty($name) || empty($code)) {
+            $errorMessage = "Branch name and code are required.";
         } else {
             try {
-                $updateStmt = $conn->prepare("UPDATE branches SET name = ?, phone = ?, email = ?, address = ?, status = ? WHERE id = ?");
-                if ($updateStmt->execute([$name, $phone, $email, $address, $status, $branchId])) {
-                    $successMessage = "Branch updated successfully!";
+                // Check if code already exists for other branches
+                $checkStmt = $conn->prepare("SELECT id FROM branches WHERE code = ? AND id != ?");
+                $checkStmt->execute([$code, $branchId]);
+                if ($checkStmt->fetch()) {
+                    $errorMessage = "Branch code already exists. Please choose a different code.";
                 } else {
-                    $errorMessage = "Error updating branch. Please try again.";
+                    $updateStmt = $conn->prepare("UPDATE branches SET name = ?, code = ?, phone = ?, email = ?, address = ?, status = ? WHERE id = ?");
+                    if ($updateStmt->execute([$name, $code, $phone, $email, $address, $status, $branchId])) {
+                        $successMessage = "Branch updated successfully!";
+                    } else {
+                        $errorMessage = "Error updating branch. Please try again.";
+                    }
                 }
             } catch (PDOException $e) {
                 $errorMessage = "Database error: " . $e->getMessage();
@@ -275,6 +283,15 @@ $branches = $branchesStmt->fetchAll(PDO::FETCH_ASSOC);
                                                     <input type="text" name="name" class="form-control"
                                                         value="<?php echo htmlspecialchars($branch['name']); ?>" required>
                                                 </div>
+                                                <div class="form-group">
+                                                    <label>
+                                                        <i class="fas fa-tag"></i> Branch Code *
+                                                    </label>
+                                                    <input type="text" name="code" class="form-control" 
+                                                        value="<?php echo htmlspecialchars($branch['code']); ?>" 
+                                                        maxlength="10" style="text-transform: uppercase;" required>
+                                                    <small class="form-help">Unique identifier for this branch (e.g., NYC, LON, etc.)</small>
+                                                </div>
                                                 <?php if ($isSuperAdmin): ?>
                                                     <div class="form-group">
                                                         <label>
@@ -421,6 +438,18 @@ $branches = $branchesStmt->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
+    
+    <script>
+        // Auto-uppercase branch code fields as users type
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeInputs = document.querySelectorAll('input[name="code"]');
+            codeInputs.forEach(function(input) {
+                input.addEventListener('input', function() {
+                    this.value = this.value.toUpperCase();
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>
