@@ -1051,7 +1051,7 @@ if ($user_id) {
         html[data-theme='dark'] .shift-card {
             background: var(--panel) !important;
             color: var(--text) !important;
-            border-color: rgba(255,255,255,0.03) !important;
+            border-color: rgba(255, 255, 255, 0.03) !important;
             box-shadow: var(--card-shadow) !important;
         }
 
@@ -1061,7 +1061,7 @@ if ($user_id) {
         }
 
         html[data-theme='dark'] .shift-card {
-            background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent) !important;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent) !important;
             color: var(--text) !important;
             border-left-width: 4px !important;
         }
@@ -1423,13 +1423,13 @@ if ($user_id) {
                                             <?php
                                             $roleColor = $roleColors[$shift['role']] ?? $roleColors['default'];
                                             ?>
-                                            <div class="shift-card" style="border-left-color: <?php echo $roleColor; ?>;" 
-                                                 data-shift-id="<?php echo $shift['id']; ?>"
-                                                 data-shift-date="<?php echo $shift['shift_date']; ?>"
-                                                 data-start-time="<?php echo $shift['start_time']; ?>"
-                                                 data-end-time="<?php echo $shift['end_time']; ?>"
-                                                 data-role-id="<?php echo $shift['role_id']; ?>"
-                                                 data-location="<?php echo htmlspecialchars($shift['location']); ?>">
+                                            <div class="shift-card" style="border-left-color: <?php echo $roleColor; ?>;"
+                                                data-shift-id="<?php echo $shift['id']; ?>"
+                                                data-shift-date="<?php echo $shift['shift_date']; ?>"
+                                                data-start-time="<?php echo $shift['start_time']; ?>"
+                                                data-end-time="<?php echo $shift['end_time']; ?>"
+                                                data-role-id="<?php echo $shift['role_id']; ?>"
+                                                data-location="<?php echo htmlspecialchars($shift['location']); ?>">
                                                 <div class="shift-time">
                                                     <?php echo date("g:i A", strtotime($shift['start_time'])); ?> -
                                                     <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
@@ -1446,19 +1446,19 @@ if ($user_id) {
                                                     ?>
                                                 </div>
                                                 <small><strong>£<?php echo number_format($shift['pay'], 2); ?></strong></small>
-                                                
+
                                                 <!-- Quick actions for calendar view -->
                                                 <div style="margin-top: 5px; display: flex; gap: 5px;">
-                                                    <button class="editBtn" data-id="<?php echo $shift['id']; ?>" 
-                                                            style="padding: 2px 6px; font-size: 10px; background: #3366cc; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                                    <button class="editBtn" data-id="<?php echo $shift['id']; ?>"
+                                                        style="padding: 2px 6px; font-size: 10px; background: #3366cc; color: white; border: none; border-radius: 3px; cursor: pointer;">
                                                         <i class="fa fa-pencil"></i>
                                                     </button>
-                                                    <button class="deleteBtn" data-id="<?php echo $shift['id']; ?>" 
-                                                            style="padding: 2px 6px; font-size: 10px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                                    <button class="deleteBtn" data-id="<?php echo $shift['id']; ?>"
+                                                        style="padding: 2px 6px; font-size: 10px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
                                                         <i class="fa fa-trash"></i>
                                                     </button>
-                                                    <button class="swapBtn" data-id="<?php echo $shift['id']; ?>" 
-                                                            style="padding: 2px 6px; font-size: 10px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                                    <button class="swapBtn" data-id="<?php echo $shift['id']; ?>"
+                                                        style="padding: 2px 6px; font-size: 10px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">
                                                         <i class="fa fa-exchange"></i>
                                                     </button>
                                                 </div>
@@ -1466,7 +1466,7 @@ if ($user_id) {
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </div>
-                            <?php
+                                <?php
                             endforeach;
                         endif;
                         ?>
@@ -1486,7 +1486,7 @@ if ($user_id) {
                                         <span class="day-number"><?php echo $dayNumber; ?></span>
                                     </div>
                                 </div>
-                            <?php
+                                <?php
                             endforeach;
                         endif;
                         ?>
@@ -2024,7 +2024,7 @@ if ($user_id) {
             editBtns.forEach(btn => {
                 btn.addEventListener("click", function () {
                     const shiftId = this.dataset.id;
-                    
+
                     // Check if we're in calendar view or table view
                     const shiftCard = this.closest(".shift-card");
                     if (shiftCard) {
@@ -2035,7 +2035,7 @@ if ($user_id) {
                         document.getElementById("edit_end_time").value = shiftCard.dataset.endTime;
                         document.getElementById("edit_location").value = shiftCard.dataset.location;
                         document.getElementById("edit_role_id").value = shiftCard.dataset.roleId;
-                        
+
                     } else {
                         // Table view - original logic
                         const row = this.closest("tr");
