@@ -1,9 +1,19 @@
 <?php
+// Enable error reporting for debugging deployment issues
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+
 session_start();
-require_once '../includes/auth.php';
-requireLogin(); // Only logged-in users can access
-require_once '../includes/db.php';
-require_once '../functions/branch_functions.php';
+
+try {
+    require_once '../includes/auth.php';
+    requireLogin(); // Only logged-in users can access
+    require_once '../includes/db.php';
+    require_once '../functions/branch_functions.php';
+} catch (Exception $e) {
+    die("Error loading required files: " . $e->getMessage());
+}
 
 $user_id = $_SESSION['user_id'];
 
@@ -306,14 +316,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['offer_coverage'])) {
 
 // Fetch dropdowns
 
-require_once __DIR__ . '/../functions/coverage_pay_helper.php';
-$all_branches = getAllBranches($conn);
-$roles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    require_once '../functions/coverage_pay_helper.php';
+    $all_branches = getAllBranches($conn);
+    $roles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    die("Error loading coverage data: " . $e->getMessage());
+}
 
 // Fetch user's upcoming shifts for swap proposals
-$my_shifts_stmt = $conn->prepare("SELECT s.*, r.name as role_name FROM shifts s LEFT JOIN roles r ON s.role_id = r.id WHERE s.user_id = ? AND s.shift_date >= CURDATE() ORDER BY s.shift_date, s.start_time");
-$my_shifts_stmt->execute([$user_id]);
-$my_shifts = $my_shifts_stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $my_shifts_stmt = $conn->prepare("SELECT s.*, r.name as role_name FROM shifts s LEFT JOIN roles r ON s.role_id = r.id WHERE s.user_id = ? AND s.shift_date >= CURDATE() ORDER BY s.shift_date, s.start_time");
+    $my_shifts_stmt->execute([$user_id]);
+    $my_shifts = $my_shifts_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    die("Error fetching user shifts: " . $e->getMessage());
+}
 
 // Handle shift swap proposal
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_swap'])) {
