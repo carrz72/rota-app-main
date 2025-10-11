@@ -13,7 +13,7 @@ echo "<h2>Testing includes...</h2>";
 
 $includes_to_test = [
     '../includes/auth.php',
-    '../includes/db.php', 
+    '../includes/db.php',
     '../functions/branch_functions.php',
     '../includes/notifications.php',
     '../functions/coverage_pay_helper.php'
@@ -40,7 +40,7 @@ echo "<h2>Testing database connection...</h2>";
 try {
     if (isset($conn)) {
         echo "<p style='color: green'>✓ Database connection exists</p>";
-        
+
         // Test a simple query
         $test = $conn->query("SELECT 1 as test")->fetch();
         if ($test['test'] == 1) {

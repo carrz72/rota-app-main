@@ -15,24 +15,24 @@ echo "<h2>Database Functions Test</h2>";
 
 try {
     require_once '../includes/db.php';
-    
+
     // Test NOW() function
     $now_test = $conn->query("SELECT NOW() as now_time")->fetch();
     echo "NOW() works: " . $now_test['now_time'] . "<br>";
-    
+
     // Test CURDATE() function  
     $date_test = $conn->query("SELECT CURDATE() as current_date")->fetch();
     echo "CURDATE() works: " . $date_test['current_date'] . "<br>";
-    
+
     // Test if key tables exist
     $tables_to_check = [
         'cross_branch_shift_requests',
-        'branches', 
+        'branches',
         'users',
         'roles',
         'shifts'
     ];
-    
+
     echo "<h3>Table Existence Check</h3>";
     foreach ($tables_to_check as $table) {
         try {
@@ -42,7 +42,7 @@ try {
             echo "✗ Table '$table' error: " . $e->getMessage() . "<br>";
         }
     }
-    
+
 } catch (Exception $e) {
     echo "Database error: " . $e->getMessage() . "<br>";
 }
