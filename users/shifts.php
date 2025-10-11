@@ -47,6 +47,16 @@ if ($period == 'week') {
 $stmtRoles = $conn->query("SELECT id, name FROM roles ORDER BY name ASC");
 $roles = $stmtRoles->fetchAll(PDO::FETCH_ASSOC);
 
+// Load user's saved templates
+$templates = [];
+try {
+    $templates_stmt = $conn->prepare("SELECT * FROM shift_templates WHERE user_id = ? ORDER BY template_name");
+    $templates_stmt->execute([$user_id]);
+    $templates = $templates_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Templates table might not exist yet - that's OK
+}
+
 // Fetch all users for swap dropdown
 $stmtUsers = $conn->query("SELECT id, username FROM users ORDER BY username ASC");
 $all_users = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
@@ -1056,11 +1066,110 @@ if ($user_id) {
                 <form id="addShiftForm" method="POST" action="../functions/add_shift.php">
                     <div id="addShiftMessage" style="display:none; margin-bottom:10px; padding:8px; border-radius:4px;">
                     </div>
+                    <!-- Enhanced Form with Templates and Bulk Options -->
+                    <div class="form-options"
+                        style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="shift_mode" value="single" checked
+                                    onchange="toggleShiftMode()">
+                                <i class="fa fa-calendar"></i> Single Shift
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="shift_mode" value="multiple" onchange="toggleShiftMode()">
+                                <i class="fa fa-calendar-o"></i> Multiple Days
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="shift_mode" value="template" onchange="toggleShiftMode()">
+                                <i class="fa fa-save"></i> Save as Template
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Quick Template Loader -->
+                    <?php if (!empty($templates)): ?>
+                        <div class="template-loader"
+                            style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb;">
+                            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                                    <i class="fa fa-flash"></i> Quick Load Template:
+                                </label>
+                                <select id="template-selector"
+                                    style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; max-width: 250px;">
+                                    <option value="">-- Select a template --</option>
+                                    <?php foreach ($templates as $template): ?>
+                                        <option value="<?php echo htmlspecialchars(json_encode($template)); ?>">
+                                            <?php echo htmlspecialchars($template['template_name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button type="button" onclick="loadTemplate()"
+                                    style="padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer;">
+                                    <i class="fa fa-download"></i> Load
+                                </button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="add-shift-form">
-                        <div class="form-group">
+                        <!-- Single Date Input -->
+                        <div class="form-group" id="single-date-group">
                             <label for="shift_date"><i class="fa fa-calendar-o"></i> Date:</label>
                             <input type="date" id="shift_date" name="shift_date" required />
                         </div>
+
+                        <!-- Multiple Dates Input -->
+                        <div class="form-group" id="multiple-dates-group" style="display: none;">
+                            <label><i class="fa fa-calendar"></i> Multiple Dates:</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label for="start_date" style="font-size: 0.9em; margin-bottom: 5px;">From:</label>
+                                    <input type="date" name="start_date" id="start_date"
+                                        value="<?php echo date('Y-m-d'); ?>">
+                                </div>
+                                <div>
+                                    <label for="end_date" style="font-size: 0.9em; margin-bottom: 5px;">To:</label>
+                                    <input type="date" name="end_date" id="end_date"
+                                        value="<?php echo date('Y-m-d', strtotime('+6 days')); ?>">
+                                </div>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.9em; margin-bottom: 5px;">Days of Week:</label>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <label style="font-size: 0.85em; cursor: pointer;"><input type="checkbox"
+                                            name="days[]" value="1" checked> Mon</label>
+                                    <label style="font-size: 0.85em; cursor: pointer;"><input type="checkbox"
+                                            name="days[]" value="2" checked> Tue</label>
+                                    <label style="font-size: 0.85em; cursor: pointer;"><input type="checkbox"
+                                            name="days[]" value="3" checked> Wed</label>
+                                    <label style="font-size: 0.85em; cursor: pointer;"><input type="checkbox"
+                                            name="days[]" value="4" checked> Thu</label>
+                                    <label style="font-size: 0.85em; cursor: pointer;"><input type="checkbox"
+                                            name="days[]" value="5" checked> Fri</label>
+                                    <label style="font-size: 0.85em; cursor: pointer;"><input type="checkbox"
+                                            name="days[]" value="6"> Sat</label>
+                                    <label style="font-size: 0.85em; cursor: pointer;"><input type="checkbox"
+                                            name="days[]" value="0"> Sun</label>
+                                </div>
+                                <div style="margin-top: 5px; display: flex; gap: 5px;">
+                                    <button type="button" onclick="toggleWeekdays(true)"
+                                        style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Weekdays</button>
+                                    <button type="button" onclick="toggleWeekdays(false)"
+                                        style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Clear
+                                        All</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Template Name Input -->
+                        <div class="form-group" id="template-name-group" style="display: none;">
+                            <label for="template_name"><i class="fa fa-tag"></i> Template Name:</label>
+                            <input type="text" name="template_name" id="template_name"
+                                placeholder="e.g., Morning Shift, Weekend Work">
+                            <small style="color: #6c757d; font-size: 0.85em; display: block; margin-top: 4px;">Save this
+                                shift configuration for quick reuse</small>
+                        </div>
+
                         <div class="form-group">
                             <label for="role_id"><i class="fa fa-briefcase"></i> Role:</label>
                             <select name="role_id" id="role_id" required>
@@ -1075,6 +1184,19 @@ if ($user_id) {
                         <div class="form-group">
                             <label for="start_time"><i class="fa fa-clock-o"></i> Start Time:</label>
                             <input type="time" id="start_time" name="start_time" required />
+                            <div style="margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap;">
+                                <button type="button" onclick="setQuickTime('09:00', '17:00')"
+                                    style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">9-5</button>
+                                <button type="button" onclick="setQuickTime('08:00', '16:00')"
+                                    style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">8-4</button>
+                                <button type="button" onclick="setQuickTime('10:00', '18:00')"
+                                    style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">10-6</button>
+                                <button type="button" onclick="setQuickTime('22:00', '06:00')"
+                                    style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Night</button>
+                                <button type="button" onclick="setQuickTime('18:30', '06:30')"
+                                    style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Night
+                                    GXO</button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="end_time"><i class="fa fa-clock-o"></i> End Time:</label>
@@ -1096,7 +1218,8 @@ if ($user_id) {
                                 value="<?php echo htmlspecialchars(isset($user_branch) && $user_branch ? ($user_branch['name']) : ''); ?>" />
                         </div>
                     </div>
-                    <button class="btn save-shift-btn" type="submit"><i class="fa fa-save"></i> Save Shift</button>
+                    <button class="btn save-shift-btn" type="submit" id="submit-btn"><i class="fa fa-save"></i> Save
+                        Shift</button>
                 </form>
             </div>
 
@@ -1264,6 +1387,96 @@ if ($user_id) {
         </div>
     </div>
     <script>
+        // Enhanced Shift Management Functions
+        function toggleShiftMode() {
+            const mode = document.querySelector('input[name="shift_mode"]:checked').value;
+            const singleGroup = document.getElementById('single-date-group');
+            const multipleGroup = document.getElementById('multiple-dates-group');
+            const templateGroup = document.getElementById('template-name-group');
+            const submitBtn = document.getElementById('submit-btn');
+
+            // Hide all groups first
+            singleGroup.style.display = 'none';
+            multipleGroup.style.display = 'none';
+            templateGroup.style.display = 'none';
+
+            // Show relevant group based on mode
+            switch (mode) {
+                case 'single':
+                    singleGroup.style.display = 'block';
+                    if (submitBtn) submitBtn.innerHTML = '<i class="fa fa-save"></i> Save Shift';
+                    break;
+                case 'multiple':
+                    multipleGroup.style.display = 'block';
+                    if (submitBtn) submitBtn.innerHTML = '<i class="fa fa-calendar"></i> Add Multiple Shifts';
+                    break;
+                case 'template':
+                    singleGroup.style.display = 'block';
+                    templateGroup.style.display = 'block';
+                    if (submitBtn) submitBtn.innerHTML = '<i class="fa fa-save"></i> Save Template';
+                    break;
+            }
+        }
+
+        // Quick fill times
+        function setQuickTime(start, end) {
+            const startField = document.getElementById('start_time');
+            const endField = document.getElementById('end_time');
+            if (startField) startField.value = start;
+            if (endField) endField.value = end;
+        }
+
+        // Select/deselect weekdays
+        function toggleWeekdays(selectAll) {
+            const checkboxes = document.querySelectorAll('input[name="days[]"]');
+            checkboxes.forEach(cb => {
+                if (selectAll) {
+                    cb.checked = (cb.value >= 1 && cb.value <= 5); // Mon-Fri only
+                } else {
+                    cb.checked = false;
+                }
+            });
+        }
+
+        // Load template data into form
+        function loadTemplate() {
+            const selector = document.getElementById('template-selector');
+            if (!selector) return;
+
+            const templateData = selector.value;
+            if (!templateData) return;
+
+            try {
+                const template = JSON.parse(templateData);
+
+                // Fill form fields
+                const roleField = document.getElementById('role_id');
+                const startField = document.getElementById('start_time');
+                const endField = document.getElementById('end_time');
+                const locationField = document.getElementById('location');
+                const branchField = document.getElementById('branch_id');
+
+                if (roleField) roleField.value = template.role_id;
+                if (startField) startField.value = template.start_time;
+                if (endField) endField.value = template.end_time;
+                if (locationField) locationField.value = template.location;
+                if (template.branch_id && branchField) branchField.value = template.branch_id;
+
+                // Clear template selector
+                selector.value = '';
+
+                // Show success message
+                const msg = document.createElement('div');
+                msg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4caf50; color: white; padding: 10px 20px; border-radius: 4px; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2)';
+                msg.textContent = 'Template loaded successfully!';
+                document.body.appendChild(msg);
+                setTimeout(() => msg.remove(), 3000);
+
+            } catch (e) {
+                alert('Error loading template: ' + e.message);
+            }
+        }
+
         // Notification functionality (robust)
         function markAsRead(elementOrDescendant) {
             // Ensure we have the notification item element
@@ -1355,6 +1568,14 @@ if ($user_id) {
                     dropdown.style.display = "none";
                 }
             });
+
+            // Initialize enhanced shift creation functionality
+            toggleShiftMode(); // Set up initial form state
+
+            // Load templates on page load
+            if (typeof loadTemplate === 'function') {
+                loadTemplate(); // Load default template or initialize template dropdown
+            }
 
             // Add click event listeners for notification close buttons
             const closeButtons = document.querySelectorAll('.close-btn');
