@@ -43,7 +43,7 @@ try {
 
 // Handle delete request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_request'])) {
-    $delete_id = isset($_POST['delete_request_id']) ? (int)$_POST['delete_request_id'] : 0;
+    $delete_id = isset($_POST['delete_request_id']) ? (int) $_POST['delete_request_id'] : 0;
     if ($delete_id <= 0) {
         $_SESSION['error_message'] = "Invalid request id.";
         header("Location: coverage_requests.php");
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_request'])) {
         }
 
         $isAdmin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin'], true);
-        if ((int)$owner !== (int)$user_id && !$isAdmin) {
+        if ((int) $owner !== (int) $user_id && !$isAdmin) {
             $_SESSION['error_message'] = "You are not authorized to delete this request.";
             header("Location: coverage_requests.php");
             exit();
@@ -91,7 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_request'])) {
         header("Location: coverage_requests.php");
         exit();
     } catch (Exception $e) {
-        if ($conn->inTransaction()) $conn->rollBack();
+        if ($conn->inTransaction())
+            $conn->rollBack();
         $_SESSION['error_message'] = "Error deleting request: " . $e->getMessage();
         header("Location: coverage_requests.php");
         exit();
@@ -123,12 +124,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
     $shift_date = $_POST['shift_date'];
     $start_time = $_POST['start_time'];
     $end_time = $_POST['end_time'];
-    $role_id = isset($_POST['role_id']) && $_POST['role_id'] !== '' ? (int)$_POST['role_id'] : null;
+    $role_id = isset($_POST['role_id']) && $_POST['role_id'] !== '' ? (int) $_POST['role_id'] : null;
     $urgency_level = $_POST['urgency_level'];
     $description = $_POST['description'];
     $expires_hours = $_POST['expires_hours'];
     $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_hours} hours"));
-    $source_shift_id = isset($_POST['source_shift_id']) && $_POST['source_shift_id'] !== '' ? (int)$_POST['source_shift_id'] : null;
+    $source_shift_id = isset($_POST['source_shift_id']) && $_POST['source_shift_id'] !== '' ? (int) $_POST['source_shift_id'] : null;
 
     // derive role_required text if role_id provided
     $role_required = null;
@@ -319,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_swap'])) {
     $swap_request_id = $_POST['swap_request_id'];
     $offered_shift_id = $_POST['offered_shift_id'];
     // Insert swap proposal
-    $stmt = $conn->prepare("INSERT INTO shift_swaps (request_id, from_shift_id, from_user_id, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
+    $stmt = $conn->prepare("INSERT INTO shift_swaps (request_id, offered_shift_id, proposer_user_id, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
     $stmt->execute([$swap_request_id, $offered_shift_id, $user_id]);
     $_SESSION['success_message'] = "Shift swap proposal sent!";
     header("Location: coverage_requests.php");
@@ -330,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_swap'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_swap'])) {
     $swap_id = $_POST['swap_id'];
     // Fetch swap details
-    $stmt = $conn->prepare("SELECT ss.*, s.user_id AS offered_user_id, s.id AS offered_shift_id, cbr.requested_by_user_id, cbr.shift_date AS req_shift_date, cbr.start_time AS req_start_time, cbr.end_time AS req_end_time, cbr.role_id AS req_role_id, cbr.target_branch_id AS req_branch_id FROM shift_swaps ss JOIN shifts s ON ss.from_shift_id = s.id JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id WHERE ss.id = ?");
+    $stmt = $conn->prepare("SELECT ss.*, s.user_id AS offered_user_id, s.id AS offered_shift_id, cbr.requested_by_user_id, cbr.shift_date AS req_shift_date, cbr.start_time AS req_start_time, cbr.end_time AS req_end_time, cbr.role_id AS req_role_id, cbr.target_branch_id AS req_branch_id FROM shift_swaps ss JOIN shifts s ON ss.offered_shift_id = s.id JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id WHERE ss.id = ?");
     $stmt->execute([$swap_id]);
     $swap = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($swap) {
@@ -374,11 +375,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_swap'])) {
 $swap_proposals_stmt = $conn->prepare("
     SELECT ss.*, s.shift_date, s.start_time, s.end_time, s.location, r.name as role_name, u.username as proposer_name, cbr.shift_date as req_shift_date, cbr.start_time as req_start_time, cbr.end_time as req_end_time
     FROM shift_swaps ss
-    JOIN shifts s ON ss.from_shift_id = s.id
+    JOIN shifts s ON ss.offered_shift_id = s.id
     JOIN roles r ON s.role_id = r.id
-    JOIN users u ON ss.from_user_id = u.id
+    JOIN users u ON ss.proposer_user_id = u.id
     JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id
-    WHERE cbr.requested_by_user_id = ? OR ss.from_user_id = ?
+    WHERE cbr.requested_by_user_id = ? OR ss.proposer_user_id = ?
     ORDER BY ss.created_at DESC
 ");
 $swap_proposals_stmt->execute([$user_id, $user_id]);
@@ -450,7 +451,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 var saved = localStorage.getItem('rota_theme');
                 if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
             }
-        } catch (e) {}
+        } catch (e) { }
     </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -462,23 +463,98 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <link rel="apple-touch-icon" href="../images/icon.png">
     <title>Coverage Requests - Open Rota</title>
     <link rel="stylesheet" href="../css/navigation.css">
-    <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="../css/coverage_requests.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/coverage_requests_modern.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../css/dark_mode.css">
-    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <style>
+        [data-theme="dark"] .page-header,
+        [data-theme="dark"] .current-branch-info {
+            background: transparent !important;
+            color: var(--text) !important;
+        }
+    </style>
     <style>
         /* Multi-select styles (matching admin) */
-        .multi-select { position: relative; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
-        .multi-select input#branch-search { width: 100%; padding: 6px; border: 1px solid #eee; border-radius: 4px; }
-        .options-list { max-height: 150px; overflow: auto; margin-top: 8px; border-top: 1px dashed #f0f0f0; padding-top: 8px; display: none; position: absolute; left: 8px; right: 8px; background: #fff; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .options-list .option { padding: 6px; cursor: pointer; border-radius: 4px; }
-        .options-list .option:hover { background: #f4f4f4; }
-        .selected-list { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-        .chip { background: #eee; padding: 4px 8px; border-radius: 16px; display: inline-flex; align-items: center; gap: 6px; }
-        .chip-remove { cursor: pointer; padding-left: 6px; color: #777; }
-        .hint { display:block; font-size: 12px; color: #666; margin-top:4px; }
+        .multi-select {
+            position: relative;
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .multi-select input#branch-search {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .options-list {
+            max-height: 150px;
+            overflow: auto;
+            margin-top: 8px;
+            border-top: 1px dashed #f0f0f0;
+            padding-top: 8px;
+            display: none;
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            background: #fff;
+            z-index: 50;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .options-list .option {
+            padding: 6px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .options-list .option:hover {
+            background: #f4f4f4;
+        }
+
+        .selected-list {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .chip {
+            background: #eee;
+            padding: 4px 8px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chip-remove {
+            cursor: pointer;
+            padding-left: 6px;
+            color: #777;
+        }
+
+        .hint {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+    </style>
+    <style>
+        /* Match application styling */
+        body {
+            font-family: "newFont", Arial, sans-serif;
+            background-image: url(../images/backg3.jpg);
+            background-size: cover;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 0;
+            color: #000000;
+            min-height: 100vh;
+        }
     </style>
 </head>
 
@@ -500,20 +576,21 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <?php foreach ($notifications as $notification): ?>
                             <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
-                                   data-id="<?php echo $notification['id']; ?>"
-                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    data-id="<?php echo $notification['id']; ?>"
+                                    href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </a>
                             <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
-                                   data-id="<?php echo $notification['id']; ?>"
-                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    data-id="<?php echo $notification['id']; ?>"
+                                    href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </a>
                             <?php else: ?>
-                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>"
+                                    data-id="<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </div>
@@ -545,40 +622,59 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     </header>
 
     <div class="container">
-        <h1><i class="fas fa-exchange-alt"></i> Shift Coverage</h1>
-        <p>Your branch: <strong><?php echo htmlspecialchars($user_branch['name']); ?></strong></p>
+        <div class="page-header">
+            <h1><i class="fas fa-exchange-alt"></i> Shift Coverage</h1>
+            <p>Your branch: <strong><?php echo htmlspecialchars($user_branch['name']); ?></strong></p>
+        </div>
 
         <?php if ($success_message): ?>
-            <div class="alert alert-success"><?php echo htmlspecialchars($success_message); ?></div>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <?php echo htmlspecialchars($success_message); ?>
+            </div>
         <?php endif; ?>
 
         <?php if ($error_message): ?>
-            <div class="alert alert-error"><?php echo htmlspecialchars($error_message); ?></div>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <?php echo htmlspecialchars($error_message); ?>
+            </div>
         <?php endif; ?>
 
-        <!-- Tabs -->
+        <!-- Modern Tab System -->
         <div class="tabs">
-            <div class="tab active" onclick="showTab('available')">
-                <i class="fas fa-list"></i> Available Coverage (<?php echo count($available_requests); ?>)
-            </div>
-            <div class="tab" onclick="showTab('create')">
-                <i class="fas fa-plus"></i> Request Coverage
-            </div>
-            <div class="tab" onclick="showTab('my-requests')">
-                <i class="fas fa-paper-plane"></i> My Requests (<?php echo count($my_requests); ?>)
-            </div>
-            <div class="tab" onclick="showTab('swap')">
-                <i class="fas fa-exchange-alt"></i> Shift Swaps
-            </div>
+            <button class="tab active" onclick="showTab('available')">
+                <i class="fas fa-list"></i>
+                <span>Available</span>
+                <?php if (count($available_requests) > 0): ?>
+                    <span class="tab-badge"><?php echo count($available_requests); ?></span>
+                <?php endif; ?>
+            </button>
+            <button class="tab" onclick="showTab('create')">
+                <i class="fas fa-plus"></i>
+                <span>Request</span>
+            </button>
+            <button class="tab" onclick="showTab('my-requests')">
+                <i class="fas fa-paper-plane"></i>
+                <span>My Requests</span>
+                <?php if (count($my_requests) > 0): ?>
+                    <span class="tab-badge"><?php echo count($my_requests); ?></span>
+                <?php endif; ?>
+            </button>
+            <button class="tab" onclick="showTab('swap')">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Swaps</span>
+            </button>
         </div>
         <!-- Shift Swap Tab -->
         <div id="swap-tab" class="tab-content">
-            <h2><i class="fas fa-exchange-alt"></i> Shift Swap Proposals</h2>
-            <p>Propose a swap by offering one of your shifts in exchange for a coverage request, or accept a swap
-                offered to you.</p>
+            <div class="form-section">
+                <h2><i class="fas fa-exchange-alt"></i> Shift Swap Proposals</h2>
+                <p>Propose a swap by offering one of your shifts in exchange for a coverage request, or accept a swap
+                    offered to you.</p>
 
-            <h3>Propose a Swap</h3>
-            <form method="POST">
+                <h3>Propose a Swap</h3>
+                <form method="POST">
                 <div class="form-group">
                     <label for="swap_request_id">Select Coverage Request to Swap With:</label>
                     <select name="swap_request_id" required>
@@ -629,77 +725,86 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
+            </div>
         </div>
 
         <!-- Available Coverage Tab -->
         <div id="available-tab" class="tab-content active">
-            <h2><i class="fas fa-list"></i> Available Coverage Opportunities</h2>
-
             <?php if (empty($available_requests)): ?>
-                <div class="request-card">
-                    <p><i class="fas fa-info-circle"></i> No coverage requests available at this time.</p>
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No Coverage Requests</h3>
+                    <p>There are no coverage requests available at this time.</p>
                 </div>
             <?php else: ?>
-                <?php foreach ($available_requests as $request):
+                <?php foreach ($available_requests as $request): ?>
+                    <?php
                     $estimated_pay = calculateCoverageRequestPay($conn, $request);
+                    $urgency_class = 'urgency-' . $request['urgency_level'];
                     ?>
-                    <div class="request-card <?php echo $request['urgency_level']; ?>-urgency">
-                        <div class="detail-item">
-                            <div class="detail-label">Estimated Pay</div>
-                            <div class="detail-value">
-                                <?php echo $estimated_pay > 0 ? ('£' . number_format($estimated_pay, 2)) : 'N/A'; ?>
-                            </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3>
+                    <div class="request-card <?php echo $urgency_class; ?>">
+                        <div class="card-header">
+                            <h3 class="card-title">
                                 <i class="fas fa-building"></i>
-                                Coverage Needed at <?php echo htmlspecialchars($request['requesting_branch_name']); ?>
+                                Coverage at <?php echo htmlspecialchars($request['requesting_branch_name']); ?>
                             </h3>
-                            <span class="urgency-badge urgency-<?php echo $request['urgency_level']; ?>">
-                                <?php echo ucfirst($request['urgency_level']); ?> Priority
+                            <span class="urgency-badge <?php echo $urgency_class; ?>">
+                                <?php echo ucfirst($request['urgency_level']); ?>
                             </span>
                         </div>
 
                         <div class="request-details">
                             <div class="detail-item">
-                                <div class="detail-label">Date & Time</div>
+                                <div class="detail-label">
+                                    <i class="fas fa-calendar"></i>
+                                    Date & Time
+                                </div>
                                 <div class="detail-value">
-                                    <?php echo date('M j, Y', strtotime($request['shift_date'])); ?><br>
-                                    <?php echo date('g:i A', strtotime($request['start_time'])); ?> -
+                                    <?php echo date('l, M j, Y', strtotime($request['shift_date'])); ?><br>
+                                    <?php echo date('g:i A', strtotime($request['start_time'])); ?> - 
                                     <?php echo date('g:i A', strtotime($request['end_time'])); ?>
                                 </div>
                             </div>
+
                             <div class="detail-item">
-                                <div class="detail-label">Role Required</div>
-                                <div class="detail-value"><?php echo htmlspecialchars($request['role_name'] ?? 'Any'); ?>
+                                <div class="detail-label">
+                                    <i class="fas fa-user-tag"></i>
+                                    Role Required
+                                </div>
+                                <div class="detail-value">
+                                    <?php echo htmlspecialchars($request['role_name'] ?: 'Any Role'); ?>
                                 </div>
                             </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Requested By</div>
-                                <div class="detail-value"><?php echo htmlspecialchars($request['requested_by_username']); ?>
-                                From 
-                                <?php echo htmlspecialchars($request['requesting_branch_name']); ?>
+
+                            <div class="detail-item pay-item">
+                                <div class="detail-label">
+                                    <i class="fas fa-pound-sign"></i>
+                                    Estimated Pay
                                 </div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Expires</div>
-                                <div class="detail-value"><?php echo date('M j, g:i A', strtotime($request['expires_at'])); ?>
+                                <div class="detail-value">
+                                    £<?php echo number_format($estimated_pay, 2); ?>
                                 </div>
                             </div>
                         </div>
 
                         <?php if ($request['description']): ?>
-                            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 15px 0;">
-                                <strong>Details:</strong><br>
-                                <?php echo nl2br(htmlspecialchars($request['description'])); ?>
+                            <div class="detail-item" style="margin-top: 12px;">
+                                <div class="detail-label">
+                                    <i class="fas fa-comment"></i>
+                                    Details
+                                </div>
+                                <div class="detail-value">
+                                    <?php echo htmlspecialchars($request['description']); ?>
+                                </div>
                             </div>
                         <?php endif; ?>
 
-                        <div style="margin-top: 15px;">
-                            <form method="POST" style="display: inline;">
+                        <div class="card-actions">
+                            <form method="POST" style="display: inline-block;">
                                 <input type="hidden" name="request_id" value="<?php echo $request['id']; ?>">
                                 <button type="submit" name="offer_coverage" class="btn btn-success">
-                                    <i class="fas fa-hand-paper"></i> Offer to Cover This Shift
+                                    <i class="fas fa-check"></i>
+                                    Accept Request
                                 </button>
                             </form>
                         </div>
@@ -710,38 +815,79 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
         <!-- Create Request Tab -->
         <div id="create-tab" class="tab-content">
-            <div class="request-card">
-                <h2><i class="fas fa-plus"></i> Request Coverage for Your Shift</h2>
-                <form method="POST" id="coverage-request-form">
+            <div class="form-section">
+                <h2><i class="fas fa-plus"></i> Request Coverage</h2>
+                <p>Request coverage from other branches when you need help with shifts.</p>
+                
+                <form method="POST">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="target_branch_ids">Request Coverage From (up to 5 branches):</label>
-                            <div class="branch-multiselect" id="branch-multiselect">
-                                <div class="selected-branches" id="selected-branches" tabindex="0"
-                                    style="min-height:38px; border:1px solid #bbb; border-radius:5px; padding:8px 10px; background:#fff; cursor:pointer; user-select:none; display:flex; flex-wrap:wrap; align-items:center;">
-                                    Select branches...
-                                </div>
-                                <div class="branch-dropdown" id="branch-dropdown"
-                                    style="display:none; max-height:220px; overflow-y:auto; background:#fff; border:1px solid #bbb; border-radius:5px; position:absolute; z-index:1001; width:100%; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-                                    <input type="text" id="branch-search" placeholder="Search branches..."
-                                        style="width:96%; margin:8px 2%; padding:6px 10px; border:1px solid #ccc; border-radius:6px; font-size:15px;">
-                                    <div id="branch-options-list">
-                                        <?php foreach ($all_branches as $branch): ?>
-                                            <?php if ($branch['id'] != $user_branch_id): ?>
-                                                <label class="branch-option"
-                                                    data-name="<?php echo htmlspecialchars(strtolower($branch['name'] . ' ' . $branch['code'])); ?>"
-                                                    style="display:block; padding:7px 12px; cursor:pointer;">
-                                                    <input type="checkbox" class="branch-checkbox"
-                                                        value="<?php echo $branch['id']; ?>">
-                                                    <?php echo htmlspecialchars($branch['name']) . ' (' . htmlspecialchars($branch['code']) . ')'; ?>
-                                                </label>
-                                            <?php endif; ?>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                            </div>
-                            <input type="hidden" name="target_branch_ids" id="target_branch_ids">
-                            <small style="color:#888;">Tap to select up to 5 branches.</small>
+                            <label for="target_branch_id">Request Coverage From:</label>
+                            <select name="target_branch_id" class="form-control" required>
+                                <option value="">Select a branch...</option>
+                                <?php foreach ($all_branches as $branch): ?>
+                                    <?php if ($branch['id'] != $user_branch_id): ?>
+                                        <option value="<?php echo $branch['id']; ?>">
+                                            <?php echo htmlspecialchars($branch['name']); ?>
+                                        </option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="role_id">Role Required:</label>
+                            <select name="role_id" class="form-control" required>
+                                <option value="">Select role...</option>
+                                <?php
+                                $roles_stmt = $conn->query("SELECT id, name FROM roles ORDER BY name");
+                                while ($role = $roles_stmt->fetch(PDO::FETCH_ASSOC)):
+                                ?>
+                                    <option value="<?php echo $role['id']; ?>">
+                                        <?php echo htmlspecialchars($role['name']); ?>
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shift_date">Date:</label>
+                            <input type="date" name="shift_date" class="form-control" required min="<?php echo date('Y-m-d'); ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="urgency_level">Urgency Level:</label>
+                            <select name="urgency_level" class="form-control" required>
+                                <option value="low">Low - Plan Ahead</option>
+                                <option value="medium" selected>Medium - Normal</option>
+                                <option value="high">High - Urgent</option>
+                                <option value="critical">Critical - Emergency</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="start_time">Start Time:</label>
+                            <input type="time" name="start_time" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="end_time">End Time:</label>
+                            <input type="time" name="end_time" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Additional Details:</label>
+                        <textarea name="description" class="form-control" placeholder="Provide any additional information about this coverage request..."></textarea>
+                    </div>
+
+                    <button type="submit" name="create_request" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        Submit Request
+                    </button>
+                </form>
+            </div>
+        </div>
                             <script>
                                 // Robust custom multi-select for branches (up to 5, mobile friendly, with search)
                                 document.addEventListener('DOMContentLoaded', function () {
@@ -855,171 +1001,105 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     setupBranchMultiselect('branch-multiselect', 'branch-dropdown', 'selected-branches', 'target_branch_ids', 'branch-search', 'branch-options-list');
                                 });
                             </script>
-                        </div>
-                        <div class="form-group">
-                            <label for="urgency_level">Urgency Level:</label>
-                            <select id="urgency_level" name="urgency_level" required>
-                                <option value="low">Low - Not urgent</option>
-                                <option value="medium" selected>Medium - Preferred coverage</option>
-                                <option value="high">High - Important to fill</option>
-                                <option value="critical">Critical - Must be filled</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="shift_date">Shift Date:</label>
-                            <input type="date" id="shift_date" name="shift_date" required
-                                min="<?php echo date('Y-m-d'); ?>" value="<?php echo htmlspecialchars($prefill['shift_date'] ?? ''); ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="expires_hours">Request Expires In:</label>
-                            <select id="expires_hours" name="expires_hours" required>
-                                <option value="6">6 hours</option>
-                                <option value="12">12 hours</option>
-                                <option value="24" selected>24 hours</option>
-                                <option value="48">48 hours</option>
-                                <option value="72">72 hours</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="start_time">Start Time:</label>
-                            <input type="time" id="start_time" name="start_time" required value="<?php echo htmlspecialchars($prefill['start_time'] ?? ''); ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="end_time">End Time:</label>
-                            <input type="time" id="end_time" name="end_time" required value="<?php echo htmlspecialchars($prefill['end_time'] ?? ''); ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="role_id">Role/Position:</label>
-                            <select id="role_id" name="role_id" required>
-                                <option value="">Select a role...</option>
-                                <?php foreach ($roles as $role): ?>
-                                    <option value="<?php echo $role['id']; ?>" <?php if (!empty($prefill['role_id']) && $prefill['role_id'] == $role['id']) echo 'selected'; ?>>
-                                        <?php echo htmlspecialchars($role['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <!-- source_shift_id selector removed: users now pick branches and the form uses explicit fields only -->
-                        <div class="form-group">
-                            <label for="description">Additional Details:</label>
-                            <textarea id="description" name="description" rows="3"
-                                placeholder="Any specific requirements or information..."></textarea>
-                        </div>
-                    </div>
-                    <button type="submit" name="create_request" class="btn btn-primary">
-                        <i class="fas fa-paper-plane"></i> Send Coverage Request
-                    </button>
-                </form>
-            </div>
-        </div>
+
 
         <!-- My Requests Tab -->
         <div id="my-requests-tab" class="tab-content">
-            <h2><i class="fas fa-paper-plane"></i> My Coverage Requests</h2>
-
             <?php if (empty($my_requests)): ?>
-                <div class="request-card">
-                    <p><i class="fas fa-info-circle"></i> You haven't made any coverage requests yet.</p>
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h3>No Requests Yet</h3>
+                    <p>You haven't created any coverage requests yet.</p>
+                    <button class="btn btn-primary" onclick="showTab('create')">
+                        <i class="fas fa-plus"></i>
+                        Create Request
+                    </button>
                 </div>
             <?php else: ?>
-                <?php foreach ($my_requests as $request):
-                    $estimated_pay = calculateCoverageRequestPay($conn, $request);
+                <?php foreach ($my_requests as $request): ?>
+                    <?php
+                    $status_class = $request['status'];
+                    $status_icon = $request['status'] === 'fulfilled' ? 'check-circle' : 
+                                  ($request['status'] === 'pending' ? 'clock' : 'times-circle');
                     ?>
-                    <div class="request-card <?php echo $request['urgency_level']; ?>-urgency">
-                        <div class="detail-item">
-                            <div class="detail-label">Estimated Pay</div>
-                            <div class="detail-value">
-                                <?php echo $estimated_pay > 0 ? ('$' . number_format($estimated_pay, 2)) : 'N/A'; ?>
-                            </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3>
-                                <i class="fas fa-building"></i>
+                    <div class="request-card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-<?php echo $status_icon; ?>"></i>
                                 Request to <?php echo htmlspecialchars($request['target_branch_name']); ?>
                             </h3>
                             <span class="urgency-badge urgency-<?php echo $request['urgency_level']; ?>">
-                                <?php echo ucfirst($request['urgency_level']); ?> Priority
+                                <?php echo ucfirst($request['status']); ?>
                             </span>
                         </div>
 
                         <div class="request-details">
                             <div class="detail-item">
-                                <div class="detail-label">Date & Time</div>
+                                <div class="detail-label">
+                                    <i class="fas fa-calendar"></i>
+                                    Date & Time
+                                </div>
                                 <div class="detail-value">
-                                    <?php echo date('M j, Y', strtotime($request['shift_date'])); ?><br>
-                                    <?php echo date('g:i A', strtotime($request['start_time'])); ?> -
+                                    <?php echo date('l, M j, Y', strtotime($request['shift_date'])); ?><br>
+                                    <?php echo date('g:i A', strtotime($request['start_time'])); ?> - 
                                     <?php echo date('g:i A', strtotime($request['end_time'])); ?>
                                 </div>
                             </div>
+
                             <div class="detail-item">
-                                <div class="detail-label">Role Required</div>
+                                <div class="detail-label">
+                                    <i class="fas fa-user-tag"></i>
+                                    Role
+                                </div>
                                 <div class="detail-value">
-                                    <?php
-                                    $roleName = 'Any';
-                                    if (isset($request['role_id']) && $request['role_id']) {
-                                        foreach ($roles as $role) {
-                                            if ($role['id'] == $request['role_id']) {
-                                                $roleName = $role['name'];
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    echo htmlspecialchars($roleName);
-                                    ?>
+                                    <?php echo htmlspecialchars($request['role_name'] ?: 'Any Role'); ?>
                                 </div>
                             </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Status</div>
-                                <div class="detail-value">
-                                    <?php if ($request['status'] === 'fulfilled'): ?>
-                                        Picked up by
-                                        <?php echo htmlspecialchars($request['fulfilled_by_username'] ?: 'another user'); ?>
-                                        From
-                                        <?php echo htmlspecialchars($request['target_branch_name'] ?: 'another branch'); ?>
-                                    <?php else: ?>
-                                        Pending Response
-                                    <?php endif; ?>
+
+                            <?php if ($request['accepted_by_username']): ?>
+                                <div class="detail-item">
+                                    <div class="detail-label">
+                                        <i class="fas fa-user-check"></i>
+                                        Accepted By
+                                    </div>
+                                    <div class="detail-value">
+                                        <?php echo htmlspecialchars($request['accepted_by_username']); ?>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Expires</div>
-                                <div class="detail-value"><?php echo date('M j, g:i A', strtotime($request['expires_at'])); ?>
-                                </div>
-                            </div>
+                            <?php endif; ?>
                         </div>
 
                         <?php if ($request['description']): ?>
-                            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 15px 0;">
-                                <strong>Details:</strong><br>
-                                <?php echo nl2br(htmlspecialchars($request['description'])); ?>
+                            <div class="detail-item" style="margin-top: 12px;">
+                                <div class="detail-label">
+                                    <i class="fas fa-comment"></i>
+                                    Details
+                                </div>
+                                <div class="detail-value">
+                                    <?php echo htmlspecialchars($request['description']); ?>
+                                </div>
                             </div>
                         <?php endif; ?>
 
-                        <div style="margin-top: 10px; text-align: right;">
-                            <form method="POST" style="display:inline;">
-                                <input type="hidden" name="edit_request_id" value="<?php echo $request['id']; ?>">
-                                <button type="submit" name="edit_request" class="btn btn-warning btn-sm"><i
-                                        class="fas fa-edit"></i> Edit</button>
-                            </form>
-                            <form method="POST" style="display:inline; margin-left: 8px;"
-                                onsubmit="return confirm('Are you sure you want to delete this request?');">
-                                <input type="hidden" name="delete_request_id" value="<?php echo $request['id']; ?>">
-                                <button type="submit" name="delete_request" class="btn btn-danger btn-sm"><i
-                                        class="fas fa-trash"></i> Delete</button>
-                            </form>
-                            <?php if ($request['status'] === 'fulfilled'): ?>
-                                <form method="POST" style="display:inline; margin-left:8px;" onsubmit="return confirm('Clear this fulfilled request (shift stays in place)?');">
-                                    <input type="hidden" name="clear_request_id" value="<?php echo $request['id']; ?>">
-                                    <button type="submit" name="clear_request" class="btn btn-secondary btn-sm"><i class="fas fa-eraser"></i> Clear</button>
+                        <?php if ($request['status'] === 'pending'): ?>
+                            <div class="card-actions">
+                                <form method="POST" style="display: inline-block;" onsubmit="return confirm('Are you sure you want to delete this request?')">
+                                    <input type="hidden" name="delete_request_id" value="<?php echo $request['id']; ?>">
+                                    <button type="submit" name="delete_request" class="btn btn-danger">
+                                        <i class="fas fa-trash"></i>
+                                        Delete Request
+                                    </button>
                                 </form>
-                            <?php endif; ?>
-                        </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
 
             <!-- Requests I Covered -->
-            <h2 style="margin-top:30px;"><i class="fas fa-check"></i> Requests I Covered</h2>
+            <div style="background: white; border-radius: 8px; padding: 16px 20px; margin: 30px 0 16px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                <h2 style="margin: 0;"><i class="fas fa-check"></i> Requests I Covered</h2>
+            </div>
             <?php if (empty($my_fulfilled)): ?>
                 <div class="request-card">
                     <p><i class="fas fa-info-circle"></i> You haven't covered any requests yet.</p>
@@ -1028,21 +1108,36 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <?php foreach ($my_fulfilled as $f): ?>
                     <div class="request-card fulfilled">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <h3><i class="fas fa-user-check"></i> Covered: <?php echo htmlspecialchars($f['requesting_branch_name'] ?? 'requesting branch'); ?></h3>
+                            <h3><i class="fas fa-user-check"></i> Covered:
+                                <?php echo htmlspecialchars($f['requesting_branch_name'] ?? 'requesting branch'); ?></h3>
                             <span><?php echo date('M j, Y', strtotime($f['fulfilled_at'] ?? $f['created_at'])); ?></span>
                         </div>
                         <div class="request-details">
-                            <div class="detail-item"><div class="detail-label">When</div><div class="detail-value"><?php echo date('M j, Y', strtotime($f['shift_date'])); ?> <?php echo date('g:i A', strtotime($f['start_time'])); ?> - <?php echo date('g:i A', strtotime($f['end_time'])); ?></div></div>
-                            <div class="detail-item"><div class="detail-label">Target Branch</div><div class="detail-value"><?php echo htmlspecialchars($f['target_branch_name']); ?></div></div>
-                            <div class="detail-item"><div class="detail-label">Notes</div><div class="detail-value"><?php echo nl2br(htmlspecialchars($f['description'] ?? '')); ?></div></div>
+                            <div class="detail-item">
+                                <div class="detail-label">When</div>
+                                <div class="detail-value"><?php echo date('M j, Y', strtotime($f['shift_date'])); ?>
+                                    <?php echo date('g:i A', strtotime($f['start_time'])); ?> -
+                                    <?php echo date('g:i A', strtotime($f['end_time'])); ?></div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Target Branch</div>
+                                <div class="detail-value"><?php echo htmlspecialchars($f['target_branch_name']); ?></div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Notes</div>
+                                <div class="detail-value"><?php echo nl2br(htmlspecialchars($f['description'] ?? '')); ?></div>
+                            </div>
                         </div>
                         <div style="margin-top:10px; text-align:right;">
-                            <a href="coverage_requests.php#request-<?php echo (int)$f['id']; ?>" class="btn btn-secondary btn-sm">View</a>
+                            <a href="coverage_requests.php#request-<?php echo (int) $f['id']; ?>"
+                                class="btn btn-secondary btn-sm">View</a>
                             <?php if (!empty($f['shift_id'])): ?>
-                                <form method="POST" style="display:inline; margin-left:8px;" onsubmit="return confirm('Remove the created shift and revert request to pending? This will delete the shift for you.');">
-                                    <input type="hidden" name="clear_covered_request_id" value="<?php echo (int)$f['id']; ?>">
-                                    <input type="hidden" name="clear_covered_shift_id" value="<?php echo (int)$f['shift_id']; ?>">
-                                    <button type="submit" name="clear_covered" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Remove Shift</button>
+                                <form method="POST" style="display:inline; margin-left:8px;"
+                                    onsubmit="return confirm('Remove the created shift and revert request to pending? This will delete the shift for you.');">
+                                    <input type="hidden" name="clear_covered_request_id" value="<?php echo (int) $f['id']; ?>">
+                                    <input type="hidden" name="clear_covered_shift_id" value="<?php echo (int) $f['shift_id']; ?>">
+                                    <button type="submit" name="clear_covered" class="btn btn-danger btn-sm"><i
+                                            class="fas fa-trash"></i> Remove Shift</button>
                                 </form>
                             <?php endif; ?>
                         </div>
@@ -1402,110 +1497,92 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     </div>
 
     <script>
-        (function() {
-            const maxSelect = 5;
-            const selectedContainer = document.getElementById('branch-selected');
-            const optionsList = document.getElementById('branch-options');
-            const options = optionsList ? optionsList.querySelectorAll('.option') : [];
-            const search = document.getElementById('branch-search');
-            const hiddenInput = document.getElementById('target_branch_ids');
-            let selected = [];
+            (function () {
+                const maxSelect = 5;
+                const selectedContainer = document.getElementById('branch-selected');
+                const optionsList = document.getElementById('branch-options');
+                const options = optionsList ? optionsList.querySelectorAll('.option') : [];
+                const search = document.getElementById('branch-search');
+                const hiddenInput = document.getElementById('target_branch_ids');
+                let selected = [];
 
-            function renderSelected() {
-                selectedContainer.innerHTML = '';
-                selected.forEach(id => {
-                    const opt = Array.from(options).find(o => parseInt(o.dataset.id, 10) === id);
-                    if (!opt) return;
-                    const chip = document.createElement('span');
-                    chip.className = 'chip';
-                    chip.textContent = opt.textContent.trim();
-                    const rem = document.createElement('span');
-                    rem.className = 'chip-remove';
-                    rem.innerHTML = '&times;';
-                    rem.addEventListener('click', () => {
-                        selected = selected.filter(s => s !== id);
+                function renderSelected() {
+                    selectedContainer.innerHTML = '';
+                    selected.forEach(id => {
+                        const opt = Array.from(options).find(o => parseInt(o.dataset.id, 10) === id);
+                        if (!opt) return;
+                        const chip = document.createElement('span');
+                        chip.className = 'chip';
+                        chip.textContent = opt.textContent.trim();
+                        const rem = document.createElement('span');
+                        rem.className = 'chip-remove';
+                        rem.innerHTML = '&times;';
+                        rem.addEventListener('click', () => {
+                            selected = selected.filter(s => s !== id);
+                            updateHidden();
+                            renderSelected();
+                        });
+                        chip.appendChild(rem);
+                        selectedContainer.appendChild(chip);
+                    });
+                }
+
+                function updateHidden() {
+                    if (hiddenInput) hiddenInput.value = selected.join(',');
+                }
+
+                function filterOptions(q) {
+                    const term = q.trim().toLowerCase();
+                    Array.from(options).forEach(o => {
+                        const txt = o.textContent.toLowerCase();
+                        o.style.display = txt.indexOf(term) === -1 ? 'none' : 'block';
+                    });
+                }
+
+                function positionOptions() {
+                    const container = document.getElementById('branch-multi-select');
+                    const selectedRect = selectedContainer.getBoundingClientRect();
+                    optionsList.style.top = (selectedContainer.offsetTop + selectedContainer.offsetHeight + 6) + 'px';
+                    optionsList.style.left = '8px';
+                    optionsList.style.right = '8px';
+                }
+
+                function showOptions() { positionOptions(); optionsList.style.display = 'block'; }
+                function hideOptions() { optionsList.style.display = 'none'; }
+
+                document.addEventListener('click', function (e) {
+                    const container = document.getElementById('branch-multi-select');
+                    if (!container) return;
+                    if (!container.contains(e.target)) {
+                        hideOptions();
+                    }
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') hideOptions();
+                });
+
+                Array.from(options).forEach(o => {
+                    o.addEventListener('click', () => {
+                        const id = parseInt(o.dataset.id, 10);
+                        if (selected.includes(id)) return;
+                        if (selected.length >= maxSelect) {
+                            alert('You can select up to ' + maxSelect + ' branches.');
+                            return;
+                        }
+                        selected.push(id);
                         updateHidden();
                         renderSelected();
+                        positionOptions();
+                        showOptions();
                     });
-                    chip.appendChild(rem);
-                    selectedContainer.appendChild(chip);
                 });
-            }
 
-            function updateHidden() {
-                if (hiddenInput) hiddenInput.value = selected.join(',');
-            }
-
-            function filterOptions(q) {
-                const term = q.trim().toLowerCase();
-                Array.from(options).forEach(o => {
-                    const txt = o.textContent.toLowerCase();
-                    o.style.display = txt.indexOf(term) === -1 ? 'none' : 'block';
-                });
-            }
-
-            function positionOptions() {
-                const container = document.getElementById('branch-multi-select');
-                const selectedRect = selectedContainer.getBoundingClientRect();
-                optionsList.style.top = (selectedContainer.offsetTop + selectedContainer.offsetHeight + 6) + 'px';
-                optionsList.style.left = '8px';
-                optionsList.style.right = '8px';
-            }
-
-            function showOptions() { positionOptions(); optionsList.style.display = 'block'; }
-            function hideOptions() { optionsList.style.display = 'none'; }
-
-            document.addEventListener('click', function(e) {
-                const container = document.getElementById('branch-multi-select');
-                if (!container) return;
-                if (!container.contains(e.target)) {
-                    hideOptions();
+                if (search) {
+                    search.addEventListener('input', (e) => { filterOptions(e.target.value); });
+                    search.addEventListener('focus', () => { filterOptions(search.value); showOptions(); });
                 }
-            });
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') hideOptions();
-            });
-
-            Array.from(options).forEach(o => {
-                o.addEventListener('click', () => {
-                    const id = parseInt(o.dataset.id, 10);
-                    if (selected.includes(id)) return;
-                    if (selected.length >= maxSelect) {
-                        alert('You can select up to ' + maxSelect + ' branches.');
-                        return;
-                    }
-                    selected.push(id);
-                    updateHidden();
-                    renderSelected();
-                    positionOptions();
-                    showOptions();
-                });
-            });
-
-            if (search) {
-                search.addEventListener('input', (e) => { filterOptions(e.target.value); });
-                search.addEventListener('focus', () => { filterOptions(search.value); showOptions(); });
-            }
-        })();
-
-        function showTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-
-            // Remove active class from all tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            // Show selected tab content
-            document.getElementById(tabName + '-tab').classList.add('active');
-
-            // Add active class to clicked tab
-            event.target.classList.add('active');
-        }
+            })();
 
         // Notification functionality
         function markAsRead(element) {
@@ -1559,7 +1636,102 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 .catch(error => console.error('Error:', error));
         }
 
+        // Tab functionality - make sure it's global
+        function showTab(tabName) {
+            console.log('showTab called with:', tabName); // Debug log
+            
+            // Hide all tab contents
+            const allTabContents = document.querySelectorAll('.tab-content');
+            console.log('Found tab contents:', allTabContents.length);
+            allTabContents.forEach(content => {
+                content.classList.remove('active');
+                console.log('Hiding:', content.id);
+            });
+            
+            // Remove active class from all tabs
+            const allTabs = document.querySelectorAll('.tab');
+            console.log('Found tabs:', allTabs.length);
+            allTabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const targetTabId = tabName + '-tab';
+            const tabContent = document.getElementById(targetTabId);
+            console.log('Looking for tab content:', targetTabId, 'Found:', !!tabContent);
+            
+            if (tabContent) {
+                tabContent.classList.add('active');
+                console.log('Showing tab:', targetTabId);
+            } else {
+                console.error('Tab content not found:', targetTabId);
+                // List all available tab content IDs for debugging
+                const allTabContents = document.querySelectorAll('[id$="-tab"]');
+                console.log('Available tab IDs:', Array.from(allTabContents).map(el => el.id));
+            }
+            
+            // Add active class to clicked tab - get event from global scope if available
+            let clickedTab = null;
+            if (typeof event !== 'undefined' && event.target) {
+                clickedTab = event.target.closest('.tab');
+            }
+            
+            // Fallback: find the tab button that corresponds to this tabName
+            if (!clickedTab) {
+                const tabButtons = document.querySelectorAll('.tab');
+                for (let tab of tabButtons) {
+                    if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(tabName)) {
+                        clickedTab = tab;
+                        break;
+                    }
+                }
+            }
+            
+            if (clickedTab) {
+                clickedTab.classList.add('active');
+                console.log('Made tab active:', clickedTab);
+            } else {
+                console.error('Could not find clicked tab for:', tabName);
+            }
+        }
+
+        // Test function that can be called from console
+        function testTabs() {
+            console.log('Testing tabs...');
+            console.log('Available tab elements:', document.querySelectorAll('.tab-content'));
+            console.log('Tab buttons:', document.querySelectorAll('.tab'));
+            
+            // Test each tab
+            ['available', 'create', 'my-requests', 'swap'].forEach(tabName => {
+                console.log(`Testing ${tabName}...`);
+                showTab(tabName);
+            });
+        }
+        
+        // Make functions global for console access
+        window.showTab = showTab;
+        window.testTabs = testTabs;
+
         document.addEventListener('DOMContentLoaded', function () {
+            // Tab setup - add event listeners to all tab buttons
+            const tabButtons = document.querySelectorAll('.tab');
+            console.log('Setting up tabs, found buttons:', tabButtons.length);
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const onclick = this.getAttribute('onclick');
+                    if (onclick) {
+                        const match = onclick.match(/showTab\('(.+?)'\)/);
+                        if (match) {
+                            const tabName = match[1];
+                            console.log('Tab clicked:', tabName);
+                            showTab(tabName);
+                        }
+                    }
+                });
+            });
+            
             // Notification setup
             var notificationIcon = document.getElementById('notification-icon');
             var dropdown = document.getElementById('notification-dropdown');

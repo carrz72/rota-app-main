@@ -336,7 +336,8 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                                     }
                                     ?>
                                     <td class="compact-col" data-label="U" style="text-align:center;font-weight:600">
-                                        <?php echo htmlspecialchars($compactUsername); ?></td>
+                                        <?php echo htmlspecialchars($compactUsername); ?>
+                                    </td>
                                     <td data-label="User"><?php echo htmlspecialchars($shift['username']); ?></td>
                                     <td data-label="Date"><?php echo date('D, M j', strtotime($shift['shift_date'])); ?></td>
                                     <td data-label="Time"><?php echo date('g:i A', strtotime($shift['start_time'])); ?> -

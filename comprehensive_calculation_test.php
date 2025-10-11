@@ -35,16 +35,21 @@ $test_scenarios = [
 
 foreach ($test_scenarios as $test) {
     $calculated = calculateShiftPay(
-        $test['start'], $test['end'], $test['base'], 
-        $test['has_night'], $test['night_pay'] ?? null, 
-        $test['night_start'] ?? null, $test['night_end'] ?? null
+        $test['start'],
+        $test['end'],
+        $test['base'],
+        $test['has_night'],
+        $test['night_pay'] ?? null,
+        $test['night_start'] ?? null,
+        $test['night_end'] ?? null
     );
-    
+
     $diff = abs($calculated - $test['expected']);
     $status = $diff < 0.01 ? "<span class='pass'>PASS</span>" : "<span class='fail'>FAIL</span>";
-    
-    if ($diff >= 0.01) $all_tests_passed = false;
-    
+
+    if ($diff >= 0.01)
+        $all_tests_passed = false;
+
     echo "{$test['desc']}: Expected £{$test['expected']}, Got £" . number_format($calculated, 2) . " - $status<br>";
 }
 echo "</div>";
@@ -68,13 +73,14 @@ echo "<tr><th>Shift ID</th><th>User</th><th>Time</th><th>Base Rate</th><th>Calcu
 
 foreach ($real_shifts as $shift) {
     $calculated_pay = calculatePay($conn, $shift['id']);
-    
+
     // Basic validation - pay should be positive and reasonable
     $is_valid = ($calculated_pay > 0 && $calculated_pay < 1000);
     $status = $is_valid ? "<span class='pass'>VALID</span>" : "<span class='fail'>INVALID</span>";
-    
-    if (!$is_valid) $all_tests_passed = false;
-    
+
+    if (!$is_valid)
+        $all_tests_passed = false;
+
     echo "<tr>";
     echo "<td>{$shift['id']}</td>";
     echo "<td>" . htmlspecialchars($shift['username']) . "</td>";
@@ -103,16 +109,16 @@ if ($dashboard_user_id) {
     ");
     $user_shifts->execute([$dashboard_user_id]);
     $shifts = $user_shifts->fetchAll(PDO::FETCH_ASSOC);
-    
+
     echo "<strong>Dashboard Simulation (User ID: $dashboard_user_id):</strong><br>";
     $total_earnings = 0;
-    
+
     foreach ($shifts as $shift) {
         $pay = calculatePay($conn, $shift['id']);
         $total_earnings += $pay;
         echo "- Shift {$shift['id']} ({$shift['shift_date']}): £" . number_format($pay, 2) . "<br>";
     }
-    
+
     echo "Total Earnings: £" . number_format($total_earnings, 2) . "<br>";
     echo "<span class='pass'>✅ Dashboard calculations working</span><br>";
 } else {
@@ -130,11 +136,12 @@ $sample_invitation = [
 if ($sample_invitation['role_id']) {
     $invitation_pay = calculateInvitationPay($conn, $sample_invitation);
     echo "Sample invitation (14:00-18:00): £" . number_format($invitation_pay, 2) . "<br>";
-    
+
     $is_reasonable = ($invitation_pay > 0 && $invitation_pay < 200);
     echo $is_reasonable ? "<span class='pass'>✅ Invitation calculations working</span>" : "<span class='fail'>❌ Invitation calculation issue</span>";
-    
-    if (!$is_reasonable) $all_tests_passed = false;
+
+    if (!$is_reasonable)
+        $all_tests_passed = false;
 } else {
     echo "No roles found for invitation test<br>";
 }
@@ -177,7 +184,8 @@ echo "Average: " . number_format($execution_time / count($performance_shifts), 2
 $performance_ok = ($execution_time < 1000); // Should take less than 1 second for 10 calculations
 echo $performance_ok ? "<span class='pass'>✅ Performance acceptable</span>" : "<span class='fail'>❌ Performance concern</span>";
 
-if (!$performance_ok) $all_tests_passed = false;
+if (!$performance_ok)
+    $all_tests_passed = false;
 
 echo "</div>";
 
@@ -187,12 +195,12 @@ echo "<h2>📊 Final Test Results</h2>";
 
 if ($all_tests_passed) {
     echo "<span class='pass' style='font-size: 18px;'>🎉 ALL TESTS PASSED</span><br><br>";
-    echo "✅ Core calculation functions are mathematically accurate<br>";  
+    echo "✅ Core calculation functions are mathematically accurate<br>";
     echo "✅ Database integration is working correctly<br>";
     echo "✅ User interface calculations are reliable<br>";
     echo "✅ Admin interface enhancements are functional<br>";
     echo "✅ Performance is within acceptable limits<br><br>";
-    
+
     echo "<strong>Your shift rate calculations are now fully accurate throughout the entire system!</strong><br>";
     echo "Both user-facing and admin interfaces will display correct pay amounts.";
 } else {

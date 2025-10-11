@@ -18,14 +18,14 @@ if ($test_shift_id) {
     echo "Testing calculatePay() function with shift ID: $test_shift_id\n";
     $calculated_pay = calculatePay($conn, $test_shift_id);
     echo "Result: £" . number_format($calculated_pay, 2) . "\n\n";
-    
+
     // Test displayEstimatedPay function
     echo "Testing displayEstimatedPay() function:\n";
     ob_start();
     displayEstimatedPay($conn, $test_shift_id);
     $display_output = ob_get_clean();
     echo "Output: $display_output\n\n";
-    
+
     // Check if it's using £ instead of $
     if (strpos($display_output, '£') !== false) {
         echo "✅ Currency symbol correct (£)\n";
@@ -54,7 +54,7 @@ echo "<tr><th>Shift ID</th><th>User</th><th>Role</th><th>Date</th><th>Time</th><
 
 foreach ($sample_shifts as $shift) {
     $calculated_pay = calculatePay($conn, $shift['id']);
-    
+
     // Calculate hours for reference
     $start_ts = strtotime($shift['shift_date'] . ' ' . $shift['start_time']);
     $end_ts = strtotime($shift['shift_date'] . ' ' . $shift['end_time']);
@@ -62,12 +62,12 @@ foreach ($sample_shifts as $shift) {
         $end_ts = strtotime(date('Y-m-d', strtotime($shift['shift_date'] . ' +1 day')) . ' ' . $shift['end_time']);
     }
     $hours = ($end_ts - $start_ts) / 3600;
-    
+
     $details = "Hours: " . number_format($hours, 2) . ", Base: £" . number_format($shift['base_pay'], 2);
     if ($shift['has_night_pay']) {
         $details .= ", Night: £" . number_format($shift['night_shift_pay'], 2);
     }
-    
+
     echo "<tr>";
     echo "<td>{$shift['id']}</td>";
     echo "<td>" . htmlspecialchars($shift['username']) . "</td>";
@@ -120,18 +120,18 @@ try {
     ");
     $stmt->execute([$user_id]);
     $user_shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     if ($user_shifts) {
         echo "Recent shifts for user ID $user_id:\n";
         $total_calculated = 0;
-        
+
         foreach ($user_shifts as $shift) {
             $shift_pay = calculatePay($conn, $shift['id']);
             $total_calculated += $shift_pay;
-            
+
             echo "- Shift {$shift['id']} ({$shift['shift_date']} {$shift['start_time']}-{$shift['end_time']}): £" . number_format($shift_pay, 2) . "\n";
         }
-        
+
         echo "Total for recent shifts: £" . number_format($total_calculated, 2) . "\n";
         echo "✅ Dashboard calculations would show correct amounts\n";
     } else {
