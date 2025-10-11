@@ -1,7 +1,9 @@
 <?php
 session_start();
 include '../includes/db.php';
-require_once '../functions/addNotification.php';
+if (!function_exists('addNotification')) {
+    require_once '../functions/addNotification.php';
+}
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -108,7 +110,11 @@ try {
     // Add success message to session for display after redirect
     $_SESSION['success_message'] = "Shift updated successfully!";
     // Audit shift edit
-    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'edit_shift', ['edited_user' => $edited_user_id ?? null], $shift_id ?? null, 'shift', session_id()); } catch (Exception $e) {}
+    try {
+        require_once __DIR__ . '/../includes/audit_log.php';
+        log_audit($conn, $_SESSION['user_id'] ?? null, 'edit_shift', ['edited_user' => $edited_user_id ?? null], $shift_id ?? null, 'shift', session_id());
+    } catch (Exception $e) {
+    }
 
 } catch (Exception $e) {
     // Log the error

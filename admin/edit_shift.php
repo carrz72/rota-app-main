@@ -5,7 +5,19 @@ require_once '../includes/db.php';
 require_once '../functions/branch_functions.php';
 
 $shift_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
-$return_url = isset($_GET['return']) ? $_GET['return'] : 'manage_shifts.php';
+
+// Determine return URL - check if provided, otherwise try to detect from referrer
+$return_url = isset($_GET['return']) ? $_GET['return'] : null;
+
+if (!$return_url) {
+    // Try to determine from HTTP_REFERER
+    $referrer = $_SERVER['HTTP_REFERER'] ?? '';
+    if (strpos($referrer, 'admin_dashboard.php') !== false) {
+        $return_url = 'admin_dashboard.php';
+    } else {
+        $return_url = 'manage_shifts.php'; // Default fallback
+    }
+}
 
 // Validate return URL to prevent open redirect
 if (strpos($return_url, '../') === 0 || strpos($return_url, 'http') === 0) {
@@ -362,8 +374,7 @@ try {
                 </div>
 
                 <div class="form-buttons">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="location.href='<?php echo htmlspecialchars($return_url); ?>'">Cancel</button>
+                    <a href="<?php echo htmlspecialchars($return_url); ?>" class="btn btn-secondary" style="text-decoration: none; display: inline-block; text-align: center;">Cancel</a>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </div>

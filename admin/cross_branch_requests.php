@@ -180,13 +180,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Notify the requester that their request was declined
         try {
-            require_once __DIR__ . '/../functions/addNotification.php';
+            if (!function_exists('addNotification')) {
+                require_once __DIR__ . '/../functions/addNotification.php';
+            }
             $rstmt = $conn->prepare("SELECT requested_by_user_id, shift_date, start_time, end_time FROM cross_branch_shift_requests WHERE id = ? LIMIT 1");
             $rstmt->execute([$request_id]);
             $r = $rstmt->fetch(PDO::FETCH_ASSOC);
             if ($r && !empty($r['requested_by_user_id'])) {
                 $msg = "Your coverage request for {$r['shift_date']} {$r['start_time']}-{$r['end_time']} was declined.";
-                addNotification($conn, (int)$r['requested_by_user_id'], $msg, 'error', $request_id);
+                addNotification($conn, (int) $r['requested_by_user_id'], $msg, 'error', $request_id);
             }
         } catch (Exception $e) {
             error_log('Failed to notify requester about decline: ' . $e->getMessage());
@@ -245,15 +247,73 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         /* Multi-select styles */
-        .multi-select { position: relative; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
-        .multi-select input#branch-search { width: 100%; padding: 6px; border: 1px solid #eee; border-radius: 4px; }
-    .options-list { max-height: 150px; overflow: auto; margin-top: 8px; border-top: 1px dashed #f0f0f0; padding-top: 8px; display: none; position: absolute; left: 8px; right: 8px; background: #fff; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .options-list .option { padding: 6px; cursor: pointer; border-radius: 4px; }
-        .options-list .option:hover { background: #f4f4f4; }
-        .selected-list { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-        .chip { background: #eee; padding: 4px 8px; border-radius: 16px; display: inline-flex; align-items: center; gap: 6px; }
-        .chip-remove { cursor: pointer; padding-left: 6px; color: #777; }
-        .hint { display:block; font-size: 12px; color: #666; margin-top:4px; }
+        .multi-select {
+            position: relative;
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .multi-select input#branch-search {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .options-list {
+            max-height: 150px;
+            overflow: auto;
+            margin-top: 8px;
+            border-top: 1px dashed #f0f0f0;
+            padding-top: 8px;
+            display: none;
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            background: #fff;
+            z-index: 50;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .options-list .option {
+            padding: 6px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .options-list .option:hover {
+            background: #f4f4f4;
+        }
+
+        .selected-list {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .chip {
+            background: #eee;
+            padding: 4px 8px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chip-remove {
+            cursor: pointer;
+            padding-left: 6px;
+            color: #777;
+        }
+
+        .hint {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
     </style>
 </head>
 
@@ -719,11 +779,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <div class="form-actions" style="margin-top:10px;">
                                     <form method="POST" style="display:inline;">
                                         <input type="hidden" name="edit_request_id" value="<?php echo $request['id']; ?>">
-                                        <button type="submit" name="edit_request" class="admin-btn secondary"><i class="fas fa-edit"></i> Edit</button>
+                                        <button type="submit" name="edit_request" class="admin-btn secondary"><i
+                                                class="fas fa-edit"></i> Edit</button>
                                     </form>
                                     <form method="POST" style="display:inline;">
                                         <input type="hidden" name="delete_request_id" value="<?php echo $request['id']; ?>">
-                                        <button type="submit" name="delete_request" class="admin-btn delete-btn"><i class="fas fa-trash"></i> Delete</button>
+                                        <button type="submit" name="delete_request" class="admin-btn delete-btn"><i
+                                                class="fas fa-trash"></i> Delete</button>
                                     </form>
                                 </div>
                             </div>
@@ -732,124 +794,124 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <?php endif; ?>
                 <!-- Edit Modal (always present, only visible when editing) -->
                 <?php if (!empty($show_edit_modal) && !empty($edit_request)): ?>
-                <div id="edit-modal-overlay"
-                    style="display:block; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:2000;">
-                    <div id="edit-modal"
-                        style="background:#fff; max-width:480px; margin:60px auto; padding:30px 25px 20px 25px; border-radius:10px; box-shadow:0 4px 24px rgba(0,0,0,0.18); position:relative;">
-                        <form method="POST" class="admin-form">
-                            <input type="hidden" name="edit_id" value="<?php echo $edit_request['id'] ?? ''; ?>">
-                            <div
-                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
-                                <h2 style="margin:0; font-size:1.3em;"><i class="fas fa-edit"></i> Edit Coverage Request
-                                </h2>
-                                <button type="button" id="close-edit-modal"
-                                    style="background:none; border:none; font-size:1.5em; color:#888; cursor:pointer;">&times;</button>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit_target_branch_ids"><i class="fas fa-building"></i> Target
-                                    Branch(es):</label>
-                                <div class="branch-multiselect" id="edit-branch-multiselect">
-                                    <div class="selected-branches" id="edit-selected-branches" tabindex="0"
-                                        style="min-height:38px; border:1px solid #bbb; border-radius:5px; padding:8px 10px; background:#fff; cursor:pointer; user-select:none; display:flex; flex-wrap:wrap; align-items:center;">
-                                        Select branches...
-                                    </div>
-                                    <div class="branch-dropdown" id="edit-branch-dropdown"
-                                        style="display:none; max-height:220px; overflow-y:auto; background:#fff; border:1px solid #bbb; border-radius:5px; position:absolute; z-index:1001; width:100%; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-                                        <input type="text" id="edit-branch-search" placeholder="Search branches..."
-                                            style="width:96%; margin:8px 2%; padding:6px 10px; border:1px solid #ccc; border-radius:6px; font-size:15px;">
-                                        <div id="edit-branch-options-list">
-                                            <?php foreach ($all_branches as $branch): ?>
-                                                <?php if ($branch['id'] != $user_branch['id']): ?>
-                                                    <label class="branch-option"
-                                                        data-name="<?php echo htmlspecialchars(strtolower($branch['name'] . ' ' . $branch['code'])); ?>"
-                                                        style="display:block; padding:7px 12px; cursor:pointer;">
-                                                        <input type="checkbox" class="branch-checkbox"
-                                                            value="<?php echo $branch['id']; ?>" <?php if (!empty($edit_request) && in_array($branch['id'], explode(',', $edit_request['target_branch_ids'] ?? $edit_request['target_branch_id'] ?? '')))
-                                                                   echo 'checked'; ?>>
-                                                        <?php echo htmlspecialchars($branch['name']) . ' (' . htmlspecialchars($branch['code']) . ')'; ?>
-                                                    </label>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
+                    <div id="edit-modal-overlay"
+                        style="display:block; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:2000;">
+                        <div id="edit-modal"
+                            style="background:#fff; max-width:480px; margin:60px auto; padding:30px 25px 20px 25px; border-radius:10px; box-shadow:0 4px 24px rgba(0,0,0,0.18); position:relative;">
+                            <form method="POST" class="admin-form">
+                                <input type="hidden" name="edit_id" value="<?php echo $edit_request['id'] ?? ''; ?>">
+                                <div
+                                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+                                    <h2 style="margin:0; font-size:1.3em;"><i class="fas fa-edit"></i> Edit Coverage Request
+                                    </h2>
+                                    <button type="button" id="close-edit-modal"
+                                        style="background:none; border:none; font-size:1.5em; color:#888; cursor:pointer;">&times;</button>
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit_target_branch_ids"><i class="fas fa-building"></i> Target
+                                        Branch(es):</label>
+                                    <div class="branch-multiselect" id="edit-branch-multiselect">
+                                        <div class="selected-branches" id="edit-selected-branches" tabindex="0"
+                                            style="min-height:38px; border:1px solid #bbb; border-radius:5px; padding:8px 10px; background:#fff; cursor:pointer; user-select:none; display:flex; flex-wrap:wrap; align-items:center;">
+                                            Select branches...
+                                        </div>
+                                        <div class="branch-dropdown" id="edit-branch-dropdown"
+                                            style="display:none; max-height:220px; overflow-y:auto; background:#fff; border:1px solid #bbb; border-radius:5px; position:absolute; z-index:1001; width:100%; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                                            <input type="text" id="edit-branch-search" placeholder="Search branches..."
+                                                style="width:96%; margin:8px 2%; padding:6px 10px; border:1px solid #ccc; border-radius:6px; font-size:15px;">
+                                            <div id="edit-branch-options-list">
+                                                <?php foreach ($all_branches as $branch): ?>
+                                                    <?php if ($branch['id'] != $user_branch['id']): ?>
+                                                        <label class="branch-option"
+                                                            data-name="<?php echo htmlspecialchars(strtolower($branch['name'] . ' ' . $branch['code'])); ?>"
+                                                            style="display:block; padding:7px 12px; cursor:pointer;">
+                                                            <input type="checkbox" class="branch-checkbox"
+                                                                value="<?php echo $branch['id']; ?>" <?php if (!empty($edit_request) && in_array($branch['id'], explode(',', $edit_request['target_branch_ids'] ?? $edit_request['target_branch_id'] ?? '')))
+                                                                       echo 'checked'; ?>>
+                                                            <?php echo htmlspecialchars($branch['name']) . ' (' . htmlspecialchars($branch['code']) . ')'; ?>
+                                                        </label>
+                                                    <?php endif; ?>
+                                                <?php endforeach; ?>
+                                            </div>
                                         </div>
                                     </div>
+                                    <input type="hidden" name="target_branch_ids" id="edit_target_branch_ids">
+                                    <small style="color:#888;">Tap to select up to 5 branches.</small>
                                 </div>
-                                <input type="hidden" name="target_branch_ids" id="edit_target_branch_ids">
-                                <small style="color:#888;">Tap to select up to 5 branches.</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit_urgency_level"><i class="fas fa-exclamation-triangle"></i> Urgency
-                                    Level:</label>
-                                <select id="edit_urgency_level" name="urgency_level" required>
-                                    <option value="low" <?php if (!empty($edit_request) && $edit_request['urgency_level'] == 'low')
-                                        echo 'selected'; ?>>Low</option>
-                                    <option value="medium" <?php if (!empty($edit_request) && $edit_request['urgency_level'] == 'medium')
-                                        echo 'selected'; ?>>Medium</option>
-                                    <option value="high" <?php if (!empty($edit_request) && $edit_request['urgency_level'] == 'high')
-                                        echo 'selected'; ?>>High</option>
-                                    <option value="critical" <?php if (!empty($edit_request) && $edit_request['urgency_level'] == 'critical')
-                                        echo 'selected'; ?>>Critical
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit_shift_date"><i class="fas fa-calendar"></i> Shift Date:</label>
-                                <input type="date" id="edit_shift_date" name="shift_date" required
-                                    min="<?php echo date('Y-m-d'); ?>"
-                                    value="<?php echo !empty($edit_request) ? htmlspecialchars($edit_request['shift_date']) : ''; ?>">
-                            </div>
-                            <div class="form-group">
-                                <label for="edit_start_time"><i class="fas fa-clock"></i> Start Time:</label>
-                                <input type="time" id="edit_start_time" name="start_time" required
-                                    value="<?php echo !empty($edit_request) ? htmlspecialchars($edit_request['start_time']) : ''; ?>">
-                            </div>
-                            <div class="form-group">
-                                <label for="edit_end_time"><i class="fas fa-clock"></i> End Time:</label>
-                                <input type="time" id="edit_end_time" name="end_time" required
-                                    value="<?php echo !empty($edit_request) ? htmlspecialchars($edit_request['end_time']) : ''; ?>">
-                            </div>
-                            <div class="form-group">
-                                <?php
-                                // Fetch roles for dropdown
-                                $roles_stmt = $conn->prepare("SELECT id, name FROM roles ORDER BY name");
-                                $roles_stmt->execute();
-                                $roles = $roles_stmt->fetchAll(PDO::FETCH_ASSOC);
-                                ?>
-                                <label for="edit_role_id"><i class="fas fa-user-tag"></i> Role/Position
-                                    Required:</label>
-                                <select id="edit_role_id" name="role_id" required>
-                                    <option value="">Select a role</option>
-                                    <?php foreach ($roles as $role): ?>
-                                        <option value="<?php echo $role['id']; ?>" <?php echo (!empty($edit_request) && $edit_request['role_id'] == $role['id']) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($role['name']); ?>
+                                <div class="form-group">
+                                    <label for="edit_urgency_level"><i class="fas fa-exclamation-triangle"></i> Urgency
+                                        Level:</label>
+                                    <select id="edit_urgency_level" name="urgency_level" required>
+                                        <option value="low" <?php if (!empty($edit_request) && $edit_request['urgency_level'] == 'low')
+                                            echo 'selected'; ?>>Low</option>
+                                        <option value="medium" <?php if (!empty($edit_request) && $edit_request['urgency_level'] == 'medium')
+                                            echo 'selected'; ?>>Medium</option>
+                                        <option value="high" <?php if (!empty($edit_request) && $edit_request['urgency_level'] == 'high')
+                                            echo 'selected'; ?>>High</option>
+                                        <option value="critical" <?php if (!empty($edit_request) && $edit_request['urgency_level'] == 'critical')
+                                            echo 'selected'; ?>>Critical
                                         </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit_description"><i class="fas fa-comment"></i> Additional Details:</label>
-                                <textarea id="edit_description" name="description"
-                                    rows="3"><?php echo !empty($edit_request) ? htmlspecialchars($edit_request['description']) : ''; ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit_expires_hours"><i class="fas fa-clock"></i> Request Expires In:</label>
-                                <select id="edit_expires_hours" name="expires_hours" required>
-                                    <option value="6">6 hours</option>
-                                    <option value="12">12 hours</option>
-                                    <option value="24">24 hours</option>
-                                    <option value="48">48 hours</option>
-                                    <option value="72">72 hours</option>
-                                </select>
-                            </div>
-                            <div class="form-actions" style="margin-top:18px;">
-                                <button type="submit" name="update_request" class="admin-btn"><i
-                                        class="fas fa-save"></i> Save Changes</button>
-                                <button type="button"
-                                    onclick="document.getElementById('edit-modal-overlay').style.display='none';"
-                                    class="admin-btn secondary" style="margin-left:10px;">Cancel</button>
-                            </div>
-                        </form>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit_shift_date"><i class="fas fa-calendar"></i> Shift Date:</label>
+                                    <input type="date" id="edit_shift_date" name="shift_date" required
+                                        min="<?php echo date('Y-m-d'); ?>"
+                                        value="<?php echo !empty($edit_request) ? htmlspecialchars($edit_request['shift_date']) : ''; ?>">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit_start_time"><i class="fas fa-clock"></i> Start Time:</label>
+                                    <input type="time" id="edit_start_time" name="start_time" required
+                                        value="<?php echo !empty($edit_request) ? htmlspecialchars($edit_request['start_time']) : ''; ?>">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit_end_time"><i class="fas fa-clock"></i> End Time:</label>
+                                    <input type="time" id="edit_end_time" name="end_time" required
+                                        value="<?php echo !empty($edit_request) ? htmlspecialchars($edit_request['end_time']) : ''; ?>">
+                                </div>
+                                <div class="form-group">
+                                    <?php
+                                    // Fetch roles for dropdown
+                                    $roles_stmt = $conn->prepare("SELECT id, name FROM roles ORDER BY name");
+                                    $roles_stmt->execute();
+                                    $roles = $roles_stmt->fetchAll(PDO::FETCH_ASSOC);
+                                    ?>
+                                    <label for="edit_role_id"><i class="fas fa-user-tag"></i> Role/Position
+                                        Required:</label>
+                                    <select id="edit_role_id" name="role_id" required>
+                                        <option value="">Select a role</option>
+                                        <?php foreach ($roles as $role): ?>
+                                            <option value="<?php echo $role['id']; ?>" <?php echo (!empty($edit_request) && $edit_request['role_id'] == $role['id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($role['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit_description"><i class="fas fa-comment"></i> Additional Details:</label>
+                                    <textarea id="edit_description" name="description"
+                                        rows="3"><?php echo !empty($edit_request) ? htmlspecialchars($edit_request['description']) : ''; ?></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit_expires_hours"><i class="fas fa-clock"></i> Request Expires In:</label>
+                                    <select id="edit_expires_hours" name="expires_hours" required>
+                                        <option value="6">6 hours</option>
+                                        <option value="12">12 hours</option>
+                                        <option value="24">24 hours</option>
+                                        <option value="48">48 hours</option>
+                                        <option value="72">72 hours</option>
+                                    </select>
+                                </div>
+                                <div class="form-actions" style="margin-top:18px;">
+                                    <button type="submit" name="update_request" class="admin-btn"><i
+                                            class="fas fa-save"></i> Save Changes</button>
+                                    <button type="button"
+                                        onclick="document.getElementById('edit-modal-overlay').style.display='none';"
+                                        class="admin-btn secondary" style="margin-left:10px;">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
                 <?php endif; ?>
                 <script>
                     // Robust custom multi-select for edit modal (if present)
@@ -957,7 +1019,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
     <script>
         // Branch multi-select logic
-        (function() {
+        (function () {
             const search = document.getElementById('branch-search');
             const optionsList = document.getElementById('branch-options');
             const options = document.querySelectorAll('#branch-options .option');
@@ -1007,7 +1069,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             function hideOptions() { optionsList.style.display = 'none'; }
 
             // Hide options when clicking outside
-            document.addEventListener('click', function(e) {
+            document.addEventListener('click', function (e) {
                 const container = document.getElementById('branch-multi-select');
                 if (!container) return;
                 if (!container.contains(e.target)) {
@@ -1016,7 +1078,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             });
 
             // Hide options on Escape
-            document.addEventListener('keydown', function(e) {
+            document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') hideOptions();
             });
 
@@ -1044,7 +1106,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             }
         })();
 
-    
+
         function showTab(tabName) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {

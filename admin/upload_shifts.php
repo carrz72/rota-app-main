@@ -1,7 +1,9 @@
 <?php
 require_once '../includes/db.php';
 require '../includes/auth.php';
-require_once '../functions/addNotification.php';
+if (!function_exists('addNotification')) {
+    require_once '../functions/addNotification.php';
+}
 requireAdmin();
 
 // Determine the branch of the admin performing the upload. We'll use this as the default
@@ -637,10 +639,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
                         if ($failed_shifts > 0)
                             $message .= " Failed: $failed_shifts shifts.";
                         // Audit: upload summary
-                        try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts', ['uploaded' => $uploaded_shifts, 'failed' => $failed_shifts], null, 'shift_import', session_id()); } catch (Exception $e) {}
+                        try {
+                            require_once __DIR__ . '/../includes/audit_log.php';
+                            log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts', ['uploaded' => $uploaded_shifts, 'failed' => $failed_shifts], null, 'shift_import', session_id());
+                        } catch (Exception $e) {
+                        }
                     } else {
                         $error = "No shifts uploaded. Check file format or user/role matching.";
-                        try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts_empty', ['failed' => $failed_shifts], null, 'shift_import', session_id()); } catch (Exception $e) {}
+                        try {
+                            require_once __DIR__ . '/../includes/audit_log.php';
+                            log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts_empty', ['failed' => $failed_shifts], null, 'shift_import', session_id());
+                        } catch (Exception $e) {
+                        }
                     }
                 }
             }
@@ -649,8 +659,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($installation_message)) {
         $error = "Error: " . $e->getMessage();
         $debug[] = "Exception: " . $e->getMessage();
         $debug[] = "Stack trace: " . $e->getTraceAsString();
-    // Audit: exception during upload
-    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts_error', ['error' => $e->getMessage()], null, 'shift_import', session_id()); } catch (Exception $ex) {}
+        // Audit: exception during upload
+        try {
+            require_once __DIR__ . '/../includes/audit_log.php';
+            log_audit($conn, $_SESSION['user_id'] ?? null, 'upload_shifts_error', ['error' => $e->getMessage()], null, 'shift_import', session_id());
+        } catch (Exception $ex) {
+        }
     }
 }
 ?>

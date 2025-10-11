@@ -1,7 +1,9 @@
 <?php
 session_start();
 require_once '../includes/db.php';
-require_once '../functions/addNotification.php';
+if (!function_exists('addNotification')) {
+    require_once '../functions/addNotification.php';
+}
 require_once '../functions/branch_functions.php';
 
 // Only allow admin or super_admin access.
@@ -33,8 +35,8 @@ if (!is_null($adminBranchId)) {
     $branchRow = $stmtBranch->fetch(PDO::FETCH_ASSOC);
     if ($branchRow && !empty($branchRow['name'])) {
         $defaultLocation = $branchRow['name'];
-    // default branch id for the form
-    $branch_id = $adminBranchId;
+        // default branch id for the form
+        $branch_id = $adminBranchId;
     }
 }
 
@@ -73,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Normalize branch_id to integer or empty
     if ($branch_id !== '') {
-        $branch_id = (int)$branch_id;
+        $branch_id = (int) $branch_id;
     } else {
         $branch_id = '';
     }
@@ -88,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Validate targeted invitee belongs to admin's branch (unless super_admin)
         if (!is_null($invited_user_id)) {
             // ensure numeric id
-            $invited_user_id = (int)$invited_user_id;
+            $invited_user_id = (int) $invited_user_id;
             $checkStmt = $conn->prepare("SELECT id, branch_id FROM users WHERE id = ? LIMIT 1");
             $checkStmt->execute([$invited_user_id]);
             $targetUser = $checkStmt->fetch(PDO::FETCH_ASSOC);
@@ -107,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($branch_id !== '') {
             if ($adminRole !== 'super_admin') {
                 // Non-super-admins may only use their own branch (or none if they have no branch)
-                if (is_null($adminBranchId) || ((int)$branch_id !== (int)$adminBranchId)) {
+                if (is_null($adminBranchId) || ((int) $branch_id !== (int) $adminBranchId)) {
                     $error = "You can only select your own branch.";
                 }
             }
@@ -162,10 +164,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 addNotification($conn, $invited_user_id, $notif_message, "shift-invite", $invitation_id);
             }
 
-                // Audit: shift invitation created
-                try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $admin_id, 'shift_invitation_created', ['invited_user_id' => $invited_user_id, 'shift_date' => $shift_date], $invitation_id, 'shift_invitation', session_id()); } catch (Exception $e) {}
+            // Audit: shift invitation created
+            try {
+                require_once __DIR__ . '/../includes/audit_log.php';
+                log_audit($conn, $admin_id, 'shift_invitation_created', ['invited_user_id' => $invited_user_id, 'shift_date' => $shift_date], $invitation_id, 'shift_invitation', session_id());
+            } catch (Exception $e) {
+            }
 
-                $message = "Shift invitation sent successfully.";
+            $message = "Shift invitation sent successfully.";
         } else {
             $error = "Failed to send shift invitation.";
         }
@@ -189,16 +195,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         /* Small form polish to match Add Shift */
-        .admin-panel { max-width: 920px; margin: 18px auto; }
-        .admin-form { background: #fff; padding: 18px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
-        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-        .form-group label { display:flex; align-items:center; gap:8px; font-weight:600; }
-        .form-control { padding:10px 12px; border-radius:8px; border:1px solid #e6e6e6; }
-        .form-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
-        .admin-btn.primary { background:#2b7cff; color:#fff; border-radius:8px; padding:10px 14px; }
-        .admin-btn.secondary { background:#f4f6fa; color:#333; border-radius:8px; padding:10px 14px; }
-        @media (max-width:900px) { .form-grid { grid-template-columns: 1fr 1fr; } }
-        @media (max-width:600px) { .form-grid { grid-template-columns: 1fr; } }
+        .admin-panel {
+            max-width: 920px;
+            margin: 18px auto;
+        }
+
+        .admin-form {
+            background: #fff;
+            padding: 18px;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .form-control {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #e6e6e6;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .admin-btn.primary {
+            background: #2b7cff;
+            color: #fff;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        .admin-btn.secondary {
+            background: #f4f6fa;
+            color: #333;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        @media (max-width:900px) {
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width:600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -292,11 +351,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <i class="fas fa-map-marker-alt"></i>
                                     Location / Branch:
                                 </label>
-                                <div style="padding:10px 12px; background:#f7f9fb; border-radius:8px; border:1px solid #e6e6e6;">
+                                <div
+                                    style="padding:10px 12px; background:#f7f9fb; border-radius:8px; border:1px solid #e6e6e6;">
                                     <?php echo htmlspecialchars($defaultLocation ?: ($location ?? '')); ?>
                                 </div>
                                 <!-- Hidden fields to ensure server receives the enforced branch/location -->
-                                <input type="hidden" name="location" value="<?php echo htmlspecialchars($defaultLocation ?: ($location ?? '')); ?>">
+                                <input type="hidden" name="location"
+                                    value="<?php echo htmlspecialchars($defaultLocation ?: ($location ?? '')); ?>">
                                 <input type="hidden" name="branch_id" value="<?php echo htmlspecialchars($branch_id); ?>">
                                 <small class="hint">Invitations are restricted to your branch.</small>
                             </div>
@@ -318,7 +379,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <select name="branch_id" id="branch_id" class="form-control">
                                     <option value="">-- Keep as typed location --</option>
                                     <?php foreach ($all_branches as $b): ?>
-                                        <option value="<?php echo $b['id']; ?>" <?php echo ((string)$b['id'] === (string)$branch_id) ? 'selected' : ''; ?> >
+                                        <option value="<?php echo $b['id']; ?>" <?php echo ((string) $b['id'] === (string) $branch_id) ? 'selected' : ''; ?>>
                                             <?php echo htmlspecialchars($b['name']); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -338,12 +399,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     <script>
-        (function(){
+        (function () {
             const branchSelect = document.getElementById('branch_id');
             const locationInput = document.getElementById('location');
             if (!branchSelect) return;
 
-            branchSelect.addEventListener('change', function(){
+            branchSelect.addEventListener('change', function () {
                 const id = this.value;
                 if (!id) return;
                 const opt = this.options[this.selectedIndex];

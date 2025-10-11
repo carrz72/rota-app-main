@@ -2,6 +2,10 @@
 require '../includes/auth.php';
 requireAdmin();
 require_once '../includes/db.php';
+// Include notification functionality
+if (!function_exists('addNotification')) {
+    require_once '../functions/addNotification.php';
+}
 
 // Determine current admin branch for filtering
 $currentAdminId = $_SESSION['user_id'] ?? null;
@@ -77,17 +81,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_shift'])) {
 
     try {
         $stmt = $conn->prepare("DELETE FROM shifts WHERE id = ?");
-        $deleted = $stmt->execute([$shift_id]);
-
-        if ($deleted) {
+        $stmt->execute([$shift_id]);
+        
+        if ($stmt->rowCount() > 0) {
             $successMessage = "Shift deleted successfully";
+            
+            // Add notification
+            addNotification($conn, $_SESSION['user_id'], "Shift deleted successfully from manage shifts", "success");
+            
+            // Audit logging
+            try {
+                require_once __DIR__ . '/../includes/audit_log.php';
+                log_audit($conn, $_SESSION['user_id'] ?? null, 'delete_shift', [], $shift_id, 'shift', session_id());
+            } catch (Exception $e) {
+                // Audit logging failed, but don't show error to user
+            }
+            
             // Refresh shifts list
             $shifts = $conn->query($shiftsQuery)->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            $errorMessage = "Error deleting shift";
+            $errorMessage = "Shift not found or could not be deleted";
+            addNotification($conn, $_SESSION['user_id'], "Error: Shift not found or could not be deleted", "error");
         }
     } catch (PDOException $e) {
         $errorMessage = "Database error: " . $e->getMessage();
+        addNotification($conn, $_SESSION['user_id'], "Database error while deleting shift: " . $e->getMessage(), "error");
     }
 }
 
@@ -333,15 +351,16 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                                         ?>
                                     </td>
                                     <td class="actions" data-label="Actions">
-                                        <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn"
+                                        <a href="edit_shift.php?id=<?php echo $shift['id']; ?>&return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" class="admin-btn"
                                             title="Edit shift">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <form method="POST" style="display:inline;">
                                             <input type="hidden" name="shift_id" value="<?php echo $shift['id']; ?>">
-                                            <button type="button" name="delete_shift" class="admin-btn delete-btn"
+                                            <input type="hidden" name="delete_shift" value="1">
+                                            <button type="submit" class="admin-btn delete-btn"
                                                 title="Delete shift"
-                                                onclick="if(confirm('Are you sure you want to delete the shift for <?php echo addslashes(htmlspecialchars($shift['username'])); ?> on <?php echo date('M j, Y', strtotime($shift['shift_date'])); ?>?')) { this.form.submit(); }">
+                                                onclick="return confirm('Are you sure you want to delete the shift for <?php echo addslashes(htmlspecialchars($shift['username'])); ?> on <?php echo date('M j, Y', strtotime($shift['shift_date'])); ?>?');">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>

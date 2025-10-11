@@ -919,7 +919,7 @@ if ($viewType === 'week') {
                                         ?>
                                     </td>
                                     <td class="actions" data-label="Actions">
-                                        <a href="edit_shift.php?id=<?php echo $shift['id']; ?>" class="admin-btn">
+                                        <a href="edit_shift.php?id=<?php echo $shift['id']; ?>&return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" class="admin-btn">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <button type="button" class="admin-btn secondary"
@@ -946,7 +946,7 @@ if ($viewType === 'week') {
 
         function confirmDeleteShift(shiftId, username, date) {
             if (confirm(`Are you sure you want to delete the shift for ${username} on ${date}?`)) {
-                window.location.href = `../functions/delete_shift.php?id=${shiftId}`;
+                window.location.href = `../functions/delete_shift.php?id=${shiftId}&return=../admin/admin_dashboard.php`;
             }
         }
 
