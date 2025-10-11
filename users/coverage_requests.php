@@ -338,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_swap'])) {
     $swap_request_id = $_POST['swap_request_id'];
     $offered_shift_id = $_POST['offered_shift_id'];
     // Insert swap proposal
-    $stmt = $conn->prepare("INSERT INTO shift_swaps (request_id, offered_shift_id, proposer_user_id, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
+    $stmt = $conn->prepare("INSERT INTO shift_swaps (request_id, from_shift_id, from_user_id, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
     $stmt->execute([$swap_request_id, $offered_shift_id, $user_id]);
     $_SESSION['success_message'] = "Shift swap proposal sent!";
     header("Location: coverage_requests.php");
@@ -349,7 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['propose_swap'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_swap'])) {
     $swap_id = $_POST['swap_id'];
     // Fetch swap details
-    $stmt = $conn->prepare("SELECT ss.*, s.user_id AS offered_user_id, s.id AS offered_shift_id, cbr.requested_by_user_id, cbr.shift_date AS req_shift_date, cbr.start_time AS req_start_time, cbr.end_time AS req_end_time, cbr.role_id AS req_role_id, cbr.target_branch_id AS req_branch_id FROM shift_swaps ss JOIN shifts s ON ss.offered_shift_id = s.id JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id WHERE ss.id = ?");
+    $stmt = $conn->prepare("SELECT ss.*, s.user_id AS offered_user_id, s.id AS offered_shift_id, cbr.requested_by_user_id, cbr.shift_date AS req_shift_date, cbr.start_time AS req_start_time, cbr.end_time AS req_end_time, cbr.role_id AS req_role_id, cbr.target_branch_id AS req_branch_id FROM shift_swaps ss JOIN shifts s ON ss.from_shift_id = s.id JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id WHERE ss.id = ?");
     $stmt->execute([$swap_id]);
     $swap = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($swap) {
@@ -393,11 +393,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_swap'])) {
 $swap_proposals_stmt = $conn->prepare("
     SELECT ss.*, s.shift_date, s.start_time, s.end_time, s.location, r.name as role_name, u.username as proposer_name, cbr.shift_date as req_shift_date, cbr.start_time as req_start_time, cbr.end_time as req_end_time
     FROM shift_swaps ss
-    JOIN shifts s ON ss.offered_shift_id = s.id
+    JOIN shifts s ON ss.from_shift_id = s.id
     JOIN roles r ON s.role_id = r.id
-    JOIN users u ON ss.proposer_user_id = u.id
+    JOIN users u ON ss.from_user_id = u.id
     JOIN cross_branch_shift_requests cbr ON ss.request_id = cbr.id
-    WHERE cbr.requested_by_user_id = ? OR ss.proposer_user_id = ?
+    WHERE cbr.requested_by_user_id = ? OR ss.from_user_id = ?
     ORDER BY ss.created_at DESC
 ");
 $swap_proposals_stmt->execute([$user_id, $user_id]);
@@ -734,7 +734,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <?php echo date('M j, Y', strtotime($swap['req_shift_date'])) . ' ' . date('g:i A', strtotime($swap['req_start_time'])) . ' - ' . date('g:i A', strtotime($swap['req_end_time'])); ?>
                             </div>
                             <div><strong>Status:</strong> <?php echo ucfirst($swap['status']); ?></div>
-                            <?php if ($swap['status'] === 'pending' && $swap['proposer_user_id'] != $user_id): ?>
+                            <?php if ($swap['status'] === 'pending' && $swap['from_user_id'] != $user_id): ?>
                                 <form method="POST" style="margin-top:10px;">
                                     <input type="hidden" name="swap_id" value="<?php echo $swap['id']; ?>">
                                     <button type="submit" name="accept_swap" class="btn btn-success">Accept Swap</button>
