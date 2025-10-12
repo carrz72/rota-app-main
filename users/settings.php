@@ -264,6 +264,31 @@ if ($user_id) {
             color: #000;
         }
 
+        /* Ensure header is always visible */
+        header {
+            position: relative;
+            z-index: 1000;
+            opacity: 1 !important;
+        }
+
+        /* Fix mobile navigation visibility */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .nav-links {
+                z-index: 1001 !important;
+                background-color: #fd2b2b !important;
+            }
+
+            .menu-toggle {
+                z-index: 1002 !important;
+                color: #000 !important;
+                font-size: 1.8em !important;
+            }
+        }
+
         .settings-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -735,7 +760,6 @@ if ($user_id) {
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
-    </header>
     </header>
 
     <div class="settings-container">
