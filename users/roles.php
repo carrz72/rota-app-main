@@ -35,11 +35,11 @@ if ($user_id) {
                 var saved = localStorage.getItem('rota_theme');
                 if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
             }
-        } catch (e) {}
+        } catch (e) { }
     </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <link rel="icon" type="image/png" href="../images/icon.png">
@@ -51,95 +51,112 @@ if ($user_id) {
     <link rel="stylesheet" href="../css/role.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/dark_mode.css">
-    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
     <style>
-    /* Page-specific dark mode fixes for Roles page */
-    html[data-theme='dark'] body {
-    
-        color: var(--text) !important;
-    }
+        [data-theme="dark"] .page-header,
+        [data-theme="dark"] .current-branch-info {
+            background: transparent !important;
+            color: var(--text) !important;
+        }
+    </style>
+    <style>
+        /* Page-specific dark mode fixes for Roles page */
+        html[data-theme='dark'] body {
 
-    html[data-theme='dark'] .container {
-        background: var(--panel) !important;
-        color: var(--text) !important;
-        box-shadow: var(--card-shadow) !important;
-        background-image: none !important;
-    }
+            color: var(--text) !important;
+        }
 
-    html[data-theme='dark'] form,
-    html[data-theme='dark'] .form-card,
-    html[data-theme='dark'] .role-card,
-    html[data-theme='dark'] table,
-    html[data-theme='dark'] table thead,
-    html[data-theme='dark'] table tbody,
-    html[data-theme='dark'] table td,
-    html[data-theme='dark'] table th {
-        background: var(--panel) !important;
-        color: var(--text) !important;
-        border-color: rgba(255,255,255,0.03) !important;
-        box-shadow: var(--card-shadow) !important;
-    }
+        html[data-theme='dark'] .container {
+            background: var(--panel) !important;
+            color: var(--text) !important;
+            box-shadow: var(--card-shadow) !important;
+            background-image: none !important;
+        }
 
-    /* Remove light hover and keep rows neutral */
-    html[data-theme='dark'] table tbody tr:hover,
-    html[data-theme='dark'] table tr:hover {
-        background: transparent !important;
-        transform: none !important;
-        box-shadow: none !important;
-    }
+        html[data-theme='dark'] form,
+        html[data-theme='dark'] .form-card,
+        html[data-theme='dark'] .role-card,
+        html[data-theme='dark'] table,
+        html[data-theme='dark'] table thead,
+        html[data-theme='dark'] table tbody,
+        html[data-theme='dark'] table td,
+        html[data-theme='dark'] table th {
+            background: var(--panel) !important;
+            color: var(--text) !important;
+            border-color: rgba(255, 255, 255, 0.03) !important;
+            box-shadow: var(--card-shadow) !important;
+        }
 
-    /* Ensure headings, labels and inputs are readable */
-    html[data-theme='dark'] h1, html[data-theme='dark'] h2, html[data-theme='dark'] label, html[data-theme='dark'] .role-name {
-        color: var(--text) !important;
-    }
+        /* Remove light hover and keep rows neutral */
+        html[data-theme='dark'] table tbody tr:hover,
+        html[data-theme='dark'] table tr:hover {
+            background: transparent !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
 
-    html[data-theme='dark'] input[type="text"],
-    html[data-theme='dark'] input[type="number"],
-    html[data-theme='dark'] input[type="time"],
-    html[data-theme='dark'] select {
-        background: #08101a !important;
-        color: var(--text) !important;
-        border-color: #17232b !important;
-    }
+        /* Ensure headings, labels and inputs are readable */
+        html[data-theme='dark'] h1,
+        html[data-theme='dark'] h2,
+        html[data-theme='dark'] label,
+        html[data-theme='dark'] .role-name {
+            color: var(--text) !important;
+        }
 
-    /* Buttons and action controls */
-    html[data-theme='dark'] button,
-    html[data-theme='dark'] .action-btn,
-    html[data-theme='dark'] a {
-        background: linear-gradient(135deg,var(--accent),#ff3b3b) !important;
-        color: #fff !important;
-        border: none !important;
-    }
-    html[data-theme='dark'] button:hover, html[data-theme='dark'] .action-btn:hover, html[data-theme='dark'] a:hover {
-        background: #ff3b3b !important;
-        transform: none !important;
-    }
+        html[data-theme='dark'] input[type="text"],
+        html[data-theme='dark'] input[type="number"],
+        html[data-theme='dark'] input[type="time"],
+        html[data-theme='dark'] select {
+            background: #08101a !important;
+            color: var(--text) !important;
+            border-color: #17232b !important;
+        }
 
-    /* Header, nav and icons */
-    html[data-theme='dark'] header, html[data-theme='dark'] header * {
-        background: transparent !important;
-        color: var(--text) !important;
-    }
+        /* Buttons and action controls */
+        html[data-theme='dark'] button,
+        html[data-theme='dark'] .action-btn,
+        html[data-theme='dark'] a {
+            background: linear-gradient(135deg, var(--accent), #ff3b3b) !important;
+            color: #fff !important;
+            border: none !important;
+        }
 
-    html[data-theme='dark'] .notification-icon { color: var(--text) !important; }
+        html[data-theme='dark'] button:hover,
+        html[data-theme='dark'] .action-btn:hover,
+        html[data-theme='dark'] a:hover {
+            background: #ff3b3b !important;
+            transform: none !important;
+        }
 
-    /* Catch inline white backgrounds */
-    html[data-theme='dark'] [style*="background:#fff"],
-    html[data-theme='dark'] [style*="background: #fff"],
-    html[data-theme='dark'] [style*="background:#ffffff"],
-    html[data-theme='dark'] [style*="background: #ffffff"],
-    html[data-theme='dark'] [style*="background: white"] {
-        background: var(--panel) !important;
-        color: var(--text) !important;
-    }
+        /* Header, nav and icons */
+        html[data-theme='dark'] header,
+        html[data-theme='dark'] header * {
+            background: transparent !important;
+            color: var(--text) !important;
+        }
 
-    html[data-theme='dark'] .toggle-container, #night_pay_fields {
-        background: var(--panel) !important;
-        color: var(--text) !important;
-    }
-    html[data-theme='dark'] #night_pay_fields h3 {
-        color: var(--text) !important;
-    }
+        html[data-theme='dark'] .notification-icon {
+            color: var(--text) !important;
+        }
+
+        /* Catch inline white backgrounds */
+        html[data-theme='dark'] [style*="background:#fff"],
+        html[data-theme='dark'] [style*="background: #fff"],
+        html[data-theme='dark'] [style*="background:#ffffff"],
+        html[data-theme='dark'] [style*="background: #ffffff"],
+        html[data-theme='dark'] [style*="background: white"] {
+            background: var(--panel) !important;
+            color: var(--text) !important;
+        }
+
+        html[data-theme='dark'] .toggle-container,
+        #night_pay_fields {
+            background: var(--panel) !important;
+            color: var(--text) !important;
+        }
+
+        html[data-theme='dark'] #night_pay_fields h3 {
+            color: var(--text) !important;
+        }
     </style>
     <?php
     if (isset($_SESSION['user_id'])) {
@@ -151,7 +168,8 @@ if ($user_id) {
             if ($userTheme === 'dark') {
                 echo "<script>document.documentElement.setAttribute('data-theme','dark');</script>\n";
             }
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
     }
     ?>
 </head>
@@ -174,20 +192,21 @@ if ($user_id) {
                         <?php foreach ($notifications as $notification): ?>
                             <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
-                                   data-id="<?php echo $notification['id']; ?>"
-                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    data-id="<?php echo $notification['id']; ?>"
+                                    href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </a>
                             <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
-                                   data-id="<?php echo $notification['id']; ?>"
-                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    data-id="<?php echo $notification['id']; ?>"
+                                    href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </a>
                             <?php else: ?>
-                                <div class="notification-item notification-<?php echo $notification['type']; ?>" data-id="<?php echo $notification['id']; ?>">
+                                <div class="notification-item notification-<?php echo $notification['type']; ?>"
+                                    data-id="<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </div>
@@ -214,9 +233,9 @@ if ($user_id) {
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-               <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
-                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
-                    <?php endif; ?>
+                <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
+                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                <?php endif; ?>
                 <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
@@ -396,9 +415,9 @@ if ($user_id) {
                     <input type="text" id="edit_name" name="edit_name" required>
                 </div>
 
-                    <div class="form-group">
-                            <label for="edit_employment_type">Employment Type:</label>
-                            <select id="edit_employment_type" name="edit_employment_type" onchange="toggleEditPayFields()"
+                <div class="form-group">
+                    <label for="edit_employment_type">Employment Type:</label>
+                    <select id="edit_employment_type" name="edit_employment_type" onchange="toggleEditPayFields()"
                         required>
                         <option value="hourly">Hourly Paid</option>
                         <option value="salaried">Salaried</option>
@@ -735,18 +754,18 @@ if ($user_id) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: roleId })
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Error deleting role: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Error deleting role. See console for details.');
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error deleting role: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error deleting role. See console for details.');
+                });
         }
 
         // Ensure the correct display on page load

@@ -33,22 +33,22 @@ $message = '';
 // Process form submission.
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verification_code'])) {
     $enteredCode = trim($_POST['verification_code']);
-    
+
     // Retrieve the code stored in the database.
     $stmt = $conn->prepare("SELECT verification_code FROM email_verification WHERE email = ?");
     $stmt->execute([$user_email]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if ($row && $enteredCode === $row['verification_code']) {
         if (isset($_SESSION['verifying_from_settings']) && $_SESSION['verifying_from_settings'] === true) {
             // Verification from settings: Update the existing user.
             $stmt = $conn->prepare("UPDATE users SET email_verified = 1 WHERE email = ?");
             $stmt->execute([$user_email]);
-            
+
             // Remove the verification record.
             $deleteStmt = $conn->prepare("DELETE FROM email_verification WHERE email = ?");
             $deleteStmt->execute([$user_email]);
-            
+
             // Clear the flag.
             unset($_SESSION['verifying_from_settings']);
             header("Location: ../users/settings.php");
@@ -61,11 +61,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verification_code']))
                 $pending_registration['email'],
                 $pending_registration['password']
             ]);
-            
+
             // Remove the verification record.
             $deleteStmt = $conn->prepare("DELETE FROM email_verification WHERE email = ?");
             $deleteStmt->execute([$user_email]);
-            
+
             // Clear registration session variables.
             unset($_SESSION['pending_registration'], $_SESSION['verification_email']);
             header("Location: ../functions/login.php");
@@ -79,53 +79,53 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verification_code']))
     $error = "Invalid verification code. Please try again.";
 } else {
     // GET request (or no POST code submitted): Generate and send a new verification code.
-    
+
     // Remove any existing verification code for this email.
     $deleteStmt = $conn->prepare("DELETE FROM email_verification WHERE email = ?");
     $deleteStmt->execute([$user_email]);
-    
+
     // Generate a new 6-digit code.
     $verificationCode = strval(random_int(100000, 999999));
-    
+
     // Insert the new code into the database.
     $stmt = $conn->prepare("INSERT INTO email_verification (email, verification_code) VALUES (?, ?)");
     $stmt->execute([$user_email, $verificationCode]);
-    
+
     // Setup and send the verification email.
     $mail = new PHPMailer(true);
-    try { 
-         $mail->SMTPDebug = \PHPMailer\PHPMailer\SMTP::DEBUG_SERVER;
-        
-         $mail->SMTPOptions = [
+    try {
+        $mail->SMTPDebug = \PHPMailer\PHPMailer\SMTP::DEBUG_SERVER;
+
+        $mail->SMTPOptions = [
             'socket' => [
                 'bindto' => '0.0.0.0:0'
             ]
         ];
         // Server settings.
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'openrotamail@gmail.com';
-        $mail->Password   = 'rtgd dbwl kkwn unjf';
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'openrotamail@gmail.com';
+        $mail->Password = 'rtgd dbwl kkwn unjf';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port = 587;
         $timeout = 10;
-$fp = fsockopen($host, $port, $errno, $errstr, $timeout);
-if (!$fp) {
-    echo "Error ($errno): $errstr";
-} else {
-    echo "Connected to $host on port $port";
-    fclose($fp);
-}
-    
+        $fp = fsockopen($host, $port, $errno, $errstr, $timeout);
+        if (!$fp) {
+            echo "Error ($errno): $errstr";
+        } else {
+            echo "Connected to $host on port $port";
+            fclose($fp);
+        }
+
         // Recipients.
         $mail->setFrom('openrotamail@gmail.com', 'openrota..');
         $mail->addAddress($user_email);
-    
+
         // Email content.
         $mail->isHTML(true);
         $mail->Subject = 'Verify Your Email Address';
-        $mail->Body    = "Hello,<br><br>Your email verification code is: <strong>{$verificationCode}</strong>.<br>Please enter this code on the verification page.<br><br>Thank you!";
+        $mail->Body = "Hello,<br><br>Your email verification code is: <strong>{$verificationCode}</strong>.<br>Please enter this code on the verification page.<br><br>Thank you!";
         $mail->send();
         $message = "A verification code has been sent to your email.";
     } catch (Exception $e) {
@@ -135,27 +135,29 @@ if (!$fp) {
 ?>
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Open Rota">
-<link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Open Rota">
+    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Email</title>
     <link rel="stylesheet" href="../css/verify_email.css">
     <link rel="stylesheet" href="../css/dark_mode.css">
 </head>
+
 <body>
-    <script>try{ if(localStorage.getItem('rota_theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
+    <script>try { if (localStorage.getItem('rota_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { }
     </script>
     <h1>Email Verification</h1>
     <?php
-        if (!empty($error)) {
-            echo "<p style='color:red;'>{$error}</p>";
-        } elseif (!empty($message)) {
-            echo "<p style='color:green;'>{$message}</p>";
-        }
+    if (!empty($error)) {
+        echo "<p style='color:red;'>{$error}</p>";
+    } elseif (!empty($message)) {
+        echo "<p style='color:green;'>{$message}</p>";
+    }
     ?>
     <form method="POST">
         <input type="text" name="verification_code" placeholder="Enter Verification Code" required>
@@ -163,4 +165,5 @@ if (!$fp) {
     </form>
 </body>
 <script src="../js/darkmode.js"></script>
+
 </html>

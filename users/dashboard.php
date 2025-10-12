@@ -138,11 +138,11 @@ foreach ($days_result as $day) {
                 var saved = localStorage.getItem('rota_theme');
                 if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
             }
-        } catch (e) {}
+        } catch (e) { }
     </script>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <link rel="icon" type="image/png" href="../images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -150,7 +150,13 @@ foreach ($days_result as $day) {
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../css/dark_mode.css">
-    <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
+    <style>
+        [data-theme="dark"] .page-header,
+        [data-theme="dark"] .current-branch-info {
+            background: transparent !important;
+            color: var(--text) !important;
+        }
+    </style>
     <?php
     // If user is logged in, inline their saved theme early to prevent FOUC
     if (isset($_SESSION['user_id'])) {
@@ -168,7 +174,7 @@ foreach ($days_result as $day) {
     }
     ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>Dashboard - Open Rota</title>
     <style>
         /* Enhanced dashboard styles */
@@ -802,20 +808,21 @@ foreach ($days_result as $day) {
                         <?php foreach ($notifications as $notif): ?>
                             <?php if ($notif['type'] === 'shift-invite' && !empty($notif['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notif['type']; ?>"
-                                   data-id="<?php echo $notif['id']; ?>"
-                                   href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
+                                    data-id="<?php echo $notif['id']; ?>"
+                                    href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </a>
                             <?php elseif ($notif['type'] === 'shift-swap' && !empty($notif['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notif['type']; ?>"
-                                   data-id="<?php echo $notif['id']; ?>"
-                                   href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
+                                    data-id="<?php echo $notif['id']; ?>"
+                                    href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </a>
                             <?php else: ?>
-                                <div class="notification-item notification-<?php echo $notif['type']; ?>" data-id="<?php echo $notif['id']; ?>">
+                                <div class="notification-item notification-<?php echo $notif['type']; ?>"
+                                    data-id="<?php echo $notif['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </div>

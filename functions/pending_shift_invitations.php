@@ -32,35 +32,38 @@ if (empty($invitations)) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Open Rota">
-<link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Open Rota">
+    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.jpg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pending Shift Invitations</title>
     <link rel="stylesheet" href="../css/pending_shift_invitations.css">
 </head>
+
 <body>
     <h1>Pending Shift Invitations</h1>
     <?php if (empty($invitations)): ?>
         <p>You have no pending shift invitations.</p>
     <?php else: ?>
         <?php foreach ($invitations as $invitation): ?>
-            <?php 
-                // Format the date and time for display.
-                $formattedDate = date("l, F j, Y", strtotime($invitation['shift_date']));
-                $formattedStart = date("g:i A", strtotime($invitation['start_time']));
-                $formattedEnd = date("g:i A", strtotime($invitation['end_time']));
-                // Calculate the estimated pay for this invitation.
-                $estimatedPay = calculateInvitationPay($conn, $invitation);
-                // Get the role name using our lookup array.
-                $roleName = isset($roleList[$invitation['role_id']]) ? $roleList[$invitation['role_id']] : 'Unknown Role';
+            <?php
+            // Format the date and time for display.
+            $formattedDate = date("l, F j, Y", strtotime($invitation['shift_date']));
+            $formattedStart = date("g:i A", strtotime($invitation['start_time']));
+            $formattedEnd = date("g:i A", strtotime($invitation['end_time']));
+            // Calculate the estimated pay for this invitation.
+            $estimatedPay = calculateInvitationPay($conn, $invitation);
+            // Get the role name using our lookup array.
+            $roleName = isset($roleList[$invitation['role_id']]) ? $roleList[$invitation['role_id']] : 'Unknown Role';
             ?>
             <div class="invitation">
                 <p><strong>Shift Date:</strong> <?php echo htmlspecialchars($formattedDate); ?></p>
-                <p><strong>Time:</strong> <?php echo htmlspecialchars($formattedStart); ?> to <?php echo htmlspecialchars($formattedEnd); ?></p>
+                <p><strong>Time:</strong> <?php echo htmlspecialchars($formattedStart); ?> to
+                    <?php echo htmlspecialchars($formattedEnd); ?></p>
                 <p><strong>Location:</strong> <?php echo htmlspecialchars($invitation['location']); ?></p>
                 <p><strong>Role:</strong> <?php echo htmlspecialchars($roleName); ?></p>
                 <p><strong>Estimated Pay:</strong> £<?php echo number_format($estimatedPay, 2); ?></p>
@@ -78,4 +81,5 @@ if (empty($invitations)) {
     <?php endif; ?>
     <p><a href="../users/dashboard.php">Back to Dashboard</a></p>
 </body>
+
 </html>

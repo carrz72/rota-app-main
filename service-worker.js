@@ -1,4 +1,4 @@
-const CACHE_NAME = "rota-app-cache-v4";
+const CACHE_NAME = "rota-app-cache-v5";
 const urlsToCache = [
     "./",
     "./index.php",

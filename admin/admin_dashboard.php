@@ -234,7 +234,7 @@ if ($viewType === 'week') {
 <head>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <link rel="manifest" href="/rota-app-main/manifest.json">
     <link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">

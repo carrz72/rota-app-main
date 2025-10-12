@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user && password_verify($password, $user['password'])) {
+        if ($user && password_verify($password, $user['password'])) {
             // Clear and recreate session to prevent session fixation
             session_regenerate_id(true);
 
@@ -204,29 +204,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             $error = "Invalid email or password.";
             // Audit login failure (email provided)
-                try {
+            try {
                 require_once __DIR__ . '/../includes/audit_log.php';
                 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
                 $ok = log_audit($conn, null, 'login_failure', ['email' => $email, 'ip' => $ip], null, 'auth', session_id());
-                } catch (Exception $e) {
-                    error_log('audit_log exception on login_failure: ' . $e->getMessage());
-                    $ok = false;
-                }
+            } catch (Exception $e) {
+                error_log('audit_log exception on login_failure: ' . $e->getMessage());
+                $ok = false;
+            }
 
-                if ($ok) {
-                    error_log('audit_log: login_failure recorded for email=' . $email . ' sid=' . session_id());
-                } else {
-                    error_log('audit_log: login_failure NOT recorded for email=' . $email . ' — attempting fallback. sid=' . session_id());
-                    try {
-                        $fallbackMeta = json_encode(['email' => $email, 'ip' => $ip]);
-                        $sid = session_id();
-                        $stmtFallback = $conn->prepare('INSERT INTO audit_log (user_id, action, meta, ip_address, user_agent, session_id) VALUES (?, ?, ?, ?, ?, ?)');
-                        $stmtFallback->execute([null, 'login_failure', $fallbackMeta, $ip, $_SERVER['HTTP_USER_AGENT'] ?? 'unknown', $sid]);
-                        error_log('audit_log fallback succeeded for login_failure email=' . $email . ' sid=' . $sid);
-                    } catch (Exception $fbE) {
-                        error_log('audit_log fallback failed for login_failure: ' . $fbE->getMessage());
-                    }
+            if ($ok) {
+                error_log('audit_log: login_failure recorded for email=' . $email . ' sid=' . session_id());
+            } else {
+                error_log('audit_log: login_failure NOT recorded for email=' . $email . ' — attempting fallback. sid=' . session_id());
+                try {
+                    $fallbackMeta = json_encode(['email' => $email, 'ip' => $ip]);
+                    $sid = session_id();
+                    $stmtFallback = $conn->prepare('INSERT INTO audit_log (user_id, action, meta, ip_address, user_agent, session_id) VALUES (?, ?, ?, ?, ?, ?)');
+                    $stmtFallback->execute([null, 'login_failure', $fallbackMeta, $ip, $_SERVER['HTTP_USER_AGENT'] ?? 'unknown', $sid]);
+                    error_log('audit_log fallback succeeded for login_failure email=' . $email . ' sid=' . $sid);
+                } catch (Exception $fbE) {
+                    error_log('audit_log fallback failed for login_failure: ' . $fbE->getMessage());
                 }
+            }
         }
     } catch (Exception $e) {
         error_log("Login process error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
@@ -243,7 +243,7 @@ ob_start();
 <head>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
@@ -274,7 +274,8 @@ ob_start();
             color: #333;
             display: flex;
             flex-direction: column;
-            align-items: center; /* center horizontally */
+            align-items: center;
+            /* center horizontally */
         }
 
         .login-container {
@@ -285,7 +286,8 @@ ob_start();
             width: 100%;
             max-width: 450px;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            margin: auto; /* center vertically and horizontally within column layout */
+            margin: auto;
+            /* center vertically and horizontally within column layout */
         }
 
         .login-container:hover {
@@ -432,77 +434,75 @@ ob_start();
                 font-size: 1.5rem;
             }
         }
-
-       
     </style>
 </head>
 
 <body>
     <div class="login-container">
-            <!-- Logo Header -->
-            <div class="logo-header">
-                <div class="logo">Open Rota</div>
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <div class="logo">Open Rota</div>
+        </div>
+
+        <div class="login-header">
+            <h2><i class="fas fa-sign-in-alt"></i> Welcome Back</h2>
+            <p>Sign in to manage your shifts and schedule</p>
+        </div>
+
+        <?php if (!empty($error)): ?>
+            <div class="alert <?php echo $show_timeout_message ? 'alert-warning' : 'alert-error'; ?>">
+                <i class="fas fa-<?php echo $show_timeout_message ? 'clock' : 'exclamation-circle'; ?>"></i>
+                <?php echo htmlspecialchars($error); ?>
+            </div>
+        <?php endif; ?>
+
+        <form id="loginForm" action="login.php" method="POST">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-control"
+                    value="<?php echo htmlspecialchars($remember_email); ?>" placeholder="Enter your email" required
+                    autocomplete="email">
             </div>
 
-            <div class="login-header">
-                <h2><i class="fas fa-sign-in-alt"></i> Welcome Back</h2>
-                <p>Sign in to manage your shifts and schedule</p>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control"
+                    placeholder="Enter your password" required autocomplete="current-password">
             </div>
 
-            <?php if (!empty($error)): ?>
-                <div class="alert <?php echo $show_timeout_message ? 'alert-warning' : 'alert-error'; ?>">
-                    <i class="fas fa-<?php echo $show_timeout_message ? 'clock' : 'exclamation-circle'; ?>"></i>
-                    <?php echo htmlspecialchars($error); ?>
-                </div>
-            <?php endif; ?>
-
-            <form id="loginForm" action="login.php" method="POST">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" class="form-control"
-                        value="<?php echo htmlspecialchars($remember_email); ?>" placeholder="Enter your email" required
-                        autocomplete="email">
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" class="form-control"
-                        placeholder="Enter your password" required autocomplete="current-password">
-                </div>
-
-                <div class="checkbox-group">
-                    <input type="checkbox" id="remember" name="remember" <?php echo $remember_email ? 'checked' : ''; ?>>
-                    <label for="remember">Remember me</label>
-                </div>
-
-                <button type="submit" id="loginBtn" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt"></i> Log In
-                </button>
-            </form>
-
-            <div class="text-center" style="margin-top: 20px;">
-                <a href="forgot_password_emailjs.php" class="forgot-password-link">Forgot Password?</a>
+            <div class="checkbox-group">
+                <input type="checkbox" id="remember" name="remember" <?php echo $remember_email ? 'checked' : ''; ?>>
+                <label for="remember">Remember me</label>
             </div>
 
-            <div class="text-center" style="margin-top: 25px; color: #666;">
-                Don't have an account? <a href="../register_with_otp.php" class="login-link">Sign Up</a>
-            </div>
-        </div> <!-- .login-container -->
+            <button type="submit" id="loginBtn" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Log In
+            </button>
+        </form>
 
-        <script>
-            // Simple form submission handler
-            document.getElementById('loginForm').addEventListener('submit', function () {
-                const btn = document.getElementById('loginBtn');
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
-            });
-        </script>
+        <div class="text-center" style="margin-top: 20px;">
+            <a href="forgot_password_emailjs.php" class="forgot-password-link">Forgot Password?</a>
+        </div>
 
-        <script src="../js/pwa-debug.js"></script>
+        <div class="text-center" style="margin-top: 25px; color: #666;">
+            Don't have an account? <a href="../register_with_otp.php" class="login-link">Sign Up</a>
+        </div>
+    </div> <!-- .login-container -->
 
-        <?php include __DIR__ . '/../includes/privacy_footer.php'; ?>
+    <script>
+        // Simple form submission handler
+        document.getElementById('loginForm').addEventListener('submit', function () {
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
+        });
+    </script>
 
-    </body>
+    <script src="../js/pwa-debug.js"></script>
+
+    <?php include __DIR__ . '/../includes/privacy_footer.php'; ?>
+
+</body>
 
 </html>
 <?php
