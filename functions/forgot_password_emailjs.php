@@ -79,22 +79,21 @@
             background: url("../images/backg3.jpg") no-repeat center center fixed;
             background-size: cover;
         }
-
     </style>
-    <script>try{ if(localStorage.getItem('rota_theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
+    <script>try { if (localStorage.getItem('rota_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { }
     </script>
 
-        @media (max-width: 480px) {
-            .otp-inputs {
-                gap: 8px;
-            }
+    @media (max-width: 480px) {
+    .otp-inputs {
+    gap: 8px;
+    }
 
-            .otp-input {
-                width: 45px;
-                height: 45px;
-                font-size: 1.1rem;
-            }
-        }
+    .otp-input {
+    width: 45px;
+    height: 45px;
+    font-size: 1.1rem;
+    }
+    }
     </style>
 </head>
 
@@ -102,7 +101,7 @@
     <div class="auth-container">
         <!-- Logo Header -->
         <div class="logo-header">
-            <div class="logo">Open Rota</div>
+            <div class="logo"><img src="../images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         </div>
 
         <div class="forgot-header">

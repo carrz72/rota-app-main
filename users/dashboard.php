@@ -185,6 +185,9 @@ foreach ($days_result as $day) {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-x: hidden;
         }
 
         @media (min-width: 992px) {
@@ -193,91 +196,7 @@ foreach ($days_result as $day) {
             }
         }
 
-        /* Ensure consistent nav menu styling with shifts page */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background-color: transparent;
-            color: #000;
-            position: relative;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 1000;
-            box-sizing: border-box;
-        }
-
-        .nav-group {
-            display: flex;
-            align-items: center;
-        }
-
-        .menu-toggle {
-            font-size: 1.8em;
-            cursor: pointer;
-            display: block;
-            z-index: 1001;
-            padding: 5px;
-        }
-
-        .menu-toggle:hover {
-            transition: 0.4s;
-            transform: translateX(2px);
-        }
-
-        /* Navigation Menu - exact match with other pages */
-        .nav-links {
-            display: none;
-            position: absolute;
-            top: 60px;
-            right: 10px;
-            background: #fd2b2b !important;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            overflow: hidden;
-        }
-
-        .nav-links.show {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .nav-links ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .nav-links ul li {
-            margin: 0;
-            padding: 0;
-            display: block;
-        }
-
-        .nav-links ul li a {
-            display: block;
-            padding: 12px 20px;
-            color: #ffffff !important;
-            background-color: #fd2b2b !important;
-            text-decoration: none;
-            white-space: nowrap;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-        }
-
-        .nav-links ul li:last-child a {
-            border-bottom: none;
-        }
-
-        .nav-links ul li a:hover {
-            background-color: #c82333 !important;
-            transform: translateY(0);
-            box-shadow: none;
-        }
+        /* Remove conflicting navigation styles - use navigation.css instead */
 
         /* Welcome card adjustments */
         .welcome-card {
@@ -579,13 +498,18 @@ foreach ($days_result as $day) {
         @media (max-width: 768px) {
             .dashboard-container {
                 padding: 10px;
-                gap: 12px;
+                gap: 15px;
+                margin: 10px auto;
+                max-width: 100%;
             }
 
             .welcome-card {
                 flex-direction: column;
                 align-items: flex-start;
                 padding: 15px;
+                margin: 0;
+                width: 100%;
+                box-sizing: border-box;
             }
 
             .welcome-text h1 {
@@ -595,29 +519,40 @@ foreach ($days_result as $day) {
             .welcome-actions {
                 margin-top: 15px;
                 width: 100%;
-                justify-content: space-between;
+                justify-content: flex-start;
+                flex-wrap: wrap;
             }
 
             .welcome-actions a {
                 font-size: 0.85rem;
                 padding: 8px 12px;
+                margin: 2px;
             }
 
             .quick-stats {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
+                gap: 10px;
             }
 
             .stat-card {
                 padding: 12px 8px;
+                min-height: 80px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
             }
 
             .stat-number {
-                font-size: 1.5rem;
+                font-size: 1.4rem;
             }
 
             .dashboard-card {
                 padding: 15px;
+                margin: 0;
+                border-radius: 8px;
+                width: 100%;
+                box-sizing: border-box;
+                overflow-x: hidden;
             }
 
             .earnings-stats {
@@ -627,150 +562,187 @@ foreach ($days_result as $day) {
 
             .next-shift-info {
                 grid-template-columns: 1fr;
+                gap: 8px;
             }
 
             .upcoming-shifts-table {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                white-space: nowrap;
+            }
+
+            .upcoming-shifts-table th,
+            .upcoming-shifts-table td {
+                padding: 8px 6px;
+                min-width: 80px;
+            }
+
+            /* Better form controls on mobile */
+            .period-selector {
+                margin-bottom: 10px;
+            }
+
+            .period-selector select {
+                width: 100%;
+                max-width: 200px;
             }
         }
 
         @media (max-width: 480px) {
+            body {
+                padding: 0;
+                margin: 0;
+                overflow-x: hidden;
+                box-sizing: border-box;
+            }
+
+            .dashboard-container {
+                padding: 8px;
+                gap: 12px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+                overflow-x: hidden;
+            }
+
             .quick-stats {
                 grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .stat-card {
+                padding: 10px 6px;
+                min-height: 70px;
+            }
+
+            .stat-number {
+                font-size: 1.2rem;
             }
 
             .welcome-actions {
                 flex-direction: row;
                 flex-wrap: wrap;
-                gap: 6px;
+                gap: 4px;
+                justify-content: space-between;
             }
 
             .welcome-actions a {
-                flex: 1 0 calc(50% - 6px);
+                flex: 1 0 calc(33.333% - 4px);
                 text-align: center;
-                font-size: 0.8rem;
-                padding: 8px 5px;
+                font-size: 0.75rem;
+                padding: 6px 4px;
+                min-width: 0;
+            }
+
+            .dashboard-card {
+                padding: 12px;
             }
 
             .dashboard-card h3 {
-                font-size: 1.1rem;
+                font-size: 1.05rem;
+                margin-bottom: 10px;
             }
 
             .next-shift-date {
-                font-size: 1.1rem;
+                font-size: 1rem;
             }
 
             .colleague-list {
                 flex-direction: column;
-                gap: 5px;
+                gap: 4px;
+            }
+
+            .colleague-item {
+                padding: 4px 8px;
+                font-size: 0.85rem;
+            }
+
+            .upcoming-shifts-table {
+                font-size: 0.8rem;
+            }
+
+            .upcoming-shifts-table th,
+            .upcoming-shifts-table td {
+                padding: 6px 4px;
+                min-width: 70px;
+            }
+
+            .earnings-stat-box {
+                padding: 12px;
+            }
+
+            .earnings-stat-value {
+                font-size: 1.4rem;
             }
         }
 
-        /* Safari-specific fixes */
-        /* This targets Safari only using a hack */
-        @supports (-webkit-touch-callout: none) {
-
-            /* iOS Safari specific styles go here */
+        @media (max-width: 360px) {
             .dashboard-container {
-                /* Fix for Safari grid issues */
-                display: -webkit-box;
-                display: -webkit-flex;
-                display: flex;
-                -webkit-flex-wrap: wrap;
-                flex-wrap: wrap;
-                gap: 20px;
+                padding: 5px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+                overflow-x: hidden;
             }
 
-            .dashboard-card,
-            .welcome-card,
-            .quick-stats {
-                /* Fix for Safari full width handling */
-                width: 100%;
-                -webkit-box-sizing: border-box;
+            .welcome-card {
+                padding: 10px;
+                margin: 0;
                 box-sizing: border-box;
             }
 
-            @media (min-width: 992px) {
-                .dashboard-card {
-                    width: calc(50% - 10px);
-                    /* Accounting for gap */
-                }
-
-                .dashboard-card[style*="grid-column: 1 / -1"] {
-                    width: 100%;
-                }
+            .welcome-actions a {
+                flex: 1 0 calc(50% - 4px);
+                font-size: 0.7rem;
+                padding: 5px 3px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
-            /* Fix Safari form elements */
-            select {
-                -webkit-appearance: none;
-                background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
-                background-repeat: no-repeat;
-                background-position: right 8px center;
-                padding-right: 30px !important;
+            .stat-number {
+                font-size: 1.1rem;
             }
 
-            /* Fix for Safari flexbox alignment */
-            .welcome-actions,
-            .next-shift-meta,
-            .colleague-list {
-                display: -webkit-box;
-                display: -webkit-flex;
-                display: flex;
-            }
-
-            /* Fix for Safari table display issues */
-            .responsive-table {
-                display: block;
+            .dashboard-card {
+                padding: 8px;
+                margin: 0;
+                box-sizing: border-box;
                 width: 100%;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
+                overflow-x: hidden;
             }
 
-            /* Fix navigation menu positioning in Safari */
-            .nav-links {
-                -webkit-transform: translateZ(0);
-                transform: translateZ(0);
+            .dashboard-card h3 {
+                font-size: 1rem;
             }
 
-            /* Fix animation for Safari */
-            @-webkit-keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    -webkit-transform: translateY(-10px);
-                    transform: translateY(-10px);
-                }
+            .next-shift-details {
+                padding: 8px;
+            }
 
-                to {
-                    opacity: 1;
-                    -webkit-transform: translateY(0);
-                    transform: translateY(0);
-                }
+            .next-shift-date {
+                font-size: 0.9rem;
+                word-wrap: break-word;
             }
         }
 
-        /* Additional responsive fixes for all browsers including Safari */
-        @media (max-width: 768px) {
+        /* Safari compatibility - use navigation.css for nav-specific fixes */
+        @supports (-webkit-touch-callout: none) {
 
-            /* Wrap table in a scrollable container */
-            .upcoming-shifts-table {
-                display: block;
-                width: 100%;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
+            /* iOS Safari dashboard-specific fixes only */
+            .dashboard-container {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 20px;
             }
 
-            /* Ensure proper touch behavior on mobile Safari */
-            .nav-links ul li a {
-                padding: 14px 20px;
-                /* Slightly larger touch target for Safari */
-            }
-
-            /* Better handling of fixed position elements in Safari */
-            .notification-dropdown {
-                position: absolute;
-                -webkit-transform: translateZ(0);
-                transform: translateZ(0);
+            @media (min-width: 992px) {
+                .dashboard-container {
+                    grid-template-columns: 1fr 1fr;
+                }
             }
         }
 
@@ -793,7 +765,7 @@ foreach ($days_result as $day) {
     }
     ?>
     <header style="opacity: 1; transition: opacity 0.5s ease;">
-        <div class="logo">Open Rota</div>
+        <div class="logo"><img src="../images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         <div class="nav-group">
             <div class="notification-container">
                 <!-- Bell Icon -->

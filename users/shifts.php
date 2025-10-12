@@ -1076,7 +1076,7 @@ if ($user_id) {
 <body>
     <!-- Header -->
     <header style="opacity: 1; transition: opacity 0.5s ease;">
-        <div class="logo">Open Rota</div>
+        <div class="logo"><img src="../images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         <div class="nav-group">
             <div class="notification-container">
                 <!-- Bell Icon -->

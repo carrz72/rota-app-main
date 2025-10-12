@@ -255,7 +255,7 @@
     <div class="register-container">
         <!-- Logo Header -->
         <div class="logo-header">
-            <div class="logo">Open Rota</div>
+            <div class="logo"><img src="images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         </div>
 
         <div class="form-header">
@@ -266,8 +266,11 @@
         <div id="alertContainer"></div>
 
         <div id="manualRedirect" style="display:none;margin-bottom:18px;text-align:center">
-            <div class="alert info" id="manualMsg">If you are not redirected automatically, click the button below to verify your email.</div>
-            <a id="continueLink" class="btn" style="display:inline-block;max-width:300px;margin:0 auto;text-decoration:none;color:#fff;">Go to verification</a>
+            <div class="alert info" id="manualMsg">If you are not redirected automatically, click the button below to
+                verify your email.</div>
+            <a id="continueLink" class="btn"
+                style="display:inline-block;max-width:300px;margin:0 auto;text-decoration:none;color:#fff;">Go to
+                verification</a>
         </div>
 
         <form id="registrationForm">
@@ -336,7 +339,8 @@
                 <div class="checkbox-group">
                     <input type="checkbox" id="terms" name="terms" required>
                     <label for="terms">
-                        I agree to the <a href="terms.php" target="_blank" rel="noopener" class="login-link">Terms &amp; Conditions</a>
+                        I agree to the <a href="terms.php" target="_blank" rel="noopener" class="login-link">Terms &amp;
+                            Conditions</a>
                         and <a href="privacy.php" target="_blank" rel="noopener" class="login-link">Privacy Policy</a>
                     </label>
                 </div>
@@ -489,7 +493,7 @@
             showAlert('Generating verification code...', 'info');
 
             // Fallback: ensure we redirect to verification page even if some async step hangs.
-            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) {}
+            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) { }
             window.__otpRedirectTimer = setTimeout(() => {
                 console.warn('Fallback redirect timer fired — navigating to verification page');
                 window.location.assign(`verify_registration_otp.php?email=${encodeURIComponent(email)}`);
@@ -567,9 +571,9 @@
                             showAlert('✅ Verification code sent! Check your email and redirecting...', 'success');
 
                             // Clear any existing fallback redirect timer then navigate.
-                            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) {}
+                            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) { }
                             // Show manual redirect option briefly in case automatic navigation fails
-                            try { document.getElementById('manualRedirect').style.display = 'block'; document.getElementById('continueLink').href = `verify_registration_otp.php?email=${encodeURIComponent(email)}`; } catch(e){}
+                            try { document.getElementById('manualRedirect').style.display = 'block'; document.getElementById('continueLink').href = `verify_registration_otp.php?email=${encodeURIComponent(email)}`; } catch (e) { }
                             // Redirect to verification page quickly. Use assign to be explicit.
                             setTimeout(() => {
                                 console.log('Redirecting to verification page');
@@ -579,7 +583,7 @@
                             console.warn('Storing OTP failed, but we will still offer to continue. Message:', storeData.message);
                             // Allow user to proceed to verification even if storing fails (fallback)
                             showAlert('Verification code queued — please check your email. Redirecting to verification page...', 'info');
-                            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) {}
+                            try { if (window.__otpRedirectTimer) clearTimeout(window.__otpRedirectTimer); } catch (e) { }
                             window.location.assign(`verify_registration_otp.php?email=${encodeURIComponent(email)}`);
                         }
                     } else {

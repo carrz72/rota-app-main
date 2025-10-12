@@ -34,6 +34,33 @@ header {
   box-sizing: border-box;
 }
 
+/* Logo image styling */
+.logo img {
+  height: 60px;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Responsive logo sizing */
+@media (max-width: 950px) {
+  .logo img {
+    height: 55px;
+  }
+}
+
+@media (max-width: 590px) {
+  .logo img {
+    height: 50px;
+  }
+}
+
+@media (max-width: 369px) {
+  .logo img {
+    height: 45px;
+  }
+}
+
 .nav-group {
   display: flex;
   align-items: center;
@@ -493,7 +520,7 @@ ul li a {
 
 @media (max-width: 950px) {
   .container {
-    width: 80%;
+    width: 90%;
     margin: 40px auto;
     padding: 10px;
   }
@@ -561,7 +588,7 @@ ul li a {
 
 @media (max-width: 590px) {
   .container {
-    width: 80%;
+    width: 90%;
     margin: 40px auto;
     padding: 10px;
   }

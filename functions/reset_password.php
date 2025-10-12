@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <div class="auth-container">
         <!-- Logo Header -->
         <div class="logo-header">
-            <div class="logo">Open Rota</div>
+            <div class="logo"><img src="../images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         </div>
 
         <div class="reset_password">

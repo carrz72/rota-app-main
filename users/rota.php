@@ -218,7 +218,7 @@ if ($period === 'week') {
     /* Day number contrast */
     html[data-theme='dark'] .day-number, h1, .upcoming-shifts {
         background-color: var(--accent) !important;
-        color: #fff !important;
+        color: #ff0000ff !important;
     }
 
     /* Filters & controls */
@@ -639,7 +639,7 @@ if ($period === 'week') {
 <body>
     <!-- Header -->
     <header style="opacity: 1; transition: opacity 0.5s ease;">
-        <div class="logo">Open Rota</div>
+        <div class="logo"><img src="../images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         <div class="nav-group">
             <div class="notification-container">
                 <!-- Bell Icon -->

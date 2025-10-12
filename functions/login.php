@@ -441,7 +441,7 @@ ob_start();
     <div class="login-container">
         <!-- Logo Header -->
         <div class="logo-header">
-            <div class="logo">Open Rota</div>
+            <div class="logo"><img src="../images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         </div>
 
         <div class="login-header">

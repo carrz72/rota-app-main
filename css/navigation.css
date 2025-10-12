@@ -589,7 +589,44 @@ label,
   }
 
   .nav-links {
-    right: 8px;
+    right: 0px;
+    left: 0px;
     top: 55px;
+    width: 100%;
+    min-width: auto;
+    border-radius: 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .nav-links ul li a {
+    padding: 16px 20px;
+    font-size: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+@media (max-width: 360px) {
+  header {
+    padding: 8px 10px;
+  }
+
+  .nav-links {
+    right: 0px;
+    left: 0px;
+    top: 50px;
+    width: 100%;
+    border-radius: 0;
+  }
+
+  .nav-links ul li a {
+    padding: 14px 18px;
+    font-size: 14px;
+  }
+
+  .notification-dropdown {
+    width: calc(100vw - 20px);
+    right: -160px;
+    left: auto;
+    max-width: 280px;
   }
 }

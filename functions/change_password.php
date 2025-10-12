@@ -74,7 +74,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $success = "Password changed successfully!";
             // Audit
-            try { log_audit($conn, $user_id, 'change_password', ['logout_other_devices' => !empty($_POST['logout_other_devices'])], $user_id, 'user_security', session_id()); } catch (Exception $e) {}
+            try {
+                log_audit($conn, $user_id, 'change_password', ['logout_other_devices' => !empty($_POST['logout_other_devices'])], $user_id, 'user_security', session_id());
+            } catch (Exception $e) {
+            }
         }
     }
 }
@@ -94,12 +97,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 </head>
 
 <body class="change-password-page">
-    <script>try{ if(localStorage.getItem('rota_theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
-</script>
+    <script>try { if (localStorage.getItem('rota_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { }
+    </script>
     <div class="auth-container">
         <!-- Logo Header -->
         <div class="logo-header">
-            <div class="logo">Open Rota</div>
+            <div class="logo"><img src="../images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         </div>
 
         <div class="forgot-header">

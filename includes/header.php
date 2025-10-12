@@ -47,7 +47,7 @@ if ($user_id) {
 
 <body>
     <header style="opacity: 0; transition: opacity 0.5s ease;">
-        <div class="logo">Open Rota</div>
+        <div class="logo"><img src="images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
         <div class="nav-group">
 
             <div class="notification-container">
