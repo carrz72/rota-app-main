@@ -138,7 +138,6 @@ header {
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  speak: none;
   display: inline-block !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -482,66 +481,21 @@ label,
   }
 }
 
-/* Mobile Browser vs Standalone PWA Detection and Fixes */
-@media (display-mode: standalone) {
-  /* PWA Standalone mode - use absolute positioning */
-  .nav-links {
-    position: absolute !important;
-  }
-
-  @media (max-width: 480px) {
-    .nav-links {
-      top: 55px !important;
-      right: 0px !important;
-      left: 0px !important;
-    }
-  }
-}
-
-@media not (display-mode: standalone) {
-  /* Mobile Browser mode - account for browser UI */
-  @media (max-width: 480px) {
-    body {
-      min-height: 100vh;
-      min-height: -webkit-fill-available;
-    }
-
-    header {
-      position: sticky !important;
-      top: 0 !important;
-      z-index: 1000 !important;
-    }
-
-    .nav-links {
-      position: fixed !important;
-      top: 60px !important;
-      right: 0px !important;
-      width: 100vw !important;
-      transform: none !important;
-    }
-
-    .nav-links.show {
-      display: block !important;
-      animation: slideDown 0.3s ease !important;
-    }
-  }
-
-  @media (max-width: 360px) {
-    .nav-links {
-      top: 55px !important;
-    }
-  }
-}
-
+/* Simplified Mobile Navigation - Works for both Browser and Standalone */
 @keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.nav-links.show {
+  display: block !important;
+  animation: slideDown 0.3s ease !important;
 }
 
 /* Mobile Responsiveness */
@@ -559,13 +513,13 @@ label,
   }
 
   .nav-links {
+    position: absolute;
     right: 5px;
     top: 100%;
     margin-top: 5px;
     background: #fd2b2b !important;
     z-index: 1001 !important;
-    position: fixed;
-    transform: translateX(0);
+    min-width: 200px;
   }
 
   .notification-dropdown {
@@ -669,24 +623,20 @@ label,
   }
 
   .nav-links {
-    position: fixed;
-    top: 60px;
-    right: 0px;
-    width: 100vw;
-    border-radius: 0;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    position: fixed !important;
+    top: 60px !important;
+    right: 0px !important;
+    left: 0px !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    border-radius: 0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
     background: #fd2b2b !important;
     z-index: 1001 !important;
-    max-height: calc(100vh - 60px);
-    overflow-y: auto;
-  }
-
-  /* Fallback for browsers without display-mode support */
-  @supports not (display-mode: standalone) {
-    .nav-links {
-      position: fixed !important;
-      top: 60px !important;
-    }
+    max-height: calc(100vh - 60px) !important;
+    overflow-y: auto !important;
+    margin: 0 !important;
+    transform: none !important;
   }
 
   .nav-links ul li a {
@@ -709,17 +659,22 @@ label,
     top: 0;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
+    z-index: 1000;
   }
 
   .nav-links {
-    position: fixed;
-    top: 55px;
-    right: 0px;
-    left: 0px;
-    width: 100vw;
-    border-radius: 0;
+    position: fixed !important;
+    top: 55px !important;
+    right: 0px !important;
+    left: 0px !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    border-radius: 0 !important;
     background: #fd2b2b !important;
     z-index: 1001 !important;
+    max-height: calc(100vh - 55px) !important;
+    overflow-y: auto !important;
+    margin: 0 !important;
   }
 
   .nav-links ul li a {
@@ -727,6 +682,11 @@ label,
     font-size: 14px;
     background: #fd2b2b !important;
     color: #ffffff !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-links ul li a:hover {
+    background: #c82333 !important;
   }
 
   .notification-dropdown {
