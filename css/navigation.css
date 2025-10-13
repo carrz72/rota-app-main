@@ -502,10 +502,10 @@ label,
 @media (max-width: 768px) {
   header {
     padding: 10px 15px;
-    position: sticky;
-    top: 0;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    position: relative;
+    top: auto;
+    background: transparent;
+    backdrop-filter: none;
   }
 
   .nav-group {
@@ -596,10 +596,10 @@ label,
   }
 
   header {
-    position: sticky;
-    top: 0;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    position: relative;
+    top: auto;
+    background: transparent;
+    backdrop-filter: none;
     z-index: 1000;
   }
 
@@ -656,10 +656,10 @@ label,
 @media (max-width: 360px) {
   header {
     padding: 8px 10px;
-    position: sticky;
-    top: 0;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    position: relative;
+    top: auto;
+    background: transparent;
+    backdrop-filter: none;
     z-index: 1000;
   }
 
