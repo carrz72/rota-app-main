@@ -498,6 +498,28 @@ label,
   animation: slideDown 0.3s ease !important;
 }
 
+/* iOS Standalone Mode Adjustments */
+@media (display-mode: standalone) {
+  @media (max-width: 768px) {
+    .nav-links {
+      top: 70px !important;
+      margin-top: 0 !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .nav-links {
+      top: 65px !important;
+    }
+  }
+  
+  @media (max-width: 360px) {
+    .nav-links {
+      top: 60px !important;
+    }
+  }
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   header {
