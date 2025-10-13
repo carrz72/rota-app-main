@@ -625,23 +625,24 @@ label,
   .nav-links {
     position: fixed !important;
     top: 60px !important;
-    right: 0px !important;
-    left: 0px !important;
-    width: 100vw !important;
-    min-width: 100vw !important;
-    border-radius: 0 !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+    right: 5px !important;
+    left: auto !important;
+    width: 250px !important;
+    min-width: 200px !important;
+    max-width: 280px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
     background: #fd2b2b !important;
     z-index: 1001 !important;
-    max-height: calc(100vh - 60px) !important;
+    max-height: calc(100vh - 70px) !important;
     overflow-y: auto !important;
     margin: 0 !important;
     transform: none !important;
   }
 
   .nav-links ul li a {
-    padding: 16px 20px;
-    font-size: 15px;
+    padding: 14px 18px;
+    font-size: 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     background: #fd2b2b !important;
     color: #ffffff !important;
@@ -665,21 +666,23 @@ label,
   .nav-links {
     position: fixed !important;
     top: 55px !important;
-    right: 0px !important;
-    left: 0px !important;
-    width: 100vw !important;
-    min-width: 100vw !important;
-    border-radius: 0 !important;
+    right: 2px !important;
+    left: auto !important;
+    width: 240px !important;
+    min-width: 200px !important;
+    max-width: 260px !important;
+    border-radius: 8px !important;
     background: #fd2b2b !important;
     z-index: 1001 !important;
-    max-height: calc(100vh - 55px) !important;
+    max-height: calc(100vh - 65px) !important;
     overflow-y: auto !important;
     margin: 0 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
   }
 
   .nav-links ul li a {
-    padding: 14px 18px;
-    font-size: 14px;
+    padding: 12px 16px;
+    font-size: 13px;
     background: #fd2b2b !important;
     color: #ffffff !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
