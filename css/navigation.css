@@ -506,13 +506,13 @@ label,
       margin-top: 0 !important;
     }
   }
-  
+
   @media (max-width: 480px) {
     .nav-links {
       top: 65px !important;
     }
   }
-  
+
   @media (max-width: 360px) {
     .nav-links {
       top: 60px !important;
