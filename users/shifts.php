@@ -1371,7 +1371,7 @@ if ($user_id) {
                                     style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">10-6</button>
                                 <button type="button" onclick="setQuickTime('22:00', '06:00')"
                                     style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Night</button>
-                                <button type="button" onclick="setQuickTime('18:30', '06:30')"
+                                <button type="button" onclick="setQuickTime('19:00', '07:00')"
                                     style="padding: 4px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Night
                                     GXO</button>
                             </div>

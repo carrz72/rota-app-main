@@ -426,7 +426,7 @@ if ($adminBranchId) {
                                 onclick="setQuickTime('10:00', '18:00')">10-6</button>
                             <button type="button" class="quick-time-btn"
                                 onclick="setQuickTime('22:00', '06:00')">Night</button>
-                            <button type="button" class="quick-time-btn" onclick="setQuickTime('18:30', '06:30')">Night
+                            <button type="button" class="quick-time-btn" onclick="setQuickTime('19:00', '07:00')">Night
                                 GXO</button>
                         </div>
                     </div>
