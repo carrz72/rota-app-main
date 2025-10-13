@@ -482,21 +482,66 @@ label,
   }
 }
 
-/* Mobile Browser vs Standalone PWA Detection */
+/* Mobile Browser vs Standalone PWA Detection and Fixes */
 @media (display-mode: standalone) {
-  /* PWA Standalone mode - navigation works with relative positioning */
+  /* PWA Standalone mode - use absolute positioning */
   .nav-links {
     position: absolute !important;
+  }
+
+  @media (max-width: 480px) {
+    .nav-links {
+      top: 55px !important;
+      right: 0px !important;
+      left: 0px !important;
+    }
   }
 }
 
 @media not (display-mode: standalone) {
-  /* Mobile Browser mode - use fixed positioning */
+  /* Mobile Browser mode - account for browser UI */
   @media (max-width: 480px) {
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+
+    header {
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 1000 !important;
+    }
+
     .nav-links {
       position: fixed !important;
       top: 60px !important;
+      right: 0px !important;
+      left: 0px !important;
+      width: 100vw !important;
+      transform: none !important;
     }
+
+    .nav-links.show {
+      display: block !important;
+      animation: slideDown 0.3s ease !important;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .nav-links {
+      top: 55px !important;
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -635,6 +680,16 @@ label,
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     background: #fd2b2b !important;
     z-index: 1001 !important;
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+  }
+
+  /* Fallback for browsers without display-mode support */
+  @supports not (display-mode: standalone) {
+    .nav-links {
+      position: fixed !important;
+      top: 60px !important;
+    }
   }
 
   .nav-links ul li a {

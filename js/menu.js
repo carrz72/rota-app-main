@@ -38,6 +38,45 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
+        // Mobile browser detection and positioning fixes
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (isMobile && !isStandalone) {
+            // Mobile browser mode - adjust navigation positioning
+            function adjustNavPosition() {
+                const header = document.querySelector('header');
+                const headerRect = header.getBoundingClientRect();
+                const viewport = window.visualViewport || { height: window.innerHeight };
+
+                if (navLinks.classList.contains('show')) {
+                    navLinks.style.position = 'fixed';
+                    navLinks.style.top = headerRect.bottom + 'px';
+                    navLinks.style.left = '0px';
+                    navLinks.style.right = '0px';
+                    navLinks.style.width = '100vw';
+                    navLinks.style.maxHeight = (viewport.height - headerRect.bottom - 10) + 'px';
+                    navLinks.style.overflowY = 'auto';
+                    navLinks.style.zIndex = '1001';
+                }
+            }
+
+            // Adjust on menu toggle
+            menuToggle.addEventListener('click', function () {
+                setTimeout(adjustNavPosition, 10);
+            });
+
+            // Adjust on viewport changes (keyboard, orientation, etc.)
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', adjustNavPosition);
+            }
+
+            window.addEventListener('resize', adjustNavPosition);
+            window.addEventListener('orientationchange', function () {
+                setTimeout(adjustNavPosition, 100);
+            });
+        }
+
         // Additional Safari-specific handling for iOS devices
         if (isSafari && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
             // Fix for menu positioning in iOS Safari
