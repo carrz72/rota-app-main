@@ -675,7 +675,6 @@ label,
     right: 0px;
     left: 0px;
     width: 100vw;
-    min-width: auto;
     border-radius: 0;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     background: #fd2b2b !important;
