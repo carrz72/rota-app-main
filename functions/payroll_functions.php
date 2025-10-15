@@ -57,7 +57,10 @@ function calculateSalariedPay($conn, $user_id, $period, $user_role)
     $stmt = $conn->prepare("
         SELECT 
             COUNT(*) as shift_count,
-            SUM(TIMESTAMPDIFF(MINUTE, CONCAT(shift_date, ' ', start_time), CONCAT(shift_date, ' ', end_time))) / 60 as total_hours
+            SUM(CASE 
+                WHEN end_time < start_time THEN (TIMESTAMPDIFF(MINUTE, start_time, end_time) + 1440) / 60
+                ELSE TIMESTAMPDIFF(MINUTE, start_time, end_time) / 60
+            END) as total_hours
         FROM shifts 
         WHERE user_id = ? 
         AND shift_date BETWEEN ? AND ?
@@ -92,7 +95,10 @@ function calculateHourlyPay($conn, $user_id, $period, $user_role)
             shift_date,
             start_time,
             end_time,
-            TIMESTAMPDIFF(MINUTE, CONCAT(shift_date, ' ', start_time), CONCAT(shift_date, ' ', end_time)) / 60 as hours
+            CASE 
+                WHEN end_time < start_time THEN (TIMESTAMPDIFF(MINUTE, start_time, end_time) + 1440) / 60
+                ELSE TIMESTAMPDIFF(MINUTE, start_time, end_time) / 60
+            END as hours
         FROM shifts 
         WHERE user_id = ? 
         AND shift_date BETWEEN ? AND ?

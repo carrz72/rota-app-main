@@ -135,7 +135,11 @@ for ($i = 3; $i >= 0; $i--) {
     $week_end = date('Y-m-d', strtotime("$week_start +6 days"));
     
     $stmt_week = $conn->prepare(
-        "SELECT COALESCE(SUM(r.base_pay * TIMESTAMPDIFF(HOUR, s.start_time, s.end_time)), 0) as earnings
+        "SELECT COALESCE(SUM(r.base_pay * 
+            CASE 
+                WHEN s.end_time < s.start_time THEN (TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) + 1440) / 60
+                ELSE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60
+            END), 0) as earnings
          FROM shifts s
          JOIN roles r ON s.role_id = r.id
          WHERE s.user_id = ? AND s.shift_date BETWEEN ? AND ?"

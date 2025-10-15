@@ -264,7 +264,10 @@ $shiftOffset = ($shiftPage - 1) * $shiftPerPage;
 // Fetch shifts with pagination
 $shiftQuery = "
     SELECT s.*, u.username, r.name as role_name, b.name as branch_name,
-           TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60 as duration_hours
+           CASE 
+               WHEN s.end_time < s.start_time THEN (TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) + 1440) / 60
+               ELSE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60
+           END as duration_hours
     FROM shifts s
     JOIN users u ON s.user_id = u.id
     JOIN roles r ON s.role_id = r.id
@@ -281,7 +284,10 @@ $allShifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $statsQuery = "
     SELECT 
         COUNT(*) as total_shifts,
-        SUM(TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60) as total_hours,
+        SUM(CASE 
+            WHEN s.end_time < s.start_time THEN (TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) + 1440) / 60
+            ELSE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60
+        END) as total_hours,
         COUNT(DISTINCT s.user_id) as unique_users
     FROM shifts s
     JOIN users u ON s.user_id = u.id
@@ -344,7 +350,10 @@ try {
 // 2. This Month's Payroll Estimate
 $payrollQuery = "
     SELECT SUM(
-        TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60 * r.base_pay
+        CASE 
+            WHEN s.end_time < s.start_time THEN (TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) + 1440) / 60 * r.base_pay
+            ELSE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60 * r.base_pay
+        END
     ) as estimated_payroll
     FROM shifts s
     JOIN roles r ON s.role_id = r.id
@@ -382,7 +391,10 @@ $utilizationRate = $totalUsers > 0 ? round(($activeUsersThisWeek / $totalUsers) 
 $avgHoursQuery = "
     SELECT AVG(total_hours) as avg_hours
     FROM (
-        SELECT u.id, SUM(TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60) as total_hours
+        SELECT u.id, SUM(CASE 
+            WHEN s.end_time < s.start_time THEN (TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) + 1440) / 60
+            ELSE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60
+        END) as total_hours
         FROM users u
         LEFT JOIN shifts s ON u.id = s.user_id 
             AND MONTH(s.shift_date) = MONTH(CURDATE()) 
@@ -430,7 +442,10 @@ for ($i = 3; $i >= 0; $i--) {
     $trendQuery = "
         SELECT 
             COUNT(s.id) as shift_count,
-            SUM(TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60) as total_hours
+            SUM(CASE 
+                WHEN s.end_time < s.start_time THEN (TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) + 1440) / 60
+                ELSE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60
+            END) as total_hours
         FROM shifts s
         JOIN users u ON s.user_id = u.id
         WHERE s.shift_date BETWEEN ? AND ?";

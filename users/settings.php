@@ -42,7 +42,10 @@ $stmt = $conn->prepare("
         MIN(shift_date) as first_shift_date,
         MAX(shift_date) as last_shift_date,
         SUM(CASE WHEN shift_date >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 
-            TIMESTAMPDIFF(HOUR, start_time, end_time) 
+            CASE 
+                WHEN end_time < start_time THEN (TIMESTAMPDIFF(MINUTE, start_time, end_time) + 1440) / 60
+                ELSE TIMESTAMPDIFF(MINUTE, start_time, end_time) / 60
+            END
             ELSE 0 END) as hours_last_30_days
     FROM shifts 
     WHERE user_id = ?
