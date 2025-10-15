@@ -661,6 +661,7 @@ foreach ($ytd_shifts as $shift) {
             <h3><i class="fas fa-calendar-alt"></i> Upcoming Shifts</h3>
 
             <?php if (!empty($next_shifts)): ?>
+                <div class="table-wrapper">
                 <table class="upcoming-shifts-table">
                     <tr>
                         <th>Date</th>
@@ -700,6 +701,7 @@ foreach ($ytd_shifts as $shift) {
                         </tr>
                     <?php endforeach; ?>
                 </table>
+                </div>
 
                 <div style="margin-top: 15px; text-align: right;">
                     <a href="shifts.php" style="font-size: 0.9rem;">View all shifts <i class="fa fa-arrow-right"></i></a>

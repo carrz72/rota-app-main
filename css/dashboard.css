@@ -1355,18 +1355,25 @@ span {
   min-width: 140px;
 }
 
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 15px;
+}
+
 .upcoming-shifts-table {
   width: 100%;
-  max-width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
-  margin-top: 15px;
   display: table;
   table-layout: auto;
 }
 
-/* Wrapper for table overflow on smaller screens */
+/* Dashboard card should not overflow */
 .dashboard-card {
-  overflow-x: auto;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 .upcoming-shifts-table th {
@@ -1506,20 +1513,21 @@ span {
     grid-template-columns: 1fr;
   }
 
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .upcoming-shifts-table {
     font-size: 0.85rem;
+    min-width: 500px;
   }
 
   .upcoming-shifts-table td,
   .upcoming-shifts-table th {
     padding: 8px 6px;
-    max-width: 150px;
-  }
-
-  /* Allow table to scroll horizontally on small screens */
-  .dashboard-card {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
   }
 }
 
@@ -1554,18 +1562,92 @@ span {
     gap: 5px;
   }
 
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
   .upcoming-shifts-table {
     font-size: 0.8rem;
+    min-width: 450px;
   }
 
   .upcoming-shifts-table td,
   .upcoming-shifts-table th {
     padding: 6px 4px;
-    max-width: 120px;
+    white-space: nowrap;
   }
 
   .earnings-stat-value {
     font-size: 1.3rem;
+  }
+
+  /* Additional mobile overflow fixes */
+  .dashboard-card {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  .next-shift-info {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =======================================
+    11. EXTRA SMALL MOBILE (360px)
+    ======================================= */
+@media (max-width: 360px) {
+  .dashboard-card {
+    padding: 15px;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  .next-shift-details {
+    padding: 12px;
+  }
+
+  .next-shift-meta span {
+    font-size: 0.85rem;
+    word-break: break-word;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    max-width: calc(100vw - 50px);
+  }
+
+  .upcoming-shifts-table {
+    font-size: 0.7rem;
+    min-width: 400px;
+  }
+
+  .upcoming-shifts-table td,
+  .upcoming-shifts-table th {
+    padding: 5px 3px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .earnings-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .earnings-stat-value {
+    font-size: 1.2rem;
+  }
+
+  .earnings-stat-label {
+    font-size: 0.8rem;
+  }
+
+  /* Ensure nothing causes horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 }
 
