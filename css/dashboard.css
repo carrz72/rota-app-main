@@ -1247,6 +1247,8 @@ span {
   padding: 15px;
   border-radius: 8px;
   margin-top: 15px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .next-shift-date {
@@ -1254,6 +1256,8 @@ span {
   font-weight: 600;
   color: #333;
   margin-bottom: 8px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .next-shift-info {
@@ -1261,22 +1265,28 @@ span {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 15px;
   margin-top: 10px;
+  max-width: 100%;
 }
 
 .next-shift-meta {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .next-shift-meta i {
   color: #fd2b2b;
   font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .next-shift-meta span {
   font-size: 0.95rem;
   color: #444;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 .overlap-info {
@@ -1347,8 +1357,16 @@ span {
 
 .upcoming-shifts-table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   margin-top: 15px;
+  display: table;
+  table-layout: auto;
+}
+
+/* Wrapper for table overflow on smaller screens */
+.dashboard-card {
+  overflow-x: auto;
 }
 
 .upcoming-shifts-table th {
@@ -1363,6 +1381,9 @@ span {
 .upcoming-shifts-table td {
   padding: 12px 10px;
   border-bottom: 1px solid #eee;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 200px;
 }
 
 /* Remove hover effects for rows inside the shifts table tbody to avoid visual noise */
@@ -1378,6 +1399,7 @@ span {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
+  max-width: 100%;
 }
 
 .earnings-stat-box {
@@ -1385,6 +1407,8 @@ span {
   padding: 15px;
   border-radius: 6px;
   text-align: center;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .earnings-stat-value {
@@ -1392,11 +1416,15 @@ span {
   font-weight: bold;
   color: #fd2b2b;
   margin: 5px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .earnings-stat-label {
   font-size: 0.9rem;
   color: #666;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .day-badge {
@@ -1479,7 +1507,19 @@ span {
   }
 
   .upcoming-shifts-table {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+  }
+
+  .upcoming-shifts-table td,
+  .upcoming-shifts-table th {
+    padding: 8px 6px;
+    max-width: 150px;
+  }
+
+  /* Allow table to scroll horizontally on small screens */
+  .dashboard-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -1512,6 +1552,20 @@ span {
   .colleague-list {
     flex-direction: column;
     gap: 5px;
+  }
+
+  .upcoming-shifts-table {
+    font-size: 0.8rem;
+  }
+
+  .upcoming-shifts-table td,
+  .upcoming-shifts-table th {
+    padding: 6px 4px;
+    max-width: 120px;
+  }
+
+  .earnings-stat-value {
+    font-size: 1.3rem;
   }
 }
 
