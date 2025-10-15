@@ -556,7 +556,6 @@ if ($period === 'week') {
         .calendar-day-header {
             background-color: #fd2b2b;
             padding: 10px;
-            border-radius: 8px 8px 0 0;
             margin: -10px -10px 10px -10px;
             text-align: center;
             font-weight: bold;
@@ -618,11 +617,7 @@ if ($period === 'week') {
             gap: 4px;
         }
 
-        .shift-time::before {
-            content: "🕐";
-            font-size: 14px;
-        }
-
+      
         .shift-user {
             margin-top: 6px;
             font-weight: 600;
@@ -665,7 +660,7 @@ if ($period === 'week') {
         /* Shift duration badge */
         .shift-duration {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #fd2b2b;
             color: white;
             font-size: 10px;
             padding: 2px 6px;
