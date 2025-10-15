@@ -554,7 +554,7 @@ if ($period === 'week') {
         }
 
         .calendar-day-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #fd2b2b;
             padding: 10px;
             border-radius: 8px 8px 0 0;
             margin: -10px -10px 10px -10px;

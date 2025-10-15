@@ -1070,3 +1070,105 @@ html[data-theme="dark"] .empty-state h3 {
     color: var(--text) !important;
   }
 }
+
+/* Dark mode overrides */
+[data-theme="dark"] .page-header,
+[data-theme="dark"] .current-branch-info {
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+/* Multi-select styles (matching admin) */
+.multi-select {
+  position: relative;
+  border: 1px solid #ddd;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.multi-select input#branch-search {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.options-list {
+  max-height: 150px;
+  overflow: auto;
+  margin-top: 8px;
+  border-top: 1px dashed #f0f0f0;
+  padding-top: 8px;
+  display: none;
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  background: #fff;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.options-list .option {
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.options-list .option:hover {
+  background: #f4f4f4;
+}
+
+.selected-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.chip {
+  background: #eee;
+  padding: 4px 8px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip-remove {
+  cursor: pointer;
+  padding-left: 6px;
+  color: #777;
+}
+
+.hint {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+/* Dark mode for multi-select */
+[data-theme="dark"] .multi-select {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--panel);
+}
+
+[data-theme="dark"] .multi-select input#branch-search {
+  background: var(--bg);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .options-list {
+  background: var(--panel);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .options-list .option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .chip {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
