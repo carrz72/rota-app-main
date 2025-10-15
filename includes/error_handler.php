@@ -99,7 +99,7 @@ if (!function_exists('showErrorPage')) {
 
                 body {
                     font-family: Arial, sans-serif;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background-color: #f4f4f4;
                     min-height: 100vh;
                     display: flex;
                     align-items: center;

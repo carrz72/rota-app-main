@@ -983,7 +983,7 @@ if ($period === 'week') {
         <?php if (!empty($shifts)): ?>
         <div class="rota-statistics-panel">
             <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="stat-icon" style="background-color: #fd2b2b;">
                     <i class="fa fa-clock-o"></i>
                 </div>
                 <div class="stat-content">
@@ -994,7 +994,7 @@ if ($period === 'week') {
             </div>
             
             <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="stat-icon" style="background-color: #fd2b2b;">
                     <i class="fa fa-calendar-check-o"></i>
                 </div>
                 <div class="stat-content">
@@ -1005,7 +1005,7 @@ if ($period === 'week') {
             </div>
             
             <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="stat-icon" style="background-color: #fd2b2b;">
                     <i class="fa fa-users"></i>
                 </div>
                 <div class="stat-content">
