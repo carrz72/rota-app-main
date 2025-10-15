@@ -230,11 +230,11 @@ if ($period === 'week') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Full Rota</title>
-    <link rel="stylesheet" href="../css/rota.css">
-    <link rel="stylesheet" href="../css/navigation.css">
+    <link rel="stylesheet" href="../css/rota.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../css/navigation.css?v=<?php echo time(); ?>">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="../css/dark_mode.css">
+    <link rel="stylesheet" href="../css/dark_mode.css?v=<?php echo time(); ?>">
     <style>[data-theme="dark"] .page-header, [data-theme="dark"] .current-branch-info {background:transparent !important; color:var(--text) !important;}</style>
     <style>
     /* Rota page specific dark-mode overrides */

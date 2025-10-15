@@ -230,10 +230,10 @@ foreach ($ytd_shifts as $shift) {
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <link rel="icon" type="image/png" href="../images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/navigation.css">
+    <link rel="stylesheet" href="../css/dashboard.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../css/navigation.css?v=<?php echo time(); ?>">
     <link rel="manifest" href="../manifest.json">
-    <link rel="stylesheet" href="../css/dark_mode.css">
+    <link rel="stylesheet" href="../css/dark_mode.css?v=<?php echo time(); ?>">
     <style>
         [data-theme="dark"] .page-header,
         [data-theme="dark"] .current-branch-info {

@@ -570,10 +570,10 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../images/icon.png">
     <title>Coverage Requests - Open Rota</title>
-    <link rel="stylesheet" href="../css/navigation.css">
-    <link rel="stylesheet" href="../css/coverage_requests_modern.css">
+    <link rel="stylesheet" href="../css/navigation.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../css/coverage_requests_modern.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="../css/dark_mode.css">
+    <link rel="stylesheet" href="../css/dark_mode.css?v=<?php echo time(); ?>">
 </head>
 
 <body>
