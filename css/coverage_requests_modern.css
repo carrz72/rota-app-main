@@ -817,6 +817,233 @@ html[data-theme="dark"] .empty-state h3 {
 }
 
 /* Dark mode mobile adjustments */
+/* =======================================
+   COVERAGE STATISTICS PANEL
+   ======================================= */
+.coverage-stats-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.coverage-stat-card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.coverage-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.coverage-stat-card.urgent {
+  animation: pulse-urgent 2s infinite;
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.stat-icon {
+  width: 55px;
+  height: 55px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #000;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 600;
+}
+
+/* =======================================
+   FILTER BAR
+   ======================================= */
+.filter-bar {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group i {
+  color: #fd2b2b;
+  font-size: 14px;
+}
+
+.filter-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.filter-input, .filter-select {
+  padding: 10px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.filter-input:focus, .filter-select:focus {
+  outline: none;
+  border-color: #fd2b2b;
+  box-shadow: 0 0 0 3px rgba(253, 43, 43, 0.1);
+}
+
+.filter-input {
+  min-width: 250px;
+}
+
+.filter-select {
+  min-width: 140px;
+  cursor: pointer;
+}
+
+.filter-btn {
+  padding: 10px 18px;
+  background: #fd2b2b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.filter-btn:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.filter-btn.secondary {
+  background: #6c757d;
+}
+
+.filter-btn.secondary:hover {
+  background: #5a6268;
+}
+
+.filter-active-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #d1ecf1;
+  color: #0c5460;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* =======================================
+   RESPONSIVE - COVERAGE STATS & FILTERS
+   ======================================= */
+@media (max-width: 768px) {
+  .coverage-stats-panel {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .coverage-stat-card {
+    padding: 15px;
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+  
+  .filter-bar {
+    padding: 15px;
+  }
+  
+  .filter-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+  
+  .filter-input, .filter-select {
+    flex: 1;
+  }
+  
+  .filter-input {
+    min-width: 0;
+  }
+  
+  .filter-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .coverage-stats-panel {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-value {
+    font-size: 22px;
+  }
+}
+
 @media (max-width: 768px) {
   html[data-theme="dark"] .tabs {
     background: var(--bg, #0f1720) !important;
@@ -831,5 +1058,15 @@ html[data-theme="dark"] .empty-state h3 {
 
   html[data-theme="dark"] .page-header {
     border-radius: 0 !important;
+  }
+  
+  html[data-theme="dark"] .coverage-stat-card,
+  html[data-theme="dark"] .filter-bar {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+  }
+  
+  html[data-theme="dark"] .stat-value {
+    color: var(--text) !important;
   }
 }

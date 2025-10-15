@@ -126,6 +126,90 @@ foreach ($days_result as $day) {
     $day_distribution[$index] = $day['count'];
 }
 
+// ========== ANALYTICS QUERIES ==========
+
+// Get last 4 weeks earnings trend
+$weekly_earnings = [];
+for ($i = 3; $i >= 0; $i--) {
+    $week_start = date('Y-m-d', strtotime("-$i weeks saturday"));
+    $week_end = date('Y-m-d', strtotime("$week_start +6 days"));
+    
+    $stmt_week = $conn->prepare(
+        "SELECT COALESCE(SUM(r.base_pay * TIMESTAMPDIFF(HOUR, s.start_time, s.end_time)), 0) as earnings
+         FROM shifts s
+         JOIN roles r ON s.role_id = r.id
+         WHERE s.user_id = ? AND s.shift_date BETWEEN ? AND ?"
+    );
+    $stmt_week->execute([$user_id, $week_start, $week_end]);
+    $week_data = $stmt_week->fetch(PDO::FETCH_ASSOC);
+    
+    $weekly_earnings[] = [
+        'label' => date('M d', strtotime($week_start)),
+        'value' => round($week_data['earnings'] ?? 0, 2)
+    ];
+}
+
+// Get shift distribution by role for current month
+$role_distribution = [];
+$stmt_roles = $conn->prepare(
+    "SELECT r.name as role_name, COUNT(*) as count
+     FROM shifts s
+     JOIN roles r ON s.role_id = r.id
+     WHERE s.user_id = ? AND MONTH(s.shift_date) = ? AND YEAR(s.shift_date) = ?
+     GROUP BY r.name
+     ORDER BY count DESC
+     LIMIT 5"
+);
+$stmt_roles->execute([$user_id, $currentMonth, $currentYear]);
+$role_distribution = $stmt_roles->fetchAll(PDO::FETCH_ASSOC);
+
+// Get pending coverage requests count
+$pending_coverage_count = 0;
+try {
+    $stmt_coverage = $conn->prepare(
+        "SELECT COUNT(*) as count FROM cross_branch_shift_requests 
+         WHERE requested_by_user_id = ? AND status = 'pending'"
+    );
+    $stmt_coverage->execute([$user_id]);
+    $pending_coverage_count = $stmt_coverage->fetchColumn();
+} catch (Exception $e) {
+    // Table might not exist
+}
+
+// Get pending shift invitations count
+$pending_invitations_count = 0;
+try {
+    $stmt_invitations = $conn->prepare(
+        "SELECT COUNT(*) as count FROM shift_invitations 
+         WHERE user_id = ? AND status = 'pending'"
+    );
+    $stmt_invitations->execute([$user_id]);
+    $pending_invitations_count = $stmt_invitations->fetchColumn();
+} catch (Exception $e) {
+    // Table might not exist
+}
+
+// Calculate average hourly rate
+$avg_hourly_rate = 0;
+if ($total_hours > 0) {
+    $avg_hourly_rate = $total_earnings / $total_hours;
+}
+
+// Get year-to-date earnings
+$ytd_earnings = 0;
+$stmt_ytd = $conn->prepare(
+    "SELECT s.*, r.base_pay, r.has_night_pay, r.night_shift_pay,
+            r.night_start_time, r.night_end_time
+     FROM shifts s
+     JOIN roles r ON s.role_id = r.id
+     WHERE s.user_id = ? AND YEAR(s.shift_date) = ?"
+);
+$stmt_ytd->execute([$user_id, $currentYear]);
+$ytd_shifts = $stmt_ytd->fetchAll(PDO::FETCH_ASSOC);
+foreach ($ytd_shifts as $shift) {
+    $ytd_earnings += (float) calculatePay($conn, $shift['id']);
+}
+
 // Do not set $conn to null here because we need it later for the overlapping shifts query.
 ?>
 <!DOCTYPE html>
@@ -175,6 +259,7 @@ foreach ($days_result as $day) {
     ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <title>Dashboard - Open Rota</title>
     <style>
         /* Enhanced dashboard styles */
@@ -548,7 +633,6 @@ foreach ($days_result as $day) {
 
             .dashboard-card {
                 padding: 15px;
-                margin: 0;
                 border-radius: 8px;
                 width: 100%;
                 box-sizing: border-box;
@@ -709,7 +793,6 @@ foreach ($days_result as $day) {
 
             .dashboard-card {
                 padding: 8px;
-                margin: 0;
                 box-sizing: border-box;
                 width: 100%;
                 overflow-x: hidden;
@@ -851,6 +934,46 @@ foreach ($days_result as $day) {
             </div>
         </div>
 
+        <!-- Quick Actions Section -->
+        <div class="quick-actions-section">
+            <div class="quick-actions-panel">
+                <div class="quick-action-card" onclick="window.location.href='coverage_requests.php'">
+                    <?php if ($pending_coverage_count > 0): ?>
+                        <span class="action-badge pulse"><?php echo $pending_coverage_count; ?></span>
+                    <?php endif; ?>
+                    <div class="action-icon" style="background: linear-gradient(135deg, #fd2b2b, #ff6b6b);">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h3>Request Coverage</h3>
+                    <p>Find someone to cover your shift</p>
+                </div>
+                <div class="quick-action-card" onclick="window.location.href='coverage_requests.php?view=swap'">
+                    <div class="action-icon" style="background: linear-gradient(135deg, #0d6efd, #6ea8fe);">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h3>Swap Shift</h3>
+                    <p>Exchange shifts with colleagues</p>
+                </div>
+                <div class="quick-action-card" onclick="window.location.href='rota.php'">
+                    <div class="action-icon" style="background: linear-gradient(135deg, #198754, #75b798);">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3>View Schedule</h3>
+                    <p>See the full team rota</p>
+                </div>
+                <div class="quick-action-card" onclick="window.location.href='settings.php?tab=support'">
+                    <?php if ($pending_invitations_count > 0): ?>
+                        <span class="action-badge pulse"><?php echo $pending_invitations_count; ?></span>
+                    <?php endif; ?>
+                    <div class="action-icon" style="background: linear-gradient(135deg, #6f42c1, #a98eda);">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <h3>Support</h3>
+                    <p>Get help or report an issue</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Quick Stats -->
         <div class="quick-stats">
             <div class="stat-card">
@@ -871,9 +994,78 @@ foreach ($days_result as $day) {
             </div>
         </div>
 
-        <!-- Next Shift Section -->
-        <div class="dashboard-card">
-            <h3><i class="fas fa-clock"></i> Next Shift</h3>
+        <!-- Performance Analytics -->
+        <div class="analytics-panel">
+            <h2><i class="fas fa-chart-line"></i> Performance Analytics</h2>
+            
+            <div class="analytics-grid">
+                <!-- Weekly Earnings Chart -->
+                <div class="analytics-card">
+                    <h3><i class="fas fa-pound-sign"></i> Weekly Earnings Trend</h3>
+                    <canvas id="earningsChart"></canvas>
+                    <div class="chart-stats">
+                        <div class="chart-stat">
+                            <span class="stat-label">Average</span>
+                            <span class="stat-value">£<?php 
+                                $avg_weekly = count($weekly_earnings) > 0 ? array_sum(array_column($weekly_earnings, 'value')) / count($weekly_earnings) : 0;
+                                echo number_format($avg_weekly, 0); 
+                            ?></span>
+                        </div>
+                        <div class="chart-stat">
+                            <span class="stat-label">This Week</span>
+                            <span class="stat-value">£<?php echo number_format($total_earnings, 0); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role Distribution Chart -->
+                <div class="analytics-card">
+                    <h3><i class="fas fa-briefcase"></i> Shifts by Role (This Month)</h3>
+                    <canvas id="roleChart"></canvas>
+                    <div class="role-legend">
+                        <?php foreach (array_slice($role_distribution, 0, 5) as $role): ?>
+                            <div class="legend-item">
+                                <span class="legend-dot"></span>
+                                <span class="legend-label"><?php echo htmlspecialchars($role['role_name']); ?></span>
+                                <span class="legend-value"><?php echo $role['count']; ?> shifts</span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <!-- Earnings Insights -->
+                <div class="analytics-card insights">
+                    <h3><i class="fas fa-lightbulb"></i> Earnings Insights</h3>
+                    <div class="insight-row">
+                        <div class="insight-label">Average Hourly Rate</div>
+                        <div class="insight-value">£<?php echo number_format($avg_hourly_rate, 2); ?>/hr</div>
+                    </div>
+                    <div class="insight-row">
+                        <div class="insight-label">Year-to-Date Earnings</div>
+                        <div class="insight-value">£<?php echo number_format($ytd_earnings, 0); ?></div>
+                    </div>
+                    <div class="insight-row">
+                        <div class="insight-label">Projected Monthly</div>
+                        <div class="insight-value">£<?php 
+                            $days_in_month = date('t');
+                            $current_day = date('j');
+                            $projected = $days_in_month > 0 ? ($total_earnings / $current_day) * $days_in_month : 0;
+                            echo number_format($projected, 0); 
+                        ?></div>
+                    </div>
+                    <div class="insight-row">
+                        <div class="insight-label">Total Hours (Month)</div>
+                        <div class="insight-value"><?php echo number_format($total_hours, 1); ?>h</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shift Information Section -->
+        <div class="shifts-section">
+            <!-- Next Shift Section -->
+            <div class="dashboard-card">
+                <h3><i class="fas fa-clock"></i> Next Shift</h3>
             <?php if ($next_shift): ?>
                 <?php
                 $formattedDate = date("l, F j, Y", strtotime($next_shift['shift_date']));
@@ -1087,6 +1279,7 @@ foreach ($days_result as $day) {
                 </div>
             <?php endif; ?>
         </div>
+        </div> <!-- End Shifts Section -->
 
         <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
             <!-- Admin Quick Access -->
@@ -1219,6 +1412,145 @@ foreach ($days_result as $day) {
     <script src="../js/darkmode.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>
+    
+    <!-- Chart.js Initialization -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js not loaded');
+            return;
+        }
+
+        // Weekly Earnings Chart
+        const earningsCtx = document.getElementById('earningsChart');
+        if (earningsCtx) {
+            const weeklyData = <?php echo json_encode($weekly_earnings); ?>;
+            
+            new Chart(earningsCtx, {
+                type: 'line',
+                data: {
+                    labels: weeklyData.map(w => w.label),
+                    datasets: [{
+                        label: 'Weekly Earnings (£)',
+                        data: weeklyData.map(w => w.value),
+                        borderColor: '#fd2b2b',
+                        backgroundColor: 'rgba(253, 43, 43, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#fd2b2b',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#fd2b2b',
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return '£' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '£' + value;
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Role Distribution Chart
+        const roleCtx = document.getElementById('roleChart');
+        if (roleCtx) {
+            const roleData = <?php echo json_encode($role_distribution); ?>;
+            
+            const colors = [
+                'rgba(253, 43, 43, 0.8)',
+                'rgba(13, 110, 253, 0.8)',
+                'rgba(25, 135, 84, 0.8)',
+                'rgba(111, 66, 193, 0.8)',
+                'rgba(255, 193, 7, 0.8)'
+            ];
+            
+            new Chart(roleCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: roleData.map(r => r.role_name),
+                    datasets: [{
+                        data: roleData.map(r => r.count),
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#fd2b2b',
+                            borderWidth: 1,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed + ' shifts (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Color the legend dots
+            const legendDots = document.querySelectorAll('.legend-dot');
+            legendDots.forEach((dot, index) => {
+                if (colors[index]) {
+                    dot.style.backgroundColor = colors[index];
+                }
+            });
+        }
+    });
+    </script>
 </body>
 
 </html>

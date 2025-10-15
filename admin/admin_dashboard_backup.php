@@ -168,8 +168,6 @@ if (isset($_SESSION['error_message'])) {
     unset($_SESSION['error_message']);
 }
 
-// ========== SHIFTS MANAGEMENT ENHANCEMENTS ==========
-
 // Determine view type (week or day)
 $viewType = isset($_GET['view']) ? $_GET['view'] : 'week'; // Default to week view
 
@@ -183,306 +181,51 @@ $nextWeekStart = date('Y-m-d', strtotime('+1 week', strtotime($currentWeekStart)
 $prevDay = date('Y-m-d', strtotime('-1 day', strtotime($currentDay)));
 $nextDay = date('Y-m-d', strtotime('+1 day', strtotime($currentDay)));
 
-// Shift search and filter parameters
-$shiftSearchQuery = $_GET['shift_search'] ?? '';
-$shiftUserFilter = $_GET['shift_user'] ?? 'all';
-$shiftRoleFilter = $_GET['shift_role'] ?? 'all';
-$shiftLocationFilter = $_GET['shift_location'] ?? 'all';
-$shiftPage = isset($_GET['shift_page']) ? max(1, intval($_GET['shift_page'])) : 1;
-$shiftPerPage = 50; // Fixed at 50 for performance
-
-// Build shift query with filters
-$shiftWhereConditions = [];
-$shiftParams = [];
-
-// Date range filter
+// Get all shifts with user and role info based on view type (only from admin's branch)
 if ($viewType === 'week') {
-    $shiftWhereConditions[] = "s.shift_date BETWEEN ? AND DATE_ADD(?, INTERVAL 6 DAY)";
-    $shiftParams[] = $currentWeekStart;
-    $shiftParams[] = $currentWeekStart;
-} else {
-    $shiftWhereConditions[] = "s.shift_date = ?";
-    $shiftParams[] = $currentDay;
-}
-
-// Branch filter
-if ($adminBranchId) {
-    $shiftWhereConditions[] = "(u.branch_id = ? OR s.branch_id = ?)";
-    $shiftParams[] = $adminBranchId;
-    $shiftParams[] = $adminBranchId;
-}
-
-// Search filter
-if (!empty($shiftSearchQuery)) {
-    $shiftWhereConditions[] = "(u.username LIKE ? OR r.name LIKE ? OR s.location LIKE ?)";
-    $searchParam = '%' . $shiftSearchQuery . '%';
-    $shiftParams[] = $searchParam;
-    $shiftParams[] = $searchParam;
-    $shiftParams[] = $searchParam;
-}
-
-// User filter
-if ($shiftUserFilter !== 'all') {
-    $shiftWhereConditions[] = "s.user_id = ?";
-    $shiftParams[] = $shiftUserFilter;
-}
-
-// Role filter
-if ($shiftRoleFilter !== 'all') {
-    $shiftWhereConditions[] = "s.role_id = ?";
-    $shiftParams[] = $shiftRoleFilter;
-}
-
-// Location filter
-if ($shiftLocationFilter !== 'all') {
-    if ($shiftLocationFilter === 'cross_branch') {
-        $shiftWhereConditions[] = "s.location = 'Cross-branch coverage'";
-    } else {
-        $shiftWhereConditions[] = "s.location = ?";
-        $shiftParams[] = $shiftLocationFilter;
-    }
-}
-
-$shiftWhereClause = 'WHERE ' . implode(' AND ', $shiftWhereConditions);
-
-// Get total count for pagination
-$countQuery = "
-    SELECT COUNT(*) 
-    FROM shifts s
-    JOIN users u ON s.user_id = u.id
-    JOIN roles r ON s.role_id = r.id
-    LEFT JOIN branches b ON s.branch_id = b.id
-    $shiftWhereClause
-";
-$countStmt = $conn->prepare($countQuery);
-$countStmt->execute($shiftParams);
-$totalShifts = $countStmt->fetchColumn();
-$shiftTotalPages = ceil($totalShifts / $shiftPerPage);
-$shiftPage = min($shiftPage, max(1, $shiftTotalPages));
-$shiftOffset = ($shiftPage - 1) * $shiftPerPage;
-
-// Fetch shifts with pagination
-$shiftQuery = "
-    SELECT s.*, u.username, r.name as role_name, b.name as branch_name,
-           TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60 as duration_hours
-    FROM shifts s
-    JOIN users u ON s.user_id = u.id
-    JOIN roles r ON s.role_id = r.id
-    LEFT JOIN branches b ON s.branch_id = b.id
-    $shiftWhereClause
-    ORDER BY s.shift_date, s.start_time
-    LIMIT $shiftPerPage OFFSET $shiftOffset
-";
-$stmt = $conn->prepare($shiftQuery);
-$stmt->execute($shiftParams);
-$allShifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Calculate shift statistics
-$statsQuery = "
-    SELECT 
-        COUNT(*) as total_shifts,
-        SUM(TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60) as total_hours,
-        COUNT(DISTINCT s.user_id) as unique_users
-    FROM shifts s
-    JOIN users u ON s.user_id = u.id
-    JOIN roles r ON s.role_id = r.id
-    LEFT JOIN branches b ON s.branch_id = b.id
-    $shiftWhereClause
-";
-$statsStmt = $conn->prepare($statsQuery);
-$statsStmt->execute($shiftParams);
-$shiftStats = $statsStmt->fetch(PDO::FETCH_ASSOC);
-
-// Calculate total pay for all filtered shifts
-$totalPay = 0;
-foreach ($allShifts as $shift) {
-    try {
-        $totalPay += calculatePay($conn, $shift['id']);
-    } catch (Exception $e) {
-        // Skip if pay calculation fails
-    }
-}
-
-// Get unique users for filter dropdown
-$usersForFilterQuery = "SELECT DISTINCT u.id, u.username FROM users u JOIN shifts s ON u.id = s.user_id";
-if ($adminBranchId) {
-    $usersForFilterQuery .= " WHERE u.branch_id = ? OR s.branch_id = ?";
-}
-$usersForFilterQuery .= " ORDER BY u.username";
-$usersForFilterStmt = $conn->prepare($usersForFilterQuery);
-if ($adminBranchId) {
-    $usersForFilterStmt->execute([$adminBranchId, $adminBranchId]);
-} else {
-    $usersForFilterStmt->execute();
-}
-$usersForFilter = $usersForFilterStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Get unique roles for filter dropdown
-$rolesForFilter = $conn->query("SELECT id, name FROM roles ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
-
-// Get unique locations for filter dropdown
-$locationsQuery = "SELECT DISTINCT location FROM shifts WHERE location IS NOT NULL AND location != '' ORDER BY location";
-$locationsForFilter = $conn->query($locationsQuery)->fetchAll(PDO::FETCH_ASSOC);
-
-// ========== ENHANCED ANALYTICS QUERIES ==========
-
-// 1. Pending Coverage Requests
-$coverageQuery = "SELECT COUNT(*) FROM shift_coverage_requests WHERE status = 'pending'";
-$coverageParams = [];
-if (!$isSuperAdmin && $adminBranchId) {
-    $coverageQuery .= " AND branch_id = ?";
-    $coverageParams[] = $adminBranchId;
-}
-try {
-    $stmt = $conn->prepare($coverageQuery);
-    $stmt->execute($coverageParams);
-    $pendingCoverageRequests = $stmt->fetchColumn();
-} catch (PDOException $e) {
-    $pendingCoverageRequests = 0;
-}
-
-// 2. This Month's Payroll Estimate
-$payrollQuery = "
-    SELECT SUM(
-        TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60 * r.base_pay
-    ) as estimated_payroll
-    FROM shifts s
-    JOIN roles r ON s.role_id = r.id
-    JOIN users u ON s.user_id = u.id
-    WHERE MONTH(s.shift_date) = MONTH(CURDATE()) 
-    AND YEAR(s.shift_date) = YEAR(CURDATE())";
-$payrollParams = [];
-if (!$isSuperAdmin && $adminBranchId) {
-    $payrollQuery .= " AND (u.branch_id = ? OR s.branch_id = ?)";
-    $payrollParams[] = $adminBranchId;
-    $payrollParams[] = $adminBranchId;
-}
-$stmt = $conn->prepare($payrollQuery);
-$stmt->execute($payrollParams);
-$monthlyPayrollEstimate = $stmt->fetchColumn() ?: 0;
-
-// 3. Staff Utilization (This Week)
-$utilizationQuery = "
-    SELECT COUNT(DISTINCT s.user_id) as active_users
-    FROM shifts s
-    JOIN users u ON s.user_id = u.id
-    WHERE YEARWEEK(s.shift_date, 1) = YEARWEEK(CURDATE(), 1)";
-$utilizationParams = [];
-if (!$isSuperAdmin && $adminBranchId) {
-    $utilizationQuery .= " AND (u.branch_id = ? OR s.branch_id = ?)";
-    $utilizationParams[] = $adminBranchId;
-    $utilizationParams[] = $adminBranchId;
-}
-$stmt = $conn->prepare($utilizationQuery);
-$stmt->execute($utilizationParams);
-$activeUsersThisWeek = $stmt->fetchColumn();
-$utilizationRate = $totalUsers > 0 ? round(($activeUsersThisWeek / $totalUsers) * 100, 1) : 0;
-
-// 4. Average Hours Per Employee (This Month)
-$avgHoursQuery = "
-    SELECT AVG(total_hours) as avg_hours
-    FROM (
-        SELECT u.id, SUM(TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60) as total_hours
-        FROM users u
-        LEFT JOIN shifts s ON u.id = s.user_id 
-            AND MONTH(s.shift_date) = MONTH(CURDATE()) 
-            AND YEAR(s.shift_date) = YEAR(CURDATE())
-        WHERE u.role != 'admin' AND u.role != 'super_admin'";
-if (!$isSuperAdmin && $adminBranchId) {
-    $avgHoursQuery .= " AND u.branch_id = ?";
-}
-$avgHoursQuery .= "
-        GROUP BY u.id
-    ) as user_hours";
-$avgHoursParams = [];
-if (!$isSuperAdmin && $adminBranchId) {
-    $avgHoursParams[] = $adminBranchId;
-}
-$stmt = $conn->prepare($avgHoursQuery);
-$stmt->execute($avgHoursParams);
-$avgHoursPerEmployee = $stmt->fetchColumn() ?: 0;
-
-// 5. Shift Distribution by Role (for chart)
-$roleDistQuery = "
-    SELECT r.name as role_name, COUNT(s.id) as shift_count
-    FROM shifts s
-    JOIN roles r ON s.role_id = r.id
-    JOIN users u ON s.user_id = u.id
-    WHERE MONTH(s.shift_date) = MONTH(CURDATE()) 
-    AND YEAR(s.shift_date) = YEAR(CURDATE())";
-$roleDistParams = [];
-if (!$isSuperAdmin && $adminBranchId) {
-    $roleDistQuery .= " AND (u.branch_id = ? OR s.branch_id = ?)";
-    $roleDistParams[] = $adminBranchId;
-    $roleDistParams[] = $adminBranchId;
-}
-$roleDistQuery .= " GROUP BY r.name ORDER BY shift_count DESC LIMIT 10";
-$stmt = $conn->prepare($roleDistQuery);
-$stmt->execute($roleDistParams);
-$shiftDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// 6. Weekly Trend Data (last 4 weeks)
-$trendData = [];
-for ($i = 3; $i >= 0; $i--) {
-    $weekStart = date('Y-m-d', strtotime("-$i weeks monday this week"));
-    $weekEnd = date('Y-m-d', strtotime("-$i weeks sunday this week"));
-    
-    $trendQuery = "
-        SELECT 
-            COUNT(s.id) as shift_count,
-            SUM(TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) / 60) as total_hours
+    $weekQuery = "
+        SELECT s.*, u.username, r.name as role_name, b.name as branch_name
         FROM shifts s
         JOIN users u ON s.user_id = u.id
-        WHERE s.shift_date BETWEEN ? AND ?";
-    $trendParams = [$weekStart, $weekEnd];
-    if (!$isSuperAdmin && $adminBranchId) {
-        $trendQuery .= " AND (u.branch_id = ? OR s.branch_id = ?)";
-        $trendParams[] = $adminBranchId;
-        $trendParams[] = $adminBranchId;
+        JOIN roles r ON s.role_id = r.id
+        LEFT JOIN branches b ON s.branch_id = b.id
+        WHERE s.shift_date BETWEEN ? AND DATE_ADD(?, INTERVAL 6 DAY)";
+    $weekParams = [$currentWeekStart, $currentWeekStart];
+    
+    if ($adminBranchId) {
+            // Include shifts where either the user's home branch matches the admin's branch
+            // or the shift is explicitly scheduled at the admin's branch (s.branch_id)
+            $weekQuery .= " AND (u.branch_id = ? OR s.branch_id = ?)";
+            $weekParams[] = $adminBranchId;
+            $weekParams[] = $adminBranchId;
     }
     
-    $stmt = $conn->prepare($trendQuery);
-    $stmt->execute($trendParams);
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $weekQuery .= " ORDER BY s.shift_date, s.start_time";
+    $stmt = $conn->prepare($weekQuery);
+    $stmt->execute($weekParams);
+    $allShifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else { // day view
+    $dayQuery = "
+        SELECT s.*, u.username, r.name as role_name, b.name as branch_name
+        FROM shifts s
+        JOIN users u ON s.user_id = u.id
+        JOIN roles r ON s.role_id = r.id
+        LEFT JOIN branches b ON s.branch_id = b.id
+        WHERE s.shift_date = ?";
+    $dayParams = [$currentDay];
     
-    $trendData[] = [
-        'week' => date('M j', strtotime($weekStart)),
-        'shifts' => $result['shift_count'] ?: 0,
-        'hours' => round($result['total_hours'] ?: 0, 1)
-    ];
+    if ($adminBranchId) {
+    // Include shifts scheduled at admin's branch or performed by users from admin's branch
+    $dayQuery .= " AND (u.branch_id = ? OR s.branch_id = ?)";
+    $dayParams[] = $adminBranchId;
+    $dayParams[] = $adminBranchId;
+    }
+    
+    $dayQuery .= " ORDER BY s.start_time";
+    $stmt = $conn->prepare($dayQuery);
+    $stmt->execute($dayParams);
+    $allShifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
-// 7. Recent Admin Actions (if audit log exists)
-$recentActions = [];
-try {
-    $actionsQuery = "
-        SELECT action, details, created_at, admin_username
-        FROM audit_admin_actions
-        ORDER BY created_at DESC
-        LIMIT 5";
-    $stmt = $conn->prepare($actionsQuery);
-    $stmt->execute();
-    $recentActions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    // audit table might not exist
-    $recentActions = [];
-}
-
-// 8. Unfilled Shifts / Invitations Pending Response
-$pendingInvitationsQuery = "SELECT COUNT(*) FROM shift_invitations WHERE status = 'pending'";
-$pendingInvitationsParams = [];
-if (!$isSuperAdmin && $adminBranchId) {
-    $pendingInvitationsQuery .= " AND branch_id = ?";
-    $pendingInvitationsParams[] = $adminBranchId;
-}
-try {
-    $stmt = $conn->prepare($pendingInvitationsQuery);
-    $stmt->execute($pendingInvitationsParams);
-    $pendingInvitations = $stmt->fetchColumn();
-} catch (PDOException $e) {
-    $pendingInvitations = 0;
-}
-
 ?>
 
 <!DOCTYPE html>
@@ -500,7 +243,6 @@ try {
     <title>Admin Dashboard - Open Rota</title>
         <link rel="stylesheet" href="../css/admin_dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 </head>
 
@@ -678,181 +420,6 @@ try {
                 </div>
             </div>
             <?php endif; ?>
-        </div>
-
-        <!-- Quick Actions & Alerts Panel -->
-        <div class="quick-actions-grid">
-            <div class="quick-action-card alert <?php echo $pendingCoverageRequests > 0 ? 'has-alerts' : ''; ?>">
-                <div class="quick-action-header">
-                    <div class="quick-action-icon coverage">
-                        <i class="fas fa-people-arrows"></i>
-                    </div>
-                    <div class="quick-action-content">
-                        <div class="quick-action-value"><?php echo $pendingCoverageRequests; ?></div>
-                        <div class="quick-action-label">Coverage Requests</div>
-                    </div>
-                </div>
-                <?php if ($pendingCoverageRequests > 0): ?>
-                    <a href="cross_branch_requests.php" class="quick-action-link">
-                        <i class="fas fa-arrow-right"></i> Review Requests
-                    </a>
-                <?php endif; ?>
-            </div>
-
-            <div class="quick-action-card <?php echo $pendingInvitations > 0 ? 'has-alerts' : ''; ?>">
-                <div class="quick-action-header">
-                    <div class="quick-action-icon invitations">
-                        <i class="fas fa-envelope-open-text"></i>
-                    </div>
-                    <div class="quick-action-content">
-                        <div class="quick-action-value"><?php echo $pendingInvitations; ?></div>
-                        <div class="quick-action-label">Pending Invitations</div>
-                    </div>
-                </div>
-                <?php if ($pendingInvitations > 0): ?>
-                    <a href="track_invitations.php" class="quick-action-link">
-                        <i class="fas fa-arrow-right"></i> Track Status
-                    </a>
-                <?php endif; ?>
-            </div>
-
-            <div class="quick-action-card">
-                <div class="quick-action-header">
-                    <div class="quick-action-icon payroll">
-                        <i class="fas fa-pound-sign"></i>
-                    </div>
-                    <div class="quick-action-content">
-                        <div class="quick-action-value">£<?php echo number_format($monthlyPayrollEstimate, 0); ?></div>
-                        <div class="quick-action-label">Est. Monthly Payroll</div>
-                    </div>
-                </div>
-                <a href="payroll_management.php" class="quick-action-link">
-                    <i class="fas fa-arrow-right"></i> View Details
-                </a>
-            </div>
-
-            <div class="quick-action-card">
-                <div class="quick-action-header">
-                    <div class="quick-action-icon utilization">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="quick-action-content">
-                        <div class="quick-action-value"><?php echo $utilizationRate; ?>%</div>
-                        <div class="quick-action-label">Staff Utilization</div>
-                        <div class="quick-action-subtext"><?php echo $activeUsersThisWeek; ?>/<?php echo $totalUsers; ?> active this week</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Analytics Dashboard -->
-        <div class="analytics-panel">
-            <div class="analytics-header">
-                <h2><i class="fas fa-chart-bar"></i> Performance Analytics</h2>
-                <div class="analytics-period">
-                    <i class="fas fa-calendar"></i> October <?php echo date('Y'); ?>
-                </div>
-            </div>
-            
-            <div class="analytics-grid">
-                <!-- Weekly Trends Chart -->
-                <div class="analytics-card wide">
-                    <div class="analytics-card-header">
-                        <h3><i class="fas fa-chart-area"></i> Weekly Trends</h3>
-                        <span class="analytics-subtitle">Last 4 weeks</span>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="weeklyTrendsChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Shift Distribution by Role -->
-                <div class="analytics-card">
-                    <div class="analytics-card-header">
-                        <h3><i class="fas fa-chart-pie"></i> Shifts by Role</h3>
-                        <span class="analytics-subtitle">This month</span>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="roleDistributionChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Performance Metrics -->
-                <div class="analytics-card metrics">
-                    <div class="analytics-card-header">
-                        <h3><i class="fas fa-bullseye"></i> Key Metrics</h3>
-                        <span class="analytics-subtitle">This month</span>
-                    </div>
-                    <div class="metrics-list">
-                        <div class="metric-item">
-                            <div class="metric-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="metric-content">
-                                <div class="metric-value"><?php echo number_format($avgHoursPerEmployee, 1); ?></div>
-                                <div class="metric-label">Avg Hours/Employee</div>
-                            </div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-icon">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
-                            <div class="metric-content">
-                                <div class="metric-value"><?php echo count($allShifts); ?></div>
-                                <div class="metric-label">Shifts <?php echo $viewType === 'week' ? 'This Week' : 'Today'; ?></div>
-                            </div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="metric-content">
-                                <div class="metric-value"><?php echo $activeUsersThisWeek; ?></div>
-                                <div class="metric-label">Active Staff</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Admin Actions -->
-                <?php if (!empty($recentActions)): ?>
-                <div class="analytics-card activity">
-                    <div class="analytics-card-header">
-                        <h3><i class="fas fa-history"></i> Recent Activity</h3>
-                        <a href="audit_log.php" class="view-all-link">View All</a>
-                    </div>
-                    <div class="activity-list">
-                        <?php foreach ($recentActions as $action): ?>
-                            <div class="activity-item">
-                                <div class="activity-icon">
-                                    <i class="fas fa-circle"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <div class="activity-text">
-                                        <strong><?php echo htmlspecialchars($action['admin_username']); ?></strong>
-                                        <?php echo htmlspecialchars($action['action']); ?>
-                                    </div>
-                                    <div class="activity-time">
-                                        <i class="fas fa-clock"></i>
-                                        <?php 
-                                            $time = strtotime($action['created_at']);
-                                            $diff = time() - $time;
-                                            if ($diff < 3600) {
-                                                echo floor($diff / 60) . ' min ago';
-                                            } elseif ($diff < 86400) {
-                                                echo floor($diff / 3600) . ' hours ago';
-                                            } else {
-                                                echo date('M j, g:i A', $time);
-                                            }
-                                        ?>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-            </div>
         </div>
 
         <div class="admin-panel">
@@ -1240,173 +807,21 @@ try {
             </div>
         </div>
 
-        <!-- Shift Statistics -->
-        <div class="shift-stats-grid">
-            <div class="shift-stat-card total">
-                <div class="shift-stat-icon">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
-                <div class="shift-stat-content">
-                    <div class="shift-stat-value"><?php echo $shiftStats['total_shifts'] ?? 0; ?></div>
-                    <div class="shift-stat-label">Total Shifts</div>
-                    <div class="shift-stat-trend">
-                        <small><?php echo $viewType === 'week' ? 'This week' : 'Today'; ?></small>
-                    </div>
-                </div>
-            </div>
-            <div class="shift-stat-card hours">
-                <div class="shift-stat-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="shift-stat-content">
-                    <div class="shift-stat-value"><?php echo number_format($shiftStats['total_hours'] ?? 0, 1); ?></div>
-                    <div class="shift-stat-label">Total Hours</div>
-                    <div class="shift-stat-trend">
-                        <small>Avg: <?php echo $shiftStats['total_shifts'] > 0 ? number_format(($shiftStats['total_hours'] ?? 0) / $shiftStats['total_shifts'], 1) : 0; ?>h per shift</small>
-                    </div>
-                </div>
-            </div>
-            <div class="shift-stat-card pay">
-                <div class="shift-stat-icon">
-                    <i class="fas fa-pound-sign"></i>
-                </div>
-                <div class="shift-stat-content">
-                    <div class="shift-stat-value">£<?php echo number_format($totalPay, 0); ?></div>
-                    <div class="shift-stat-label">Total Pay</div>
-                    <div class="shift-stat-trend">
-                        <small>Avg: £<?php echo $shiftStats['total_shifts'] > 0 ? number_format($totalPay / $shiftStats['total_shifts'], 2) : 0; ?> per shift</small>
-                    </div>
-                </div>
-            </div>
-            <div class="shift-stat-card staff">
-                <div class="shift-stat-icon">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="shift-stat-content">
-                    <div class="shift-stat-value"><?php echo $shiftStats['unique_users'] ?? 0; ?></div>
-                    <div class="shift-stat-label">Staff Working</div>
-                    <div class="shift-stat-trend">
-                        <small><?php echo $shiftStats['total_shifts'] > 0 && $shiftStats['unique_users'] > 0 ? number_format($shiftStats['total_shifts'] / $shiftStats['unique_users'], 1) : 0; ?> shifts per person</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="admin-panel">
             <div class="admin-panel-header">
-                <h2><i class="fas fa-calendar-week"></i> Shift Management</h2>
-                <div class="panel-actions">
-                    <div class="view-toggle">
-                        <a href="?view=week&week_start=<?php echo $currentWeekStart; ?>&<?php echo http_build_query(array_filter(['shift_search' => $shiftSearchQuery, 'shift_user' => $shiftUserFilter != 'all' ? $shiftUserFilter : null, 'shift_role' => $shiftRoleFilter != 'all' ? $shiftRoleFilter : null])); ?>"
-                            class="admin-btn <?php echo $viewType === 'week' ? 'active' : ''; ?>">
-                            <i class="fas fa-calendar-week"></i> Week
-                        </a>
-                        <a href="?view=day&day=<?php echo $currentDay; ?>&<?php echo http_build_query(array_filter(['shift_search' => $shiftSearchQuery, 'shift_user' => $shiftUserFilter != 'all' ? $shiftUserFilter : null, 'shift_role' => $shiftRoleFilter != 'all' ? $shiftRoleFilter : null])); ?>"
-                            class="admin-btn <?php echo $viewType === 'day' ? 'active' : ''; ?>">
-                            <i class="fas fa-calendar-day"></i> Day
-                        </a>
-                    </div>
-                    <button onclick="exportShifts()" class="admin-btn secondary" title="Export shifts to CSV">
-                        <i class="fas fa-download"></i> Export
-                    </button>
+                <h2><i class="fas fa-calendar-week"></i> All Shifts</h2>
+                <div class="view-toggle">
+                    <a href="?view=week&week_start=<?php echo $currentWeekStart; ?>"
+                        class="admin-btn <?php echo $viewType === 'week' ? 'active' : ''; ?>">
+                        <i class="fas fa-calendar-week"></i> Week
+                    </a>
+                    <a href="?view=day&day=<?php echo $currentDay; ?>"
+                        class="admin-btn <?php echo $viewType === 'day' ? 'active' : ''; ?>">
+                        <i class="fas fa-calendar-day"></i> Day
+                    </a>
                 </div>
             </div>
-            
-            <!-- Shift Search and Filter Bar -->
-            <div class="search-filter-bar">
-                <form method="GET" id="shift-filter-form" class="filter-form">
-                    <input type="hidden" name="view" value="<?php echo htmlspecialchars($viewType); ?>">
-                    <?php if ($viewType === 'week'): ?>
-                        <input type="hidden" name="week_start" value="<?php echo htmlspecialchars($currentWeekStart); ?>">
-                    <?php else: ?>
-                        <input type="hidden" name="day" value="<?php echo htmlspecialchars($currentDay); ?>">
-                    <?php endif; ?>
-                    
-                    <!-- Search Input -->
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" 
-                               name="shift_search" 
-                               value="<?php echo htmlspecialchars($shiftSearchQuery); ?>" 
-                               placeholder="Search shifts by user, role, location..."
-                               class="search-input">
-                        <?php if (!empty($shiftSearchQuery)): ?>
-                            <button type="button" class="clear-search" onclick="clearShiftSearch()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <!-- User Filter -->
-                    <div class="filter-select-group">
-                        <label for="shift_user"><i class="fas fa-user"></i></label>
-                        <select name="shift_user" id="shift_user" class="filter-select">
-                            <option value="all" <?php echo $shiftUserFilter === 'all' ? 'selected' : ''; ?>>All Users</option>
-                            <?php foreach ($usersForFilter as $userOpt): ?>
-                                <option value="<?php echo $userOpt['id']; ?>" <?php echo $shiftUserFilter == $userOpt['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($userOpt['username']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <!-- Role Filter -->
-                    <div class="filter-select-group">
-                        <label for="shift_role"><i class="fas fa-user-tag"></i></label>
-                        <select name="shift_role" id="shift_role" class="filter-select">
-                            <option value="all" <?php echo $shiftRoleFilter === 'all' ? 'selected' : ''; ?>>All Roles</option>
-                            <?php foreach ($rolesForFilter as $roleOpt): ?>
-                                <option value="<?php echo $roleOpt['id']; ?>" <?php echo $shiftRoleFilter == $roleOpt['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($roleOpt['name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <!-- Location Filter -->
-                    <div class="filter-select-group">
-                        <label for="shift_location"><i class="fas fa-map-marker-alt"></i></label>
-                        <select name="shift_location" id="shift_location" class="filter-select">
-                            <option value="all" <?php echo $shiftLocationFilter === 'all' ? 'selected' : ''; ?>>All Locations</option>
-                            <option value="cross_branch" <?php echo $shiftLocationFilter === 'cross_branch' ? 'selected' : ''; ?>>Cross-branch</option>
-                            <?php foreach ($locationsForFilter as $locOpt): ?>
-                                <?php if ($locOpt['location'] !== 'Cross-branch coverage'): ?>
-                                    <option value="<?php echo htmlspecialchars($locOpt['location']); ?>" 
-                                            <?php echo $shiftLocationFilter == $locOpt['location'] ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($locOpt['location']); ?>
-                                    </option>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <!-- Filter Button -->
-                    <button type="submit" class="admin-btn">
-                        <i class="fas fa-filter"></i> Filter
-                    </button>
-                    
-                    <?php if (!empty($shiftSearchQuery) || $shiftUserFilter !== 'all' || $shiftRoleFilter !== 'all' || $shiftLocationFilter !== 'all'): ?>
-                        <a href="?view=<?php echo $viewType; ?>&<?php echo $viewType === 'week' ? 'week_start=' . $currentWeekStart : 'day=' . $currentDay; ?>#shift-management" 
-                           class="admin-btn secondary" title="Clear all filters">
-                            <i class="fas fa-redo"></i> Reset
-                        </a>
-                    <?php endif; ?>
-                </form>
-            </div>
-            
-            <!-- Results Summary -->
-            <div class="results-summary">
-                <div class="results-text">
-                    <i class="fas fa-info-circle"></i>
-                    Showing <?php echo min($shiftOffset + 1, $totalShifts); ?> - <?php echo min($shiftOffset + $shiftPerPage, $totalShifts); ?> 
-                    of <?php echo $totalShifts; ?> shift<?php echo $totalShifts != 1 ? 's' : ''; ?>
-                    <?php if (!empty($shiftSearchQuery)): ?>
-                        <span class="filter-tag">Search: "<?php echo htmlspecialchars($shiftSearchQuery); ?>"</span>
-                    <?php endif; ?>
-                </div>
-            </div>
-            
-            <div class="admin-panel-body" id="shift-management">
+            <div class="admin-panel-body">
                 <div class="view-controls">
                     <div class="period-nav-buttons">
                         <?php if ($viewType === 'week'): ?>
@@ -1441,7 +856,6 @@ try {
                             <th>User</th>
                             <th>Date</th>
                             <th>Time</th>
-                            <th>Duration</th>
                             <th>Role</th>
                             <th>Location</th>
                             <th>Pay</th>
@@ -1451,14 +865,10 @@ try {
                     <tbody>
                         <?php if (empty($allShifts)): ?>
                             <tr>
-                                <td colspan="9" style="text-align: center; padding: 30px;">
+                                <td colspan="8" style="text-align: center; padding: 30px;">
                                     <i class="fas fa-calendar-times"
                                         style="font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block;"></i>
-                                    <p style="margin: 0;">No shifts found<?php echo !empty($shiftSearchQuery) || $shiftUserFilter !== 'all' || $shiftRoleFilter !== 'all' || $shiftLocationFilter !== 'all' ? ' matching your filters' : ' for this period'; ?></p>
-                                    <?php if (!empty($shiftSearchQuery) || $shiftUserFilter !== 'all' || $shiftRoleFilter !== 'all' || $shiftLocationFilter !== 'all'): ?>
-                                        <a href="?view=<?php echo $viewType; ?>&<?php echo $viewType === 'week' ? 'week_start=' . $currentWeekStart : 'day=' . $currentDay; ?>#shift-management" 
-                                           class="admin-btn" style="margin-top: 15px;">Clear Filters</a>
-                                    <?php endif; ?>
+                                    <p style="margin: 0;">No shifts found for this period</p>
                                 </td>
                             </tr>
                         <?php else: ?>
@@ -1472,7 +882,7 @@ try {
                                     $currentDate = $shiftDate;
                                     ?>
                                     <tr>
-                                        <td colspan="9" class="day-header">
+                                        <td colspan="8" class="day-header">
                                             <i class="fas fa-calendar-day"></i>
                                             <?php echo date("l, F j, Y", strtotime($currentDate)); ?>
                                         </td>
@@ -1498,12 +908,6 @@ try {
                                     <td data-label="Time">
                                         <?php echo date("g:i A", strtotime($shift['start_time'])); ?> -
                                         <?php echo date("g:i A", strtotime($shift['end_time'])); ?>
-                                    </td>
-                                    <td data-label="Duration">
-                                        <span class="duration-badge">
-                                            <i class="fas fa-clock"></i>
-                                            <?php echo number_format($shift['duration_hours'], 1); ?>h
-                                        </span>
                                     </td>
                                     <td data-label="Role"><?php echo htmlspecialchars($shift['role_name']); ?></td>
                                     <td data-label="Location">
@@ -1533,50 +937,6 @@ try {
                         <?php endif; ?>
                     </tbody>
                 </table>
-                
-                <!-- Shift Pagination -->
-                <?php if ($shiftTotalPages > 1): ?>
-                    <div class="pagination">
-                        <div class="pagination-info">
-                            Page <?php echo $shiftPage; ?> of <?php echo $shiftTotalPages; ?>
-                        </div>
-                        <div class="pagination-buttons">
-                            <?php if ($shiftPage > 1): ?>
-                                <a href="?<?php echo http_build_query(array_merge($_GET, ['shift_page' => 1])); ?>#shift-management" 
-                                   class="pagination-btn" title="First page">
-                                    <i class="fas fa-angle-double-left"></i>
-                                </a>
-                                <a href="?<?php echo http_build_query(array_merge($_GET, ['shift_page' => $shiftPage - 1])); ?>#shift-management" 
-                                   class="pagination-btn" title="Previous page">
-                                    <i class="fas fa-angle-left"></i> Prev
-                                </a>
-                            <?php endif; ?>
-                            
-                            <?php
-                            $startPage = max(1, $shiftPage - 2);
-                            $endPage = min($shiftTotalPages, $shiftPage + 2);
-                            
-                            for ($i = $startPage; $i <= $endPage; $i++):
-                            ?>
-                                <a href="?<?php echo http_build_query(array_merge($_GET, ['shift_page' => $i])); ?>#shift-management" 
-                                   class="pagination-btn <?php echo $i === $shiftPage ? 'active' : ''; ?>">
-                                    <?php echo $i; ?>
-                                </a>
-                            <?php endfor; ?>
-                            
-                            <?php if ($shiftPage < $shiftTotalPages): ?>
-                                <a href="?<?php echo http_build_query(array_merge($_GET, ['shift_page' => $shiftPage + 1])); ?>#shift-management" 
-                                   class="pagination-btn" title="Next page">
-                                    Next <i class="fas fa-angle-right"></i>
-                                </a>
-                                <a href="?<?php echo http_build_query(array_merge($_GET, ['shift_page' => $shiftTotalPages])); ?>#shift-management" 
-                                   class="pagination-btn" title="Last page">
-                                    <i class="fas fa-angle-double-right"></i>
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -1597,10 +957,7 @@ try {
 
         function exportUsers() {
             // Simple CSV export functionality
-            const userTables = document.querySelectorAll('.admin-table');
-            const table = userTables[0]; // First table is users
-            if (!table) return;
-            
+            const table = document.querySelector('.admin-table');
             let csv = [];
             const rows = table.querySelectorAll('tr');
             
@@ -1624,54 +981,6 @@ try {
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
-        }
-        
-        function exportShifts() {
-            // Export shifts table
-            const shiftTables = document.querySelectorAll('.admin-table');
-            const table = shiftTables[1] || shiftTables[0]; // Second table is shifts
-            if (!table) return;
-            
-            let csv = [];
-            const rows = table.querySelectorAll('tr');
-            
-            for (let i = 0; i < rows.length; i++) {
-                // Skip day header rows
-                if (rows[i].querySelector('.day-header')) continue;
-                
-                const row = [], cols = rows[i].querySelectorAll('td, th');
-                for (let j = 0; j < cols.length - 1; j++) { // Exclude actions column
-                    if (cols[j]) {
-                        let text = cols[j].innerText || cols[j].textContent || '';
-                        text = text.replace(/\s+/g, ' ').trim();
-                        text = text.replace(/"/g, '""');
-                        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
-                            text = `"${text}"`;
-                        }
-                        row.push(text);
-                    }
-                }
-                if (row.length > 0) {
-                    csv.push(row.join(','));
-                }
-            }
-            
-            const csvFile = new Blob([csv.join('\n')], { type: 'text/csv' });
-            const downloadLink = document.createElement('a');
-            downloadLink.download = `shifts_export_${new Date().toISOString().split('T')[0]}.csv`;
-            downloadLink.href = window.URL.createObjectURL(csvFile);
-            downloadLink.style.display = 'none';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        }
-        
-        function clearShiftSearch() {
-            const searchInput = document.querySelector('input[name="shift_search"]');
-            if (searchInput) {
-                searchInput.value = '';
-                document.getElementById('shift-filter-form').submit();
-            }
         }
 
     // Forms submit manually via the Update button now; no auto-submit on select change.
@@ -1700,184 +1009,11 @@ try {
         });
     </script>
 
-    <script>
-        // Initialize Charts
-        document.addEventListener('DOMContentLoaded', function() {
-            // Weekly Trends Chart
-            const weeklyCtx = document.getElementById('weeklyTrendsChart');
-            if (weeklyCtx) {
-                const trendData = <?php echo json_encode($trendData); ?>;
-                
-                new Chart(weeklyCtx, {
-                    type: 'line',
-                    data: {
-                        labels: trendData.map(d => d.week),
-                        datasets: [{
-                            label: 'Total Shifts',
-                            data: trendData.map(d => d.shifts),
-                            borderColor: '#fd2b2b',
-                            backgroundColor: 'rgba(253, 43, 43, 0.1)',
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 5,
-                            pointHoverRadius: 7
-                        }, {
-                            label: 'Total Hours',
-                            data: trendData.map(d => d.hours),
-                            borderColor: '#198754',
-                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 5,
-                            pointHoverRadius: 7
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    font: {
-                                        family: 'newFont',
-                                        size: 12
-                                    },
-                                    usePointStyle: true,
-                                    padding: 15
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
-                                titleFont: {
-                                    size: 14
-                                },
-                                bodyFont: {
-                                    size: 13
-                                },
-                                cornerRadius: 8
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
-                                },
-                                ticks: {
-                                    font: {
-                                        family: 'newFont'
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    font: {
-                                        family: 'newFont'
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Role Distribution Chart
-            const roleCtx = document.getElementById('roleDistributionChart');
-            if (roleCtx) {
-                const roleData = <?php echo json_encode($shiftDistribution); ?>;
-                
-                const colors = [
-                    '#fd2b2b', '#198754', '#0d6efd', '#ffc107', '#6f42c1',
-                    '#d63384', '#fd7e14', '#20c997', '#0dcaf0', '#adb5bd'
-                ];
-                
-                new Chart(roleCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: roleData.map(d => d.role_name),
-                        datasets: [{
-                            data: roleData.map(d => d.shift_count),
-                            backgroundColor: colors.slice(0, roleData.length),
-                            borderWidth: 2,
-                            borderColor: '#fff'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'bottom',
-                                labels: {
-                                    font: {
-                                        family: 'newFont',
-                                        size: 11
-                                    },
-                                    padding: 10,
-                                    usePointStyle: true
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
-                                titleFont: {
-                                    size: 14
-                                },
-                                bodyFont: {
-                                    size: 13
-                                },
-                                cornerRadius: 8,
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        const value = context.parsed || 0;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((value / total) * 100).toFixed(1);
-                                        return label + ': ' + value + ' shifts (' + percentage + '%)';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Add smooth scroll animation to cards
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
-                    }
-                });
-            }, observerOptions);
-
-            document.querySelectorAll('.analytics-card, .quick-action-card').forEach(card => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                observer.observe(card);
-            });
-        });
-    </script>
-
     <script src="/rota-app-main/js/pwa-debug.js"></script>
     <script src="/rota-app-main/js/links.js"></script>
     <!-- No AJAX role-change handling: selects do not auto-submit; use the Update button to submit changes. -->
 </body>
+
+</html>
 
 </html>

@@ -105,6 +105,63 @@ $stmt->bindValue(':user_branch_id', $user_branch_id);
 $stmt->execute();
 $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Calculate statistics for the current period
+$totalHours = 0;
+$totalShifts = count($shifts);
+$shiftsByRole = [];
+$shiftsByUser = [];
+$uniqueDays = [];
+
+foreach ($shifts as $shift) {
+    // Calculate hours for this shift
+    $start = new DateTime($shift['shift_date'] . ' ' . $shift['start_time']);
+    $end = new DateTime($shift['shift_date'] . ' ' . $shift['end_time']);
+    
+    // Handle shifts that cross midnight
+    if ($end < $start) {
+        $end->modify('+1 day');
+    }
+    
+    $interval = $start->diff($end);
+    $hours = $interval->h + ($interval->i / 60);
+    $totalHours += $hours;
+    
+    // Count shifts by role
+    $roleName = $shift['role_name'] ?? 'Unknown';
+    if (!isset($shiftsByRole[$roleName])) {
+        $shiftsByRole[$roleName] = 0;
+    }
+    $shiftsByRole[$roleName]++;
+    
+    // Count shifts by user
+    $userName = $shift['username'] ?? 'Unknown';
+    if (!isset($shiftsByUser[$userName])) {
+        $shiftsByUser[$userName] = 0;
+    }
+    $shiftsByUser[$userName]++;
+    
+    // Track unique days with shifts
+    $uniqueDays[$shift['shift_date']] = true;
+}
+
+// Calculate additional metrics
+$daysWithShifts = count($uniqueDays);
+$avgShiftsPerDay = $daysWithShifts > 0 ? round($totalShifts / $daysWithShifts, 1) : 0;
+$avgHoursPerShift = $totalShifts > 0 ? round($totalHours / $totalShifts, 1) : 0;
+
+// Find busiest day
+$shiftCountByDate = [];
+foreach ($shifts as $shift) {
+    $date = $shift['shift_date'];
+    if (!isset($shiftCountByDate[$date])) {
+        $shiftCountByDate[$date] = 0;
+    }
+    $shiftCountByDate[$date]++;
+}
+arsort($shiftCountByDate);
+$busiestDay = !empty($shiftCountByDate) ? array_key_first($shiftCountByDate) : null;
+$busiestDayCount = !empty($shiftCountByDate) ? reset($shiftCountByDate) : 0;
+
 // Get all role colors for styling shifts by role
 $roleColors = [
     'default' => '#fd2b2b', // Default red
@@ -275,6 +332,122 @@ if ($period === 'week') {
     }
     ?>
     <style>
+        /* Rota Statistics Panel */
+        .rota-statistics-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
+            gap: 20px;
+            margin-bottom: 30px;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .stat-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-sublabel {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 3px;
+        }
+
+        /* Dark mode for statistics */
+        html[data-theme='dark'] .stat-card {
+            background: var(--panel) !important;
+        }
+
+        html[data-theme='dark'] .stat-value {
+            color: var(--text) !important;
+        }
+
+        html[data-theme='dark'] .stat-label,
+        html[data-theme='dark'] .stat-sublabel {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* Responsive statistics */
+        @media (max-width: 768px) {
+            .rota-statistics-panel {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .stat-card {
+                padding: 15px;
+                gap: 12px;
+            }
+
+            .stat-icon {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+
+            .stat-value {
+                font-size: 22px;
+            }
+
+            .stat-label {
+                font-size: 11px;
+            }
+
+            .stat-sublabel {
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .rota-statistics-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Navigation menu styling specific to rota page */
         .nav-links {
             display: none;
@@ -367,51 +540,69 @@ if ($period === 'week') {
         }
 
         .calendar-day {
-            background-color: #fff;
-            border-radius: 5px;
+            background-color: #ffffff;
+            border-radius: 8px;
             padding: 10px;
-            min-height: 120px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 140px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             position: relative;
+            transition: box-shadow 0.2s;
+        }
+
+        .calendar-day:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
 
         .calendar-day-header {
-            background-color: #f5f5f5;
-            padding: 8px;
-            border-radius: 5px 5px 0 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            border-radius: 8px 8px 0 0;
             margin: -10px -10px 10px -10px;
             text-align: center;
             font-weight: bold;
+            color: white;
+            font-size: 13px;
+            letter-spacing: 0.5px;
         }
 
         .calendar-day:empty {
             background-color: #f9f9f9;
+            opacity: 0.6;
         }
 
         .day-number {
             position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 25px;
-            height: 25px;
-            background-color: #fd2b2b;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.25);
             color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
+            backdrop-filter: blur(10px);
         }
 
-        /* Shift Card in Calendar */
+        /* Enhanced Shift Card in Calendar */
         .shift-card {
-            background-color: #f8f8f8;
-            border-left: 3px solid #fd2b2b;
-            padding: 8px;
-            margin-bottom: 8px;
-            border-radius: 3px;
+            background-color: #ffffff;
+            border-left: 4px solid #fd2b2b;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
             font-size: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .shift-card:hover {
+            transform: translateX(3px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
         }
 
         .shift-card:last-child {
@@ -420,19 +611,67 @@ if ($period === 'week') {
 
         .shift-time {
             font-weight: bold;
+            font-size: 13px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .shift-time::before {
+            content: "🕐";
+            font-size: 14px;
         }
 
         .shift-user {
-            margin-top: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            margin-top: 6px;
+            font-weight: 600;
+            color: #34495e;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .shift-user::before {
+            content: "👤";
+            font-size: 12px;
         }
 
         .shift-role {
             font-style: italic;
             font-size: 11px;
-            color: #666;
+            color: #7f8c8d;
+            margin-top: 4px;
+            padding: 2px 6px;
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .shift-location {
+            font-size: 10px;
+            color: #95a5a6;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .shift-location::before {
+            content: "📍";
+            font-size: 10px;
+        }
+
+        /* Shift duration badge */
+        .shift-duration {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-top: 4px;
+            font-weight: 600;
         }
 
         /* Enhanced Calendar View Responsiveness */
@@ -603,6 +842,39 @@ if ($period === 'week') {
             }
         }
 
+        /* Button styling enhancements */
+        .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Empty state styling */
+        .no-shifts {
+            text-align: center;
+            padding: 60px 20px;
+            color: #95a5a6;
+            font-size: 18px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .no-shifts::before {
+            content: "📅";
+            display: block;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
         /* Print-friendly styles */
         @media print {
 
@@ -610,7 +882,9 @@ if ($period === 'week') {
             .filter-section,
             .view-toggle,
             .export-btn,
-            button {
+            button,
+            .rota-statistics-panel,
+            .btn {
                 display: none !important;
             }
 
@@ -621,6 +895,15 @@ if ($period === 'week') {
                 margin: 0 !important;
                 padding: 0 !important;
                 box-shadow: none !important;
+            }
+
+            .calendar-day,
+            .shift-card {
+                page-break-inside: avoid !important;
+            }
+
+            .calendar-view {
+                gap: 5px;
             }
 
             table {
@@ -700,6 +983,63 @@ if ($period === 'week') {
     
     <div class="container">
         <h1>Full Rota</h1>
+
+        <!-- Rota Statistics Panel -->
+        <?php if (!empty($shifts)): ?>
+        <div class="rota-statistics-panel">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fa fa-clock-o"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo number_format($totalHours, 1); ?></div>
+                    <div class="stat-label">Total Hours</div>
+                    <div class="stat-sublabel"><?php echo $avgHoursPerShift; ?> hrs/shift avg</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <i class="fa fa-calendar-check-o"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo $totalShifts; ?></div>
+                    <div class="stat-label">Total Shifts</div>
+                    <div class="stat-sublabel"><?php echo $avgShiftsPerDay; ?> shifts/day avg</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <i class="fa fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo count($shiftsByRole); ?></div>
+                    <div class="stat-label">Active Roles</div>
+                    <div class="stat-sublabel"><?php echo count($shiftsByUser); ?> team members</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <i class="fa fa-line-chart"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo $busiestDayCount; ?></div>
+                    <div class="stat-label">Busiest Day</div>
+                    <div class="stat-sublabel">
+                        <?php 
+                        if ($busiestDay) {
+                            echo date('D, M j', strtotime($busiestDay));
+                        } else {
+                            echo 'N/A';
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- Enhanced Filter Section -->
         <div class="filter-section">
@@ -781,30 +1121,44 @@ if ($period === 'week') {
                 <noscript><button type="submit" class="btn">Apply Filters</button></noscript>
             </form>
 
-            <!-- Period Navigation Buttons -->
+            <!-- Period Navigation and Export Buttons -->
             <div class="filter-row">
-                <div>
-                    <?php if ($period === 'week'): ?>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; width: 100%;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <?php if ($period === 'week'): ?>
                         <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Previous Week</a>
                         <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Current Week</a>
                         <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Next Week</a>
-                    <?php elseif ($period === 'month'): ?>
+                        <?php elseif ($period === 'month'): ?>
                         <a href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Previous Month</a>
                         <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Current Month</a>
                         <a href="?period=month&month=<?php echo $month == 12 ? 1 : $month + 1; ?>&year=<?php echo $month == 12 ? $year + 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Next Month</a>
-                    <?php elseif ($period === 'year'): ?>
+                        <?php elseif ($period === 'year'): ?>
                         <a href="?period=year&year=<?php echo $year - 1; ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Previous Year</a>
                         <a href="?period=year&year=<?php echo date('Y'); ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Current Year</a>
                         <a href="?period=year&year=<?php echo $year + 1; ?>&role_filter=<?php echo $roleFilter; ?>"
                             class="btn">Next Year</a>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Export Buttons -->
+                    <?php if (!empty($shifts)): ?>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="exportToCSV()" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                            <i class="fa fa-download"></i> Export CSV
+                        </button>
+                        <button onclick="window.print()" class="btn" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none;">
+                            <i class="fa fa-print"></i> Print
+                        </button>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -830,6 +1184,19 @@ if ($period === 'week') {
                                 <?php if (isset($shiftsByDate[$date])):
                                     foreach ($shiftsByDate[$date] as $shift):
                                         $roleColor = $roleColors[$shift['role_name']] ?? $roleColors['default'];
+                                        
+                                        // Calculate shift duration
+                                        $start = new DateTime($shift['shift_date'] . ' ' . $shift['start_time']);
+                                        $end = new DateTime($shift['shift_date'] . ' ' . $shift['end_time']);
+                                        if ($end < $start) {
+                                            $end->modify('+1 day');
+                                        }
+                                        $interval = $start->diff($end);
+                                        $duration = $interval->h + ($interval->i / 60);
+                                        $durationText = $interval->h . 'h';
+                                        if ($interval->i > 0) {
+                                            $durationText .= ' ' . $interval->i . 'm';
+                                        }
                                         ?>
                                         <div class="shift-card" style="border-left-color: <?php echo $roleColor; ?>;">
                                             <div class="shift-time">
@@ -838,16 +1205,21 @@ if ($period === 'week') {
                                             </div>
                                             <div class="shift-user"><?php echo htmlspecialchars($shift['username']); ?></div>
                                             <div class="shift-role"><?php echo htmlspecialchars($shift['role_name']); ?></div>
-                                            <small>
+                                            <div class="shift-duration"><?php echo $durationText; ?></div>
+                                            <?php
+                                            $loc = $shift['location'] ?? '';
+                                            if (!empty($loc)):
+                                            ?>
+                                            <div class="shift-location">
                                                 <?php
-                                                $loc = $shift['location'] ?? '';
                                                 if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
                                                     echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
                                                 } else {
                                                     echo htmlspecialchars($loc);
                                                 }
                                                 ?>
-                                            </small>
+                                            </div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php
                                     endforeach;
@@ -944,6 +1316,55 @@ if ($period === 'week') {
                 link.style.color = '#ffffff';
             });
         });
+
+        // CSV Export Function
+        function exportToCSV() {
+            const shifts = <?php echo json_encode($shifts); ?>;
+            
+            if (!shifts || shifts.length === 0) {
+                alert('No shifts to export');
+                return;
+            }
+            
+            // CSV Headers
+            let csv = 'Date,Day,Start Time,End Time,Duration,Employee,Role,Location,Branch\n';
+            
+            // Add data rows
+            shifts.forEach(shift => {
+                const date = shift.shift_date;
+                const day = new Date(date).toLocaleDateString('en-US', { weekday: 'short' });
+                const startTime = shift.start_time;
+                const endTime = shift.end_time;
+                
+                // Calculate duration
+                const start = new Date(date + ' ' + startTime);
+                let end = new Date(date + ' ' + endTime);
+                if (end < start) {
+                    end = new Date(end.getTime() + 24*60*60*1000);
+                }
+                const durationHours = Math.round((end - start) / (1000 * 60 * 60) * 10) / 10;
+                
+                const employee = (shift.username || '').replace(/"/g, '""');
+                const role = (shift.role_name || '').replace(/"/g, '""');
+                const location = (shift.location || '').replace(/"/g, '""');
+                const branch = (shift.branch_name || '').replace(/"/g, '""');
+                
+                csv += `"${date}","${day}","${startTime}","${endTime}","${durationHours}h","${employee}","${role}","${location}","${branch}"\n`;
+            });
+            
+            // Create download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            const filename = 'rota_' + new Date().toISOString().split('T')[0] + '.csv';
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // View switching functions removed - calendar view is now the only option
     </script>

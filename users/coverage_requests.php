@@ -403,16 +403,78 @@ $swap_proposals_stmt = $conn->prepare("
 $swap_proposals_stmt->execute([$user_id, $user_id]);
 $swap_proposals = $swap_proposals_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Load available requests
+// ========== FILTERING & STATISTICS ==========
+
+// Get filter parameters
+$filter_status = $_GET['filter_status'] ?? 'all';
+$filter_urgency = $_GET['filter_urgency'] ?? 'all';
+$filter_date_from = $_GET['filter_date_from'] ?? '';
+$filter_date_to = $_GET['filter_date_to'] ?? '';
+$search_query = $_GET['search'] ?? '';
+
+// Calculate statistics for current user's requests
+$stats_query = "SELECT 
+    COUNT(*) as total_requests,
+    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_requests,
+    SUM(CASE WHEN status = 'fulfilled' THEN 1 ELSE 0 END) as fulfilled_requests,
+    SUM(CASE WHEN urgency_level = 'urgent' AND status = 'pending' THEN 1 ELSE 0 END) as urgent_requests
+FROM cross_branch_shift_requests 
+WHERE requested_by_user_id = ?";
+$stats_stmt = $conn->prepare($stats_query);
+$stats_stmt->execute([$user_id]);
+$request_stats = $stats_stmt->fetch(PDO::FETCH_ASSOC);
+
+// Calculate acceptance rate
+$acceptance_rate = 0;
+if ($request_stats['total_requests'] > 0) {
+    $acceptance_rate = ($request_stats['fulfilled_requests'] / $request_stats['total_requests']) * 100;
+}
+
+// Calculate average response time (in hours)
+$avg_response_query = "SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, fulfilled_at)) as avg_hours
+FROM cross_branch_shift_requests 
+WHERE requested_by_user_id = ? AND status = 'fulfilled' AND fulfilled_at IS NOT NULL";
+$avg_stmt = $conn->prepare($avg_response_query);
+$avg_stmt->execute([$user_id]);
+$avg_response = $avg_stmt->fetch(PDO::FETCH_ASSOC);
+$avg_response_hours = round($avg_response['avg_hours'] ?? 0, 1);
+
+// Load available requests with filtering
+$where_clauses = ["cbr.target_branch_id=?", "cbr.status='pending'", "cbr.expires_at>NOW()", "cbr.role_id IS NOT NULL"];
+$params = [$user_branch_id];
+
+if ($filter_urgency !== 'all') {
+    $where_clauses[] = "cbr.urgency_level = ?";
+    $params[] = $filter_urgency;
+}
+
+if (!empty($filter_date_from)) {
+    $where_clauses[] = "cbr.shift_date >= ?";
+    $params[] = $filter_date_from;
+}
+
+if (!empty($filter_date_to)) {
+    $where_clauses[] = "cbr.shift_date <= ?";
+    $params[] = $filter_date_to;
+}
+
+if (!empty($search_query)) {
+    $where_clauses[] = "(u.username LIKE ? OR r.name LIKE ? OR rb.name LIKE ?)";
+    $search_param = "%$search_query%";
+    $params[] = $search_param;
+    $params[] = $search_param;
+    $params[] = $search_param;
+}
+
 $sql = "SELECT cbr.*, rb.name AS requesting_branch_name, u.username AS requested_by_username, r.name AS role_name
         FROM cross_branch_shift_requests cbr
         JOIN branches rb ON cbr.requesting_branch_id=rb.id
         JOIN users u ON cbr.requested_by_user_id=u.id
         LEFT JOIN roles r ON cbr.role_id = r.id
-        WHERE cbr.target_branch_id=? AND cbr.status='pending' AND cbr.expires_at>NOW() AND cbr.role_id IS NOT NULL
+        WHERE " . implode(" AND ", $where_clauses) . "
         ORDER BY cbr.urgency_level DESC, cbr.created_at ASC";
 $stmt = $conn->prepare($sql);
-$stmt->execute([$user_branch_id]);
+$stmt->execute($params);
 $available_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // DEBUG: Output role_id for each available request
 if (!empty($available_requests)) {
@@ -423,24 +485,52 @@ if (!empty($available_requests)) {
     echo "</pre>";
 }
 
-// Load my requests
-$sql = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username
+// Load my requests with filtering
+$my_where_clauses = ["cbr.requested_by_user_id=?"];
+$my_params = [$user_id];
+
+if ($filter_status !== 'all') {
+    $my_where_clauses[] = "cbr.status = ?";
+    $my_params[] = $filter_status;
+} else {
+    $my_where_clauses[] = "cbr.status IN ('pending','fulfilled')";
+}
+
+if ($filter_urgency !== 'all') {
+    $my_where_clauses[] = "cbr.urgency_level = ?";
+    $my_params[] = $filter_urgency;
+}
+
+if (!empty($filter_date_from)) {
+    $my_where_clauses[] = "cbr.shift_date >= ?";
+    $my_params[] = $filter_date_from;
+}
+
+if (!empty($filter_date_to)) {
+    $my_where_clauses[] = "cbr.shift_date <= ?";
+    $my_params[] = $filter_date_to;
+}
+
+$sql = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username, r.name AS role_name
         FROM cross_branch_shift_requests cbr
         JOIN branches tb ON cbr.target_branch_id=tb.id
         LEFT JOIN users uf ON cbr.fulfilled_by_user_id=uf.id
-        WHERE cbr.requested_by_user_id=? AND cbr.status IN ('pending','fulfilled')
+        LEFT JOIN roles r ON cbr.role_id = r.id
+        WHERE " . implode(" AND ", $my_where_clauses) . "
         ORDER BY cbr.created_at DESC";
 $stmt = $conn->prepare($sql);
-$stmt->execute([$user_id]);
+$stmt->execute($my_params);
 $my_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Additionally load requests the current user has fulfilled (so they appear under "Requests I Covered")
 $sqlFulfilled = "SELECT cbr.*, tb.name AS target_branch_name, uf.username AS fulfilled_by_username,
-    (SELECT b.name FROM branches b WHERE b.id = cbr.requesting_branch_id LIMIT 1) AS requesting_branch_name
+    (SELECT b.name FROM branches b WHERE b.id = cbr.requesting_branch_id LIMIT 1) AS requesting_branch_name,
+    r.name AS role_name
     FROM cross_branch_shift_requests cbr
     JOIN branches tb ON cbr.target_branch_id=tb.id
     LEFT JOIN users uf ON cbr.fulfilled_by_user_id=uf.id
     LEFT JOIN shift_coverage sc ON sc.request_id = cbr.id
+    LEFT JOIN roles r ON cbr.role_id = r.id
     WHERE cbr.fulfilled_by_user_id = ? AND cbr.status = 'fulfilled'
     ORDER BY cbr.fulfilled_at DESC";
 $stmt2 = $conn->prepare($sqlFulfilled);
@@ -659,6 +749,88 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             </div>
         <?php endif; ?>
 
+        <!-- Statistics Panel -->
+        <div class="coverage-stats-panel">
+            <div class="coverage-stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #fd2b2b, #ff6b6b);">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo $request_stats['total_requests'] ?? 0; ?></div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+            </div>
+            <div class="coverage-stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #0d6efd, #6ea8fe);">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo $request_stats['pending_requests'] ?? 0; ?></div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+            <div class="coverage-stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #198754, #75b798);">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo round($acceptance_rate, 0); ?>%</div>
+                    <div class="stat-label">Acceptance Rate</div>
+                </div>
+            </div>
+            <div class="coverage-stat-card urgent">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #dc3545, #e35d6a);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo $request_stats['urgent_requests'] ?? 0; ?></div>
+                    <div class="stat-label">Urgent Requests</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <form method="GET" class="filter-form">
+                <div class="filter-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="search" placeholder="Search by user, role, or branch..." 
+                           value="<?php echo htmlspecialchars($search_query); ?>" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-filter"></i> Status:</label>
+                    <select name="filter_status" class="filter-select">
+                        <option value="all" <?php echo $filter_status === 'all' ? 'selected' : ''; ?>>All</option>
+                        <option value="pending" <?php echo $filter_status === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                        <option value="fulfilled" <?php echo $filter_status === 'fulfilled' ? 'selected' : ''; ?>>Fulfilled</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-exclamation-circle"></i> Urgency:</label>
+                    <select name="filter_urgency" class="filter-select">
+                        <option value="all" <?php echo $filter_urgency === 'all' ? 'selected' : ''; ?>>All</option>
+                        <option value="urgent" <?php echo $filter_urgency === 'urgent' ? 'selected' : ''; ?>>Urgent</option>
+                        <option value="normal" <?php echo $filter_urgency === 'normal' ? 'selected' : ''; ?>>Normal</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-calendar"></i> From:</label>
+                    <input type="date" name="filter_date_from" value="<?php echo htmlspecialchars($filter_date_from); ?>" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-calendar"></i> To:</label>
+                    <input type="date" name="filter_date_to" value="<?php echo htmlspecialchars($filter_date_to); ?>" class="filter-input">
+                </div>
+                <button type="submit" class="filter-btn"><i class="fas fa-search"></i> Apply</button>
+                <a href="coverage_requests.php" class="filter-btn secondary"><i class="fas fa-times"></i> Clear</a>
+            </form>
+            <?php if (!empty($search_query) || $filter_status !== 'all' || $filter_urgency !== 'all' || !empty($filter_date_from) || !empty($filter_date_to)): ?>
+                <div class="filter-active-indicator">
+                    <i class="fas fa-filter"></i> Filters active
+                </div>
+            <?php endif; ?>
+        </div>
+
         <!-- Modern Tab System -->
         <div class="tabs">
             <button class="tab active" onclick="showTab('available')">
@@ -710,7 +882,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <option value="">Select your shift...</option>
                             <?php foreach ($my_shifts as $shift): ?>
                                 <option value="<?php echo $shift['id']; ?>">
-                                    <?php echo date('M j, Y', strtotime($shift['shift_date'])) . ' ' . date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i A', strtotime($shift['end_time'])) . ' (' . htmlspecialchars($shift['role_name']) . ')'; ?>
+                                    <?php echo date('M j, Y', strtotime($shift['shift_date'])) . ' ' . date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i A', strtotime($shift['end_time'])) . ' (' . htmlspecialchars($shift['role_name'] ?? 'Unknown') . ')'; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -726,9 +898,9 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <?php else: ?>
                     <?php foreach ($swap_proposals as $swap): ?>
                         <div class="request-card">
-                            <div><strong>Proposed by:</strong> <?php echo htmlspecialchars($swap['proposer_name']); ?></div>
+                            <div><strong>Proposed by:</strong> <?php echo htmlspecialchars($swap['proposer_name'] ?? 'Unknown'); ?></div>
                             <div><strong>Offered Shift:</strong>
-                                <?php echo date('M j, Y', strtotime($swap['shift_date'])) . ' ' . date('g:i A', strtotime($swap['start_time'])) . ' - ' . date('g:i A', strtotime($swap['end_time'])) . ' (' . htmlspecialchars($swap['role_name']) . ')'; ?>
+                                <?php echo date('M j, Y', strtotime($swap['shift_date'])) . ' ' . date('g:i A', strtotime($swap['start_time'])) . ' - ' . date('g:i A', strtotime($swap['end_time'])) . ' (' . htmlspecialchars($swap['role_name'] ?? 'Unknown') . ')'; ?>
                             </div>
                             <div><strong>For Coverage Request:</strong>
                                 <?php echo date('M j, Y', strtotime($swap['req_shift_date'])) . ' ' . date('g:i A', strtotime($swap['req_start_time'])) . ' - ' . date('g:i A', strtotime($swap['req_end_time'])); ?>
@@ -790,7 +962,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     Role Required
                                 </div>
                                 <div class="detail-value">
-                                    <?php echo htmlspecialchars($request['role_name'] ?: 'Any Role'); ?>
+                                    <?php echo !empty($request['role_name']) ? htmlspecialchars($request['role_name']) : 'Any Role'; ?>
                                 </div>
                             </div>
 
@@ -1072,11 +1244,11 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     Role
                                 </div>
                                 <div class="detail-value">
-                                    <?php echo htmlspecialchars($request['role_name'] ?: 'Any Role'); ?>
+                                    <?php echo !empty($request['role_name']) ? htmlspecialchars($request['role_name']) : 'Any Role'; ?>
                                 </div>
                             </div>
 
-                            <?php if ($request['accepted_by_username']): ?>
+                            <?php if (isset($request['accepted_by_username']) && $request['accepted_by_username']): ?>
                                 <div class="detail-item">
                                     <div class="detail-label">
                                         <i class="fas fa-user-check"></i>
@@ -1128,7 +1300,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 </div>
             <?php else: ?>
                 <?php foreach ($my_fulfilled as $f): ?>
-                    <div class="request-card fulfilled">
+                    <div class="request-card fulfilled" id="fulfilled-request-<?php echo (int) $f['id']; ?>">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <h3><i class="fas fa-user-check"></i> Covered:
                                 <?php echo htmlspecialchars($f['requesting_branch_name'] ?? 'requesting branch'); ?>
@@ -1137,24 +1309,44 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         </div>
                         <div class="request-details">
                             <div class="detail-item">
-                                <div class="detail-label">When</div>
+                                <div class="detail-label"><i class="fas fa-calendar"></i> When</div>
                                 <div class="detail-value"><?php echo date('M j, Y', strtotime($f['shift_date'])); ?>
                                     <?php echo date('g:i A', strtotime($f['start_time'])); ?> -
                                     <?php echo date('g:i A', strtotime($f['end_time'])); ?>
                                 </div>
                             </div>
                             <div class="detail-item">
-                                <div class="detail-label">Target Branch</div>
+                                <div class="detail-label"><i class="fas fa-building"></i> Target Branch</div>
                                 <div class="detail-value"><?php echo htmlspecialchars($f['target_branch_name']); ?></div>
                             </div>
+                            <?php if (!empty($f['role_name'])): ?>
                             <div class="detail-item">
-                                <div class="detail-label">Notes</div>
-                                <div class="detail-value"><?php echo nl2br(htmlspecialchars($f['description'] ?? '')); ?></div>
+                                <div class="detail-label"><i class="fas fa-user-tag"></i> Role</div>
+                                <div class="detail-value"><?php echo htmlspecialchars($f['role_name']); ?></div>
+                            </div>
+                            <?php endif; ?>
+                            <div class="detail-item">
+                                <div class="detail-label"><i class="fas fa-sticky-note"></i> Notes</div>
+                                <div class="detail-value"><?php echo nl2br(htmlspecialchars($f['description'] ?? 'No notes')); ?></div>
+                            </div>
+                            <div class="detail-item" id="extra-details-<?php echo (int) $f['id']; ?>" style="display:none; grid-column: 1 / -1; background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 10px;">
+                                <div class="detail-label"><i class="fas fa-info-circle"></i> Additional Information</div>
+                                <div style="display: grid; gap: 8px; margin-top: 8px;">
+                                    <div><strong>Request ID:</strong> #<?php echo $f['id']; ?></div>
+                                    <div><strong>Status:</strong> <span style="color: #198754; font-weight: 600;"><?php echo ucfirst($f['status']); ?></span></div>
+                                    <div><strong>Urgency:</strong> 
+                                        <span class="badge badge-<?php echo $f['urgency_level'] === 'urgent' ? 'danger' : 'info'; ?>">
+                                            <?php echo ucfirst($f['urgency_level'] ?? 'normal'); ?>
+                                        </span>
+                                    </div>
+                                    <div><strong>Covered On:</strong> <?php echo date('M j, Y g:i A', strtotime($f['fulfilled_at'] ?? $f['created_at'])); ?></div>
+                                </div>
                             </div>
                         </div>
                         <div style="margin-top:10px; text-align:right;">
-                            <a href="coverage_requests.php#request-<?php echo (int) $f['id']; ?>"
-                                class="btn btn-secondary btn-sm">View</a>
+                            <button onclick="toggleDetails(<?php echo (int) $f['id']; ?>)" class="btn btn-secondary btn-sm" id="view-btn-<?php echo (int) $f['id']; ?>">
+                                <i class="fas fa-eye"></i> View More
+                            </button>
                             <?php if (!empty($f['shift_id'])): ?>
                                 <form method="POST" style="display:inline; margin-left:8px;"
                                     onsubmit="return confirm('Remove the created shift and revert request to pending? This will delete the shift for you.');">
@@ -1773,6 +1965,22 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 }
             });
         });
+
+        // Toggle additional details in fulfilled requests
+        function toggleDetails(requestId) {
+            const detailsDiv = document.getElementById('extra-details-' + requestId);
+            const button = document.getElementById('view-btn-' + requestId);
+            
+            if (detailsDiv && button) {
+                if (detailsDiv.style.display === 'none' || detailsDiv.style.display === '') {
+                    detailsDiv.style.display = 'block';
+                    button.innerHTML = '<i class="fas fa-eye-slash"></i> View Less';
+                } else {
+                    detailsDiv.style.display = 'none';
+                    button.innerHTML = '<i class="fas fa-eye"></i> View More';
+                }
+            }
+        }
     </script>
     <script src="../js/menu.js"></script>
     <script src="../js/pwa-debug.js"></script>

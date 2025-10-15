@@ -1128,6 +1128,9 @@ span {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 @media (min-width: 992px) {
@@ -1616,5 +1619,471 @@ span {
     position: absolute;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
+  }
+}
+
+/* =======================================
+   QUICK ACTIONS SECTION
+   ======================================= */
+.quick-actions-section {
+  margin-bottom: 25px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.quick-actions-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  width: 100%;
+  max-width: 1000px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 960px) {
+  .quick-actions-panel {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .quick-actions-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quick-action-card {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  box-sizing: border-box;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.quick-action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #fd2b2b, #ff6b6b);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.quick-action-card:hover::before {
+  transform: scaleX(1);
+}
+
+.action-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  color: white;
+  font-size: 24px;
+}
+
+.quick-action-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin: 10px 0 8px;
+}
+
+.quick-action-card p {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.action-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #fd2b2b;
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(253, 43, 43, 0.3);
+}
+
+.action-badge.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(253, 43, 43, 0.3);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(253, 43, 43, 0.5);
+  }
+}
+
+/* =======================================
+   ANALYTICS PANEL
+   ======================================= */
+.analytics-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* =======================================
+   SHIFTS SECTION
+   ======================================= */
+.shifts-section {
+  margin-top: 40px;
+  margin-bottom: 40px;
+  padding-top: 30px;
+
+}
+
+.dashboard-card{
+ margin-bottom: 10px;
+
+}
+
+.analytics-panel h2 {
+  margin: 0 0 20px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.analytics-panel h2 i {
+  color: #fd2b2b;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 420px));
+  gap: 20px;
+  width: 100%;
+  max-width: 100%;
+  justify-content: center;
+}
+
+@media (max-width: 1200px) {
+  .analytics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analytics-card {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  min-height: 300px;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.analytics-card h3 {
+  margin: 0 0 15px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analytics-card h3 i {
+  color: #fd2b2b;
+  font-size: 18px;
+}
+
+.analytics-card canvas {
+  flex: 1;
+  min-height: 200px;
+  max-height: 260px;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.chart-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+}
+
+.chart-stat {
+  text-align: center;
+}
+
+.chart-stat .stat-label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.chart-stat .stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fd2b2b;
+}
+
+/* Role Legend */
+.role-legend {
+  margin-top: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.legend-item:last-child {
+  border-bottom: none;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  flex: 1;
+  font-size: 13px;
+  color: #333;
+  font-weight: 600;
+}
+
+.legend-value {
+  font-size: 13px;
+  color: #666;
+  font-weight: 700;
+}
+
+/* Insights Card */
+.analytics-card.insights {
+  background: #343a40;
+  color: white;
+}
+
+.analytics-card.insights h3 {
+  color: white;
+}
+
+.analytics-card.insights h3 i {
+  color: #ffd700;
+}
+
+.insight-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.insight-row:last-child {
+  border-bottom: none;
+}
+
+.insight-label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.insight-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* =======================================
+   RESPONSIVE - ANALYTICS & QUICK ACTIONS
+   ======================================= */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 12px;
+    gap: 15px;
+  }
+  
+  .quick-action-card {
+    padding: 12px;
+  }
+  
+  .action-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  
+  .quick-action-card h3 {
+    font-size: 13px;
+    margin: 8px 0 6px;
+  }
+  
+  .quick-action-card p {
+    font-size: 11px;
+  }
+  
+  .analytics-panel {
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .analytics-panel h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  
+  .analytics-card {
+    padding: 15px;
+    min-height: auto;
+  }
+  
+  .analytics-card canvas {
+    max-height: 180px !important;
+  }
+  
+  .chart-stats {
+    flex-direction: row;
+    gap: 15px;
+  }
+  
+  .welcome-card {
+    padding: 15px;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .welcome-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .welcome-actions a {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 10px;
+    gap: 12px;
+  }
+  
+  .quick-actions-panel {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .quick-action-card {
+    padding: 15px;
+  }
+  
+  .action-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 22px;
+  }
+  
+  .quick-action-card h3 {
+    font-size: 14px;
+  }
+  
+  .action-badge {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  
+  .analytics-panel {
+    padding: 12px;
+  }
+  
+  .analytics-panel h2 {
+    font-size: 16px;
+  }
+  
+  .analytics-card {
+    padding: 12px;
+  }
+  
+  .analytics-card h3 {
+    font-size: 14px;
+  }
+  
+  .analytics-card canvas {
+    max-height: 160px !important;
+  }
+  
+  .chart-stat .stat-value {
+    font-size: 18px;
+  }
+  
+  .insight-value {
+    font-size: 16px;
+  }
+  
+  .welcome-card h1 {
+    font-size: 1.5rem;
+  }
+  
+  .welcome-card p {
+    font-size: 0.9rem;
   }
 }
