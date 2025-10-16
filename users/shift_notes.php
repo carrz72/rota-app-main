@@ -74,7 +74,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/navigation.css">
-    <link rel="stylesheet" href="../css/shift_notes.css">
+    <link rel="stylesheet" href="../css/shift_notes.css?v=<?php echo time(); ?>">
 </head>
 
 <body>
@@ -154,16 +154,47 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
             </form>
         </div>
 
+        <!-- Stats Bar -->
+        <div class="notes-stats" id="notesStats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-sticky-note"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Notes</div>
+                    <div class="stat-value" id="totalNotes">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Important</div>
+                    <div class="stat-value" id="importantNotes">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-user-edit"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Contributors</div>
+                    <div class="stat-value" id="contributorCount">0</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Notes List -->
         <div class="notes-container">
             <div class="notes-header">
                 <h3><i class="fas fa-list"></i> Shift Notes</h3>
                 <div class="notes-filters">
                     <button class="filter-btn active" data-filter="all">
-                        <i class="fas fa-th"></i> All
+                        <i class="fas fa-th"></i> All (<span id="allCount">0</span>)
                     </button>
                     <button class="filter-btn" data-filter="important">
-                        <i class="fas fa-star"></i> Important
+                        <i class="fas fa-star"></i> Important (<span id="importantCount">0</span>)
                     </button>
                 </div>
             </div>
@@ -176,12 +207,32 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
         </div>
     </div>
 
+    <!-- Confirmation Dialog -->
+    <div id="confirmDialog" class="confirm-dialog">
+        <div class="confirm-content">
+            <h4><i class="fas fa-exclamation-triangle" style="color: #f44336;"></i> Confirm Delete</h4>
+            <p>Are you sure you want to delete this note? This action cannot be undone.</p>
+            <div class="confirm-actions">
+                <button class="btn-confirm-cancel" onclick="hideConfirmDialog()">Cancel</button>
+                <button class="btn-confirm-delete" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top" id="scrollTop" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
     <script>
         const shiftId = <?php echo $shift_id; ?>;
         const userId = <?php echo $user_id; ?>;
         const isAdmin = <?php echo $is_admin ? 'true' : 'false'; ?>;
         let currentFilter = 'all';
         let allNotes = [];
+        let noteToDelete = null;
 
         // Load notes on page load
         document.addEventListener('DOMContentLoaded', function () {
@@ -192,7 +243,15 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
             const charCount = document.getElementById('charCount');
 
             noteText.addEventListener('input', function () {
-                charCount.textContent = this.value.length;
+                const length = this.value.length;
+                charCount.textContent = length;
+                if (length > 4500) {
+                    charCount.style.color = '#ff9800';
+                } else if (length > 4900) {
+                    charCount.style.color = '#f44336';
+                } else {
+                    charCount.style.color = '#999';
+                }
             });
 
             // Add note form submission
@@ -204,11 +263,49 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
             // Filter buttons
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    currentFilter = this.dataset.filter;
-                    displayNotes();
+        function loadNotes() {
+            fetch(`../functions/shift_notes_api.php?action=get_notes&shift_id=${shiftId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        allNotes = data.notes;
+                        updateStats();
+                        displayNotes();
+                    } else {
+                        showError(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Failed to load notes');
                 });
+        }
+
+        function updateStats() {
+            const totalNotes = allNotes.length;
+            const importantNotes = allNotes.filter(note => note.is_important == 1).length;
+            const contributors = new Set(allNotes.map(note => note.created_by)).size;
+
+            document.getElementById('totalNotes').textContent = totalNotes;
+            document.getElementById('importantNotes').textContent = importantNotes;
+            document.getElementById('contributorCount').textContent = contributors;
+            document.getElementById('allCount').textContent = totalNotes;
+            document.getElementById('importantCount').textContent = importantNotes;
+
+            // Show/hide stats bar
+            const statsBar = document.getElementById('notesStats');
+            if (totalNotes > 0) {
+                statsBar.style.display = 'flex';
+            } else {
+                statsBar.style.display = 'none';
+            }
+        }   });
+
+            // Close confirm dialog on backdrop click
+            document.getElementById('confirmDialog').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    hideConfirmDialog();
+                }
             });
         });
 
@@ -356,13 +453,25 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
         }
 
         function deleteNote(noteId) {
-            if (!confirm('Are you sure you want to delete this note?')) {
-                return;
-            }
+            noteToDelete = noteId;
+            showConfirmDialog();
+        }
+
+        function showConfirmDialog() {
+            document.getElementById('confirmDialog').classList.add('show');
+        }
+
+        function hideConfirmDialog() {
+            document.getElementById('confirmDialog').classList.remove('show');
+            noteToDelete = null;
+        }
+
+        function confirmDelete() {
+            if (!noteToDelete) return;
 
             const formData = new FormData();
             formData.append('action', 'delete_note');
-            formData.append('note_id', noteId);
+            formData.append('note_id', noteToDelete);
 
             fetch('../functions/shift_notes_api.php', {
                 method: 'POST',
@@ -371,16 +480,26 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showSuccess('Note deleted');
+                        showSuccess('Note deleted successfully');
+                        hideConfirmDialog();
                         loadNotes();
                     } else {
                         showError(data.message);
+                        hideConfirmDialog();
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     showError('Failed to delete note');
+                    hideConfirmDialog();
                 });
+        }
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         }
 
         function showSuccess(message) {
