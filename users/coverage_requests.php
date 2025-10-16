@@ -632,7 +632,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <li><a href="coverage_requests.php"><i class="fas fa-hands-helping"></i> Shift Coverage</a></li>
                     <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
                     <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
-                    <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                    <li><a href="payroll.php"><i class="fas fa-money-bill-wave"></i> Payroll</a></li>
                     <li><a href="chat.php"><i class="fa fa-comments"></i> Team Chat</a></li>
                     <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
                     <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
