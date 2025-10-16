@@ -1246,22 +1246,23 @@ function showReactionPicker(messageId) {
     picker.style.top = (rect.bottom + 5) + 'px';
 
     let html = '<div class="emoji-grid">';
-    commonEmojis.forEach(emoji => {
-        html += `<span class="emoji-option" onclick="addReaction(${messageId}, '${emoji}')">${emoji}</span>`;
-    });
-    html += '</div>';
-
-    // Mobile: show delete button if user has reacted
-    if (window.innerWidth <= 600) {
-        // Find the user's reaction for this message
-        const messageObj = window.lastLoadedMessages?.find(m => m.id === messageId);
-        if (messageObj && Array.isArray(messageObj.reactions)) {
-            const userReaction = messageObj.reactions.find(r => r.username === CURRENT_USERNAME);
-            if (userReaction) {
-                html += `<button class="emoji-delete-btn" onclick="removeReaction(${messageId}, '${userReaction.emoji}')">Delete My Reaction</button>`;
-            }
+    // Find the user's reaction for this message (for mobile)
+    const messageObj = window.lastLoadedMessages?.find(m => m.id === messageId);
+    let userReactionEmoji = null;
+    if (window.innerWidth <= 600 && messageObj && Array.isArray(messageObj.reactions)) {
+        const userReaction = messageObj.reactions.find(r => r.username === CURRENT_USERNAME);
+        if (userReaction) {
+            userReactionEmoji = userReaction.emoji;
         }
     }
+    commonEmojis.forEach(emoji => {
+        if (userReactionEmoji === emoji) {
+            html += `<span class="emoji-option user-reacted">${emoji}<span class='emoji-delete-icon' onclick="removeReaction(${messageId}, '${emoji}')" title='Delete'><i class='fa fa-trash'></i></span></span>`;
+        } else {
+            html += `<span class="emoji-option" onclick="addReaction(${messageId}, '${emoji}')">${emoji}</span>`;
+        }
+    });
+    html += '</div>';
 
     picker.innerHTML = html;
     document.body.appendChild(picker);

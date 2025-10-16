@@ -1,3 +1,21 @@
+.emoji-delete-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  color: #fd2b2b;
+  background: #fff;
+  border-radius: 50%;
+  padding: 4px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border: 1px solid #fd2b2b;
+  transition: background 0.2s, color 0.2s;
+}
+.emoji-delete-icon:active {
+  background: #fd2b2b;
+  color: #fff;
+}
 @media (max-width: 600px) {
   .emoji-delete-btn {
     display: block;
