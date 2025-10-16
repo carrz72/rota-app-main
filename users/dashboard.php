@@ -16,8 +16,10 @@ if (!$conn) {
 
 // Include pay calculation function.
 require_once '../functions/calculate_pay.php';
+require_once '../functions/get_chat_unread.php';
 
 $user_id = $_SESSION['user_id'];
+$unread_chat_count = getUnreadChatCount($conn, $user_id);
 
 // Determine the period to display (default is week)
 $period = $_GET['period'] ?? 'week';
@@ -229,6 +231,27 @@ $stmt_notes = $conn->prepare("
 $stmt_notes->execute([$user_id]);
 $recent_notes = $stmt_notes->fetchAll(PDO::FETCH_ASSOC);
 
+// Get recent chat messages for user's channels
+$recent_messages = [];
+try {
+    $stmt_messages = $conn->prepare("
+        SELECT cm.*, u.username as sender_name, ch.name as channel_name, ch.type as channel_type
+        FROM chat_messages cm
+        JOIN users u ON cm.user_id = u.user_id
+        JOIN chat_channels ch ON cm.channel_id = ch.id
+        JOIN chat_members cmem ON ch.id = cmem.channel_id
+        WHERE cmem.user_id = ?
+        AND cm.is_deleted = 0
+        ORDER BY cm.created_at DESC
+        LIMIT 5
+    ");
+    $stmt_messages->execute([$user_id]);
+    $recent_messages = $stmt_messages->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Chat tables might not exist yet
+    $recent_messages = [];
+}
+
 // Do not set $conn to null here because we need it later for the overlapping shifts query.
 ?>
 <!DOCTYPE html>
@@ -424,6 +447,16 @@ $recent_notes = $stmt_notes->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                     <h3>View Schedule</h3>
                     <p>See the full team rota</p>
+                </div>
+                <div class="quick-action-card" onclick="window.location.href='chat.php'">
+                    <?php if ($unread_chat_count > 0): ?>
+                        <span class="action-badge pulse"><?php echo $unread_chat_count; ?></span>
+                    <?php endif; ?>
+                    <div class="action-icon" style="background: linear-gradient(135deg, #ff6b00, #ffb74d);">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>Team Chat</h3>
+                    <p>Message your colleagues</p>
                 </div>
                 <div class="quick-action-card" onclick="window.location.href='settings.php?tab=support'">
                     <?php if ($pending_invitations_count > 0): ?>
@@ -829,6 +862,82 @@ $recent_notes = $stmt_notes->fetchAll(PDO::FETCH_ASSOC);
                             </div>
                         </div>
                     <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Recent Team Chat Messages Section -->
+        <?php if (!empty($recent_messages)): ?>
+            <div class="dashboard-card" style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3><i class="fas fa-comments"></i> Recent Messages</h3>
+                    <a href="chat.php" style="color: #ff9800; text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+                        Open Chat <?php if ($unread_chat_count > 0): ?><span style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px;"><?php echo $unread_chat_count; ?></span><?php endif; ?>
+                    </a>
+                </div>
+
+                <div style="display: grid; gap: 12px;">
+                    <?php foreach ($recent_messages as $msg): 
+                        $msg_time = date('M j, g:i A', strtotime($msg['created_at']));
+                        $is_own = $msg['user_id'] == $user_id;
+                        $channel_display = $msg['channel_type'] === 'direct' ? 'Direct Message' : htmlspecialchars($msg['channel_name']);
+                    ?>
+                        <div style="background: <?php echo $is_own ? 'linear-gradient(135deg, #ffebee 0%, #ffe0e5 100%)' : '#f9f9f9'; ?>; 
+                                    padding: 15px 20px; 
+                                    border-radius: 12px; 
+                                    border-left: 4px solid <?php echo $is_own ? '#fd2b2b' : '#ff9800'; ?>; 
+                                    transition: all 0.3s ease;
+                                    cursor: pointer;"
+                             onclick="window.location.href='chat.php'"
+                             onmouseover="this.style.boxShadow='0 4px 12px rgba(255, 152, 0, 0.2)'; this.style.transform='translateY(-2px)';"
+                             onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                        <span style="font-weight: 700; color: #333; font-size: 0.95rem;">
+                                            <i class="fas fa-<?php echo $msg['channel_type'] === 'direct' ? 'user' : 'users'; ?>" style="color: #ff9800;"></i> 
+                                            <?php echo $channel_display; ?>
+                                        </span>
+                                        <?php if ($is_own): ?>
+                                            <span style="background: #fd2b2b; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                                                You
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div style="color: #999; font-size: 0.85rem; margin-bottom: 8px;">
+                                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($msg['sender_name']); ?> • <?php echo $msg_time; ?>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="color: #333; line-height: 1.6; font-size: 0.95rem; padding: 10px; background: rgba(255, 255, 255, 0.7); border-radius: 6px;">
+                                <?php 
+                                    $message_text = htmlspecialchars($msg['message']);
+                                    // Truncate long messages
+                                    if (strlen($message_text) > 150) {
+                                        echo substr($message_text, 0, 150) . '...';
+                                    } else {
+                                        echo $message_text;
+                                    }
+                                ?>
+                            </div>
+                            
+                            <div style="text-align: right; margin-top: 8px;">
+                                <span style="color: #ff9800; font-size: 0.85rem; font-weight: 600;">
+                                    Reply in Chat <i class="fa fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="chat.php" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;"
+                       onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(255, 152, 0, 0.3)';"
+                       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <i class="fas fa-comments"></i> Open Team Chat
+                    </a>
                 </div>
             </div>
         <?php endif; ?>

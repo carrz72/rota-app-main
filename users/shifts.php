@@ -4,8 +4,10 @@ requireLogin();
 require_once '../includes/db.php';
 require_once '../functions/payroll_functions.php';
 require_once '../functions/calculate_pay.php';
+require_once '../functions/get_chat_unread.php';
 
 $user_id = $_SESSION['user_id'];
+$unread_chat_count = getUnreadChatCount($conn, $user_id);
 
 // Determine period
 $period = $_GET['period'] ?? 'week';
@@ -1157,6 +1159,14 @@ if ($user_id) {
                 <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
                 <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                 <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                <li>
+                    <a href="chat.php">
+                        <i class="fa fa-comments"></i> Team Chat
+                        <?php if ($unread_chat_count > 0): ?>
+                            <span class="nav-badge"><?php echo $unread_chat_count; ?></span>
+                        <?php endif; ?>
+                    </a>
+                </li>
                 <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
                 <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
                     <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>

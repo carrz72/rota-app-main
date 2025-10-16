@@ -157,6 +157,31 @@ header {
   display: inline-block;
 }
 
+/* Navigation Badge (for Team Chat unread count) */
+.nav-badge {
+  background: #ff9800;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: 5px;
+  display: inline-block;
+  min-width: 16px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
 /* Additional Font Awesome icon fixes */
 .nav-links .fa,
 .nav-links i[class^="fa-"],
