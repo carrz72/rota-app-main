@@ -15,10 +15,6 @@ body {
   background-repeat: no-repeat;
   margin: 0;
   padding: 0;
-  padding-top: env(safe-area-inset-top);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  padding-bottom: env(safe-area-inset-bottom);
   color: #000000;
   min-height: 100vh;
   box-sizing: border-box;
@@ -2566,39 +2562,38 @@ span {
 }
 
 /* =======================================
-   STANDALONE MODE (PWA) - iOS Safe Areas
+   STANDALONE MODE (PWA) - Minimal spacing
    ======================================= */
 @media (display-mode: standalone) {
   body {
-    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-top: 0;
   }
 
   header {
-    padding-top: max(20px, calc(env(safe-area-inset-top) + 10px));
+    padding-top: 10px;
   }
 
   .all-content {
-    padding-top: max(20px, calc(env(safe-area-inset-top) + 5px));
+    padding-top: 15px;
   }
 
-  /* Ensure content doesn't hide behind notch */
   @media (max-width: 480px) {
-    body {
-      padding-top: max(env(safe-area-inset-top), 0px);
-    }
-
     header {
-      padding-top: max(15px, calc(env(safe-area-inset-top) + 8px));
+      padding-top: 8px;
     }
 
     .all-content {
-      padding-top: max(10px, calc(env(safe-area-inset-top) + 2px));
+      padding-top: 10px;
     }
   }
 
   @media (max-width: 360px) {
     header {
-      padding-top: max(12px, calc(env(safe-area-inset-top) + 6px));
+      padding-top: 5px;
+    }
+
+    .all-content {
+      padding-top: 8px;
     }
   }
 }
