@@ -1454,7 +1454,7 @@ body {
 .mobile-fab {
   position: fixed;
   right: 18px;
-  bottom: 90px;
+  bottom: 00px;
   z-index: 12000;
   display: block;
 }
@@ -1480,6 +1480,9 @@ body {
 }
 .mobile-fab .combined-menu-item {
   display: block;
+  width: 100%;
+  border: none;
+
   padding: 8px 12px;
   white-space: nowrap;
 }
