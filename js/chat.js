@@ -731,7 +731,25 @@ function createDirectMessage(userId, username) {
 
 // Open create channel modal
 function openCreateChannelModal() {
-    document.getElementById('createChannelModal').style.display = 'flex';
+    console.log('openCreateChannelModal called');
+    // If the shared newChatModal wrapper is present, ensure it's hidden so the create modal is visible
+    const newChatModal = document.getElementById('newChatModal');
+    if (newChatModal) {
+        console.log('Hiding newChatModal');
+        newChatModal.style.display = 'none';
+    }
+
+    const createModal = document.getElementById('createChannelModal');
+    if (!createModal) {
+        console.warn('createChannelModal element not found');
+        return;
+    }
+
+    console.log('Showing createChannelModal');
+    createModal.style.display = 'flex';
+    // focus the first input for quick keyboard entry
+    const nameInput = createModal.querySelector('#channelName');
+    if (nameInput && typeof nameInput.focus === 'function') nameInput.focus();
 }
 
 // Close create channel modal

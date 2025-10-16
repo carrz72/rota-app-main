@@ -72,20 +72,20 @@ if (!$userInitial) {
                                 <a class="notification-item shit-invt notification-<?php echo $notif['type']; ?>"
                                     data-id="<?php echo $notif['id']; ?>"
                                     href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
-                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <span class="close-btn" data-action="mark-notification-read">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </a>
                             <?php elseif ($notif['type'] === 'shift-swap' && !empty($notif['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notif['type']; ?>"
                                     data-id="<?php echo $notif['id']; ?>"
                                     href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notif['related_id']; ?>&notif_id=<?php echo $notif['id']; ?>">
-                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <span class="close-btn" data-action="mark-notification-read">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </a>
                             <?php else: ?>
                                 <div class="notification-item notification-<?php echo $notif['type']; ?>"
                                     data-id="<?php echo $notif['id']; ?>">
-                                    <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
+                                    <span class="close-btn" data-action="mark-notification-read">&times;</span>
                                     <p><?php echo htmlspecialchars($notif['message']); ?></p>
                                 </div>
                             <?php endif; ?>
@@ -117,6 +117,39 @@ if (!$userInitial) {
                 </ul>
             </nav>
         </div>
+
+        <!-- Create Channel Modal (Admin only) -->
+        <?php if ($is_admin): ?>
+            <div class="modal-overlay" id="createChannelModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fa fa-plus-square"></i> Create Channel</h3>
+                        <button class="modal-close" data-action="close-create-channel">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="createChannelForm">
+                        <div class="form-group">
+                            <label for="channelName">Channel Name</label>
+                            <input type="text" id="channelName" name="channelName" required maxlength="40"
+                                placeholder="Enter channel name">
+                        </div>
+                        <div class="form-group">
+                            <label for="channelType">Channel Type</label>
+                            <select id="channelType" name="channelType" required>
+                                <option value="general">Team Channel</option>
+                                <option value="branch">Branch Huddle</option>
+                                <option value="role">Role Group</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="chat-hero-btn" style="width:100%"><i class="fa fa-plus-square"></i>
+                                Create Channel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        <?php endif; ?>
     </header>
 
     <!-- Chat Page Wrapper -->
@@ -131,15 +164,22 @@ if (!$userInitial) {
                         time.</p>
                     <div class="chat-hero-actions">
                         <div class="combined-dropdown" style="position: relative; display: inline-block;">
-                            <button type="button" class="chat-hero-btn" id="heroCombinedBtn" onclick="toggleCombinedMenu('heroMenu')" aria-haspopup="true" aria-expanded="false">
+                            <button type="button" class="chat-hero-btn" id="heroCombinedBtn"
+                                data-action="toggle-combined" data-menu="heroMenu" aria-haspopup="true"
+                                aria-expanded="false">
                                 <i class="fa fa-plus"></i> New <i class="fa fa-caret-down" style="margin-left:8px;"></i>
                             </button>
-                            <div class="combined-menu" id="heroMenu" style="display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); z-index: 1000; min-width: 200px; border-radius: 6px; overflow: hidden;">
-                                <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" data-action="start-dm" tabindex="0">
+                            <div class="combined-menu" id="heroMenu"
+                                style="display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); z-index: 1000; min-width: 200px; border-radius: 6px; overflow: hidden;">
+                                <button type="button" class="combined-menu-item"
+                                    style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;"
+                                    data-action="start-dm" tabindex="0">
                                     <i class="fa fa-user-plus" style="margin-right:8px"></i> Start Direct Message
                                 </button>
                                 <?php if ($is_admin): ?>
-                                    <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" data-action="create-channel" tabindex="0">
+                                    <button type="button" class="combined-menu-item"
+                                        style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;"
+                                        data-action="create-channel" tabindex="0">
                                         <i class="fa fa-plus-square" style="margin-right:8px"></i> Create Channel
                                     </button>
                                 <?php endif; ?>
@@ -180,21 +220,29 @@ if (!$userInitial) {
                         <h2><i class="fa fa-comments"></i> Channels</h2>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <div class="combined-dropdown" style="position: relative;">
-                                <button type="button" class="btn-new-chat" id="sidebarCombinedBtn" onclick="toggleCombinedMenu('sidebarMenu')" title="New" aria-haspopup="true" aria-expanded="false">
+                                <button type="button" class="btn-new-chat" id="sidebarCombinedBtn"
+                                    data-action="toggle-combined" data-menu="sidebarMenu" title="New"
+                                    aria-haspopup="true" aria-expanded="false">
                                     <i class="fa fa-plus"></i>
                                 </button>
-                                <div class="combined-menu" id="sidebarMenu" style="display: none; position: absolute; left: 0; top: 100%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); z-index: 1000; min-width: 200px; border-radius: 6px; overflow: hidden;">
-                                    <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" data-action="start-dm" tabindex="0" title="Start a direct message">
+                                <div class="combined-menu" id="sidebarMenu"
+                                    style="display: none; position: absolute; left: 0; top: 100%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); z-index: 1000; min-width: 200px; border-radius: 6px; overflow: hidden;">
+                                    <button type="button" class="combined-menu-item"
+                                        style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;"
+                                        data-action="start-dm" tabindex="0" title="Start a direct message">
                                         <i class="fa fa-user-plus" style="margin-right:8px"></i> Start Direct Message
                                     </button>
                                     <?php if ($is_admin): ?>
-                                        <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" data-action="create-channel" tabindex="0" title="Create Channel">
+                                        <button type="button" class="combined-menu-item"
+                                            style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;"
+                                            data-action="create-channel" tabindex="0" title="Create Channel">
                                             <i class="fa fa-plus-square" style="margin-right:8px"></i> Create Channel
                                         </button>
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <button type="button" class="btn-close-sidebar" onclick="closeSidebar()" title="Close sidebar">
+                            <button type="button" class="btn-close-sidebar" data-action="close-sidebar"
+                                title="Close sidebar">
                                 <i class="fa fa-times"></i>
                             </button>
                         </div>
@@ -229,7 +277,7 @@ if (!$userInitial) {
                 <div class="chat-main">
                     <!-- Chat Header -->
                     <div class="chat-header">
-                        <button class="mobile-toggle" onclick="toggleSidebar()">
+                        <button class="mobile-toggle" data-action="toggle-sidebar">
                             <i class="fa fa-bars"></i>
                         </button>
                         <div class="chat-header-info" id="chatHeaderInfo">
@@ -237,13 +285,13 @@ if (!$userInitial) {
                             <p>Choose from the list on the left</p>
                         </div>
                         <div class="chat-header-actions" id="chatHeaderActions" style="display: none;">
-                            <button class="btn-icon" onclick="toggleSearch()" title="Search Messages">
+                            <button class="btn-icon" data-action="toggle-search" title="Search Messages">
                                 <i class="fa fa-search"></i>
                             </button>
-                            <button class="btn-icon" onclick="toggleChannelInfo()" title="Channel Info">
+                            <button class="btn-icon" data-action="toggle-channel-info" title="Channel Info">
                                 <i class="fa fa-info-circle"></i>
                             </button>
-                            <button class="btn-icon" onclick="toggleMuteChannel()" title="Mute/Unmute" id="muteBtn">
+                            <button class="btn-icon" data-action="toggle-mute" title="Mute/Unmute" id="muteBtn">
                                 <i class="fa fa-bell"></i>
                             </button>
                         </div>
@@ -254,7 +302,7 @@ if (!$userInitial) {
                         <div class="search-input-wrapper">
                             <input type="text" id="searchInput" placeholder="Search messages..."
                                 onkeyup="searchMessages()">
-                            <button class="btn-close-search" onclick="toggleSearch()">
+                            <button class="btn-close-search" data-action="toggle-search">
                                 <i class="fa fa-times"></i>
                             </button>
                         </div>
@@ -286,14 +334,14 @@ if (!$userInitial) {
                                 <textarea id="messageInput" class="message-input" placeholder="Type a message..."
                                     rows="1" disabled onkeydown="handleKeyPress(event)"
                                     onkeyup="handleTyping()"></textarea>
-                                <button class="btn-attach" onclick="attachFile()" title="Attach File" id="attachBtn"
+                                <button class="btn-attach" data-action="attach-file" title="Attach File" id="attachBtn"
                                     disabled>
                                     <i class="fa fa-paperclip"></i>
                                 </button>
                                 <input type="file" id="fileInput" style="display: none;"
                                     onchange="handleFileSelect(event)">
                             </div>
-                            <button class="btn-send" onclick="sendMessage()" id="sendBtn" disabled>
+                            <button class="btn-send" data-action="send-message" id="sendBtn" disabled>
                                 <i class="fa fa-paper-plane"></i>
                             </button>
                         </div>
@@ -304,42 +352,10 @@ if (!$userInitial) {
 
         <!-- New Chat Modal -->
         <div class="modal-overlay" id="newChatModal" style="display: none;">
-            <!-- Create Channel Modal (Admin only) -->
-            <?php if ($is_admin): ?>
-                <div class="modal-overlay" id="createChannelModal" style="display: none;">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3><i class="fa fa-plus-square"></i> Create Channel</h3>
-                            <button class="modal-close" onclick="closeCreateChannelModal()">
-                                <i class="fa fa-times"></i>
-                            </button>
-                        </div>
-                        <form id="createChannelForm">
-                            <div class="form-group">
-                                <label for="channelName">Channel Name</label>
-                                <input type="text" id="channelName" name="channelName" required maxlength="40"
-                                    placeholder="Enter channel name">
-                            </div>
-                            <div class="form-group">
-                                <label for="channelType">Channel Type</label>
-                                <select id="channelType" name="channelType" required>
-                                    <option value="general">Team Channel</option>
-                                    <option value="branch">Branch Huddle</option>
-                                    <option value="role">Role Group</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <button type="submit" class="chat-hero-btn" style="width:100%"><i
-                                        class="fa fa-plus-square"></i> Create Channel</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            <?php endif; ?>
             <div class="modal-content">
                 <div class="modal-header">
                     <h3><i class="fa fa-user-plus"></i> Start Direct Message</h3>
-                    <button class="modal-close" onclick="closeNewChatModal()">
+                    <button class="modal-close" data-action="close-new-chat">
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
@@ -454,7 +470,7 @@ if (!$userInitial) {
                 }
                 // close all combined menus
                 ['heroMenu', 'sidebarMenu'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
-                ['heroCombinedBtn','sidebarCombinedBtn'].forEach(bid => setAriaExpanded(bid, false));
+                ['heroCombinedBtn', 'sidebarCombinedBtn'].forEach(bid => setAriaExpanded(bid, false));
             }
         });
 
@@ -492,6 +508,53 @@ if (!$userInitial) {
                 });
             }
         })();
+
+        // Delegated click handler for data-action attributes (maps to functions in js/chat.js)
+        document.addEventListener('click', function (e) {
+            const el = e.target.closest && e.target.closest('[data-action]');
+            if (!el) return;
+            const action = el.getAttribute('data-action');
+            switch (action) {
+                case 'mark-notification-read':
+                    // Find the closest notification item
+                    const notifItem = el.closest('.notification-item');
+                    if (notifItem && typeof markNotificationAsRead === 'function') {
+                        markNotificationAsRead(notifItem);
+                    }
+                    break;
+                case 'toggle-combined':
+                    const menuId = el.getAttribute('data-menu');
+                    if (menuId) toggleCombinedMenu(menuId);
+                    break;
+                case 'close-sidebar':
+                    if (typeof closeSidebar === 'function') closeSidebar();
+                    break;
+                case 'toggle-sidebar':
+                    if (typeof toggleSidebar === 'function') toggleSidebar();
+                    break;
+                case 'toggle-search':
+                    if (typeof toggleSearch === 'function') toggleSearch();
+                    break;
+                case 'toggle-channel-info':
+                    if (typeof toggleChannelInfo === 'function') toggleChannelInfo();
+                    break;
+                case 'toggle-mute':
+                    if (typeof toggleMuteChannel === 'function') toggleMuteChannel();
+                    break;
+                case 'attach-file':
+                    if (typeof attachFile === 'function') attachFile();
+                    break;
+                case 'send-message':
+                    if (typeof sendMessage === 'function') sendMessage();
+                    break;
+                case 'close-new-chat':
+                    if (typeof closeNewChatModal === 'function') closeNewChatModal();
+                    break;
+                case 'close-create-channel':
+                    if (typeof closeCreateChannelModal === 'function') closeCreateChannelModal();
+                    break;
+            }
+        });
     </script>
     <script>
         (function () {
