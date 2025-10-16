@@ -350,6 +350,26 @@ if (!$userInitial) {
     <!-- JavaScript -->
     <script src="../js/chat.js?v=<?php echo time(); ?>"></script>
 
+    <!-- Fallback: ensure toggleSidebar/closeSidebar exist even if chat.js failed to load -->
+    <script>
+        if (typeof window.toggleSidebar !== 'function') {
+            console.warn('chat.js failed to load or parse; providing fallback toggleSidebar/closeSidebar');
+            window.toggleSidebar = function () {
+                const sidebar = document.getElementById('chatSidebar');
+                if (sidebar) {
+                    sidebar.classList.toggle('mobile-open');
+                    console.log('Fallback: toggled sidebar; classList:', sidebar.classList);
+                } else {
+                    console.warn('Fallback: sidebar element not found');
+                }
+            };
+            window.closeSidebar = function () {
+                const sidebar = document.getElementById('chatSidebar');
+                if (sidebar) sidebar.classList.remove('mobile-open');
+            };
+        }
+    </script>
+
     <script>
         // Pass PHP variables to JavaScript
         const CURRENT_USER_ID = <?php echo $user_id; ?>;
