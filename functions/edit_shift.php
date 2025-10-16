@@ -113,16 +113,22 @@ try {
                 $roleRow = $roleStmt->fetch(PDO::FETCH_ASSOC);
                 $role_name = $roleRow ? $roleRow['name'] : 'Shift';
 
+                // Prepare notification data
+                $title = "Shift Updated";
+                $body = "$admin_name updated your $role_name shift on $formatted_date";
+                $data = ['url' => '/users/shifts.php', 'shift_id' => $shift_id];
+
                 // Send notification in background (won't block response)
-                register_shutdown_function(function () use ($edited_user_id, $admin_name, $role_name, $formatted_date, $shift_id) {
-                    require_once __DIR__ . '/send_shift_notification.php';
-                    $title = "Shift Updated";
-                    $body = "$admin_name updated your $role_name shift on $formatted_date";
-                    $data = ['url' => '/users/shifts.php', 'shift_id' => $shift_id];
-                    notifyShiftUpdated($edited_user_id, $title, $body, $data);
+                register_shutdown_function(function () use ($edited_user_id, $title, $body, $data) {
+                    try {
+                        require_once __DIR__ . '/send_shift_notification.php';
+                        notifyShiftUpdated($edited_user_id, $title, $body, $data);
+                    } catch (Exception $e) {
+                        error_log("Push notification error in shutdown: " . $e->getMessage());
+                    }
                 });
             } catch (Exception $e) {
-                error_log("Failed to send push notification: " . $e->getMessage());
+                error_log("Failed to prepare push notification: " . $e->getMessage());
             }
         }
     }
@@ -144,9 +150,8 @@ try {
     $_SESSION['error_message'] = "Error: " . $e->getMessage();
 }
 
-// Cleanup
+// Cleanup statement (but keep $conn alive for shutdown function)
 $stmt = null;
-$conn = null;
 
 // Redirect back to appropriate page
 header("Location: $redirect_url");
