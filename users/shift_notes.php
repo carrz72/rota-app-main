@@ -10,10 +10,15 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$shift_id = (int) ($_GET['shift_id'] ?? 0);
+$shift_id = isset($_GET['shift_id']) ? (int) $_GET['shift_id'] : null;
 
-if ($shift_id <= 0) {
-    $_SESSION['error_message'] = 'Invalid shift ID';
+// DEBUG
+error_log("SHIFT NOTES DEBUG: shift_id = " . var_export($shift_id, true));
+error_log("SHIFT NOTES DEBUG: user_id = " . var_export($user_id, true));
+
+if ($shift_id === null || $shift_id < 0) {
+    error_log("SHIFT NOTES DEBUG: Invalid shift ID, redirecting");
+    $_SESSION['error_message'] = 'Invalid shift ID (got: ' . var_export($shift_id, true) . ')';
     header("Location: shifts.php");
     exit();
 }
@@ -29,8 +34,11 @@ $stmt = $conn->prepare("
 $stmt->execute([$shift_id]);
 $shift = $stmt->fetch(PDO::FETCH_ASSOC);
 
+error_log("SHIFT NOTES DEBUG: shift found = " . var_export($shift !== false, true));
+
 if (!$shift) {
-    $_SESSION['error_message'] = 'Shift not found';
+    error_log("SHIFT NOTES DEBUG: Shift not found, redirecting");
+    $_SESSION['error_message'] = 'Shift not found (ID: ' . $shift_id . ')';
     header("Location: shifts.php");
     exit();
 }
@@ -99,7 +107,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
         </div>
     </header>
 
-    <div class="container">
+    <div class="shift-notes-container">
         <!-- Shift Info Card -->
         <div class="shift-info-card">
             <div class="shift-info-header">

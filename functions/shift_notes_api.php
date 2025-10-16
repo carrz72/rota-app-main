@@ -20,9 +20,9 @@ try {
     switch ($action) {
         case 'get_notes':
             // Get all notes for a specific shift
-            $shift_id = (int) ($_GET['shift_id'] ?? 0);
+            $shift_id = isset($_GET['shift_id']) ? (int) $_GET['shift_id'] : null;
 
-            if ($shift_id <= 0) {
+            if ($shift_id === null || $shift_id < 0) {
                 throw new Exception('Invalid shift ID');
             }
 
@@ -68,11 +68,11 @@ try {
 
         case 'add_note':
             // Add a new note to a shift
-            $shift_id = (int) ($_POST['shift_id'] ?? 0);
+            $shift_id = isset($_POST['shift_id']) ? (int) $_POST['shift_id'] : null;
             $note = trim($_POST['note'] ?? '');
             $is_important = (int) ($_POST['is_important'] ?? 0);
 
-            if ($shift_id <= 0) {
+            if ($shift_id === null || $shift_id < 0) {
                 throw new Exception('Invalid shift ID');
             }
 

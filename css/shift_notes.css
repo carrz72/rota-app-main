@@ -1,19 +1,21 @@
-/* Shift Notes Styling */
+/* Shift Notes Styling - Themed */
 
-.container {
+.shift-notes-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  font-family: "newFont", sans-serif;
 }
 
 /* Shift Info Card */
 .shift-info-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #fd2b2b 0%, #c82333 100%);
   color: white;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 6px 20px rgba(253, 43, 43, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .shift-info-header h3 {
@@ -47,17 +49,19 @@
 
 /* Add Note Card */
 .add-note-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   padding: 25px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(253, 43, 43, 0.1);
 }
 
 .add-note-card h3 {
   margin: 0 0 20px 0;
-  color: #333;
-  font-size: 1.2rem;
+  color: #fd2b2b;
+  font-size: 1.3rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -81,7 +85,8 @@
 
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #fd2b2b;
+  box-shadow: 0 0 0 3px rgba(253, 43, 43, 0.1);
 }
 
 .char-count {
@@ -134,16 +139,19 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  font-family: "newFont", sans-serif;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #fd2b2b 0%, #c82333 100%);
   color: white;
+  box-shadow: 0 4px 10px rgba(253, 43, 43, 0.3);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 15px rgba(253, 43, 43, 0.4);
+  background: linear-gradient(135deg, #c82333 0%, #fd2b2b 100%);
 }
 
 .btn-back {
@@ -164,25 +172,27 @@
 
 /* Notes Container */
 .notes-container {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   padding: 25px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(253, 43, 43, 0.1);
 }
 
 .notes-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   flex-wrap: wrap;
   gap: 15px;
 }
 
 .notes-header h3 {
   margin: 0;
-  color: #333;
-  font-size: 1.2rem;
+  color: #fd2b2b;
+  font-size: 1.3rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -209,14 +219,16 @@
 }
 
 .filter-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: #fd2b2b;
+  color: #fd2b2b;
+  background: rgba(253, 43, 43, 0.05);
 }
 
 .filter-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #fd2b2b 0%, #c82333 100%);
   color: white;
-  border-color: transparent;
+  border-color: #fd2b2b;
+  box-shadow: 0 3px 10px rgba(253, 43, 43, 0.3);
 }
 
 /* Notes List */
@@ -235,8 +247,9 @@
 }
 
 .note-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #fd2b2b;
+  box-shadow: 0 6px 15px rgba(253, 43, 43, 0.15);
+  transform: translateY(-2px);
 }
 
 .note-card.important {
@@ -261,7 +274,7 @@
 
 .note-author i {
   font-size: 1.2rem;
-  color: #667eea;
+  color: #fd2b2b;
 }
 
 .note-actions {
@@ -280,8 +293,8 @@
 }
 
 .btn-icon:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(253, 43, 43, 0.1);
+  color: #fd2b2b;
 }
 
 .btn-icon.active {
@@ -366,13 +379,19 @@
 .loading-spinner {
   text-align: center;
   padding: 40px;
-  color: #667eea;
+  color: #fd2b2b;
   font-size: 1.1rem;
 }
 
 .loading-spinner i {
   font-size: 2rem;
   margin-bottom: 10px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Toast Notifications */

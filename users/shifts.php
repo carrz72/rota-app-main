@@ -1474,14 +1474,12 @@ if ($user_id) {
                                                 <small><strong>£<?php echo number_format($shift['pay'], 2); ?></strong></small>
 
                                                 <!-- Quick actions for calendar view -->
-                                                <!-- DEBUG: shift id = <?php echo isset($shift['id']) ? $shift['id'] : 'NOT SET'; ?> -->
                                                 <div style="margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap;">
-                                                    <button type="button" class="notesBtn"
-                                                        onclick="console.log('Direct onclick fired! Shift ID: <?php echo isset($shift['id']) ? $shift['id'] : 'NONE'; ?>'); window.location.href='shift_notes.php?shift_id=<?php echo isset($shift['id']) ? $shift['id'] : '0'; ?>'; return false;"
-                                                        style="padding: 2px 6px; font-size: 10px; background: #ff9800; color: white; border: none; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px;"
+                                                    <a href="shift_notes.php?shift_id=<?php echo $shift['id']; ?>"
+                                                        style="padding: 2px 6px; font-size: 10px; background: #ff9800; color: white; border: none; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; text-decoration: none;"
                                                         title="View shift notes and handover">
                                                         <i class="fa fa-sticky-note"></i> Notes
-                                                    </button>
+                                                    </a>
                                                     <button class="editBtn" data-id="<?php echo $shift['id']; ?>"
                                                         style="padding: 2px 6px; font-size: 10px; background: #3366cc; color: white; border: none; border-radius: 3px; cursor: pointer;">
                                                         <i class="fa fa-pencil"></i>
