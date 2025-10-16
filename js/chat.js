@@ -1588,7 +1588,11 @@ function showEditChannelModal(channel, members) {
         `;
     });
 
-    // Modal HTML
+    // Decide whether current user may manage members or delete channel
+    const canManageMembers = (typeof CURRENT_USER_ROLE !== 'undefined' && (CURRENT_USER_ROLE === 'admin' || CURRENT_USER_ROLE === 'super_admin')) ||
+        members.some(m => m.id === CURRENT_USER_ID && (m.channel_role === 'admin' || m.channel_role === 'owner'));
+
+    // Modal HTML (conditionally include add/remove controls)
     content.innerHTML = `
         <div class="modal-header">
             <h3><i class="fa fa-edit"></i> Edit Channel</h3>
@@ -1610,14 +1614,16 @@ function showEditChannelModal(channel, members) {
         <hr>
         <h4>Members</h4>
         <div class="member-list">${membersHtml}</div>
-        <div class="form-group">
-            <button class="chat-hero-btn" style="background:#fd2b2b;color:#fff;width:100%" onclick="deleteChannel(${channel.id})"><i class="fa fa-trash"></i> Delete Channel</button>
-        </div>
-        <div class="form-group">
-            <label for="addMemberInput">Add Member (branch only)</label>
-            <input type="text" id="addMemberInput" placeholder="Type username..." onkeyup="searchAddMemberByBranch(event, ${channel.id}, ${channel.branch_id})">
-            <div id="addMemberResults"></div>
-        </div>
+        ${canManageMembers ? `
+            <div class="form-group">
+                <button class="chat-hero-btn" style="background:#fd2b2b;color:#fff;width:100%" onclick="deleteChannel(${channel.id})"><i class="fa fa-trash"></i> Delete Channel</button>
+            </div>
+            <div class="form-group">
+                <label for="addMemberInput">Add Member (branch only)</label>
+                <input type="text" id="addMemberInput" placeholder="Type username..." onkeyup="searchAddMemberByBranch(event, ${channel.id}, ${channel.branch_id})">
+                <div id="addMemberResults"></div>
+            </div>
+        ` : '' }
     `;
     modal.style.display = 'flex';
 }
@@ -1644,6 +1650,113 @@ function searchAddMemberByBranch(e, channelId, branchId) {
 function closeEditChannelModal() {
     const modal = document.getElementById('editChannelModal');
     if (modal) modal.style.display = 'none';
+}
+
+// Add a member to a channel (called from add search results)
+function addChannelMember(channelId, userId, el) {
+    if (!channelId || !userId) return;
+    const btn = el && el.tagName === 'BUTTON' ? el : null;
+    if (btn) btn.disabled = true;
+
+    fetch('../functions/chat_channels_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=add_member&channel_id=${encodeURIComponent(channelId)}&user_id=${encodeURIComponent(userId)}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Failed to add member: ' + (data.message || 'Unknown error'));
+                return;
+            }
+            // Refresh member list in the edit modal if open
+            const modal = document.getElementById('editChannelModal');
+            if (modal) {
+                fetch(`../functions/chat_channels_api.php?action=get_members&channel_id=${channelId}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            const memberList = modal.querySelector('.member-list');
+                            if (memberList) {
+                                let membersHtml = '';
+                                d.members.forEach(member => {
+                                    membersHtml += `
+                                        <div class="member-item">
+                                            <div class="user-avatar">${getInitials(member.username)}</div>
+                                            <div class="user-info">
+                                                <div class="user-name">${escapeHtml(member.username)}</div>
+                                                <div class="user-role">${escapeHtml(member.channel_role || member.role || '')}</div>
+                                            </div>
+                                            ${member.channel_role !== 'owner' ? `<button class="btn-icon" title="Remove" onclick="removeChannelMember(${channelId}, ${member.id}, this)"><i class="fa fa-user-times"></i></button>` : ''}
+                                        </div>
+                                    `;
+                                });
+                                memberList.innerHTML = membersHtml;
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Failed to refresh members after add:', err));
+            }
+        })
+        .catch(err => {
+            console.error('Error adding member:', err);
+            alert('Error adding member');
+        })
+        .finally(() => { if (btn) btn.disabled = false; });
+}
+
+// Remove a member from a channel
+function removeChannelMember(channelId, memberId, el) {
+    if (!channelId || !memberId) return;
+    if (!confirm('Remove this member from the channel?')) return;
+    const btn = el && el.tagName === 'BUTTON' ? el : null;
+    if (btn) btn.disabled = true;
+
+    fetch('../functions/chat_channels_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=remove_member&channel_id=${encodeURIComponent(channelId)}&user_id=${encodeURIComponent(memberId)}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Failed to remove member: ' + (data.message || 'Unknown error'));
+                return;
+            }
+            // Refresh members list in modal
+            const modal = document.getElementById('editChannelModal');
+            if (modal) {
+                fetch(`../functions/chat_channels_api.php?action=get_members&channel_id=${channelId}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            const memberList = modal.querySelector('.member-list');
+                            if (memberList) {
+                                let membersHtml = '';
+                                d.members.forEach(member => {
+                                    membersHtml += `
+                                        <div class="member-item">
+                                            <div class="user-avatar">${getInitials(member.username)}</div>
+                                            <div class="user-info">
+                                                <div class="user-name">${escapeHtml(member.username)}</div>
+                                                <div class="user-role">${escapeHtml(member.channel_role || member.role || '')}</div>
+                                            </div>
+                                            ${member.channel_role !== 'owner' ? `<button class="btn-icon" title="Remove" onclick="removeChannelMember(${channelId}, ${member.id}, this)"><i class="fa fa-user-times"></i></button>` : ''}
+                                        </div>
+                                    `;
+                                });
+                                memberList.innerHTML = membersHtml;
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Failed to refresh members after remove:', err));
+            }
+        })
+        .catch(err => {
+            console.error('Error removing member:', err);
+            alert('Error removing member');
+        })
+        .finally(() => { if (btn) btn.disabled = false; });
 }
 function deleteChannel(channelId) {
     if (!confirm('Are you sure you want to delete this channel?')) return;

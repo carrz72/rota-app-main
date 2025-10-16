@@ -388,6 +388,7 @@ if (!$userInitial) {
         // Pass PHP variables to JavaScript
         const CURRENT_USER_ID = <?php echo $user_id; ?>;
         const CURRENT_USERNAME = "<?php echo htmlspecialchars($user['username']); ?>";
+        const CURRENT_USER_ROLE = "<?php echo htmlspecialchars($user['role'] ?? ''); ?>";
     </script>
     <script>
         // Combined menu toggle for hero/sidebar combined New button

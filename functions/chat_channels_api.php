@@ -268,15 +268,18 @@ try {
                 throw new Exception('Invalid channel or user ID');
             }
 
-            // Verify current user is admin of the channel
-            $stmt = $conn->prepare("
-                SELECT role FROM chat_members 
-                WHERE channel_id = ? AND user_id = ? AND left_at IS NULL
-            ");
+            // Verify current user is a member and has permission to add members
+            // (either channel-level admin/owner, or application-level admin/super_admin)
+            $stmt = $conn->prepare("SELECT role FROM chat_members WHERE channel_id = ? AND user_id = ? AND left_at IS NULL");
             $stmt->execute([$channel_id, $user_id]);
             $member = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$member || !in_array($member['role'], ['admin', 'owner'])) {
+            if (!$member) {
+                throw new Exception('You are not a member of this channel');
+            }
+
+            $sessionRole = $_SESSION['role'] ?? '';
+            if (!in_array($member['role'], ['admin', 'owner']) && !in_array($sessionRole, ['admin', 'super_admin'])) {
                 throw new Exception('You do not have permission to add members');
             }
 
@@ -300,15 +303,18 @@ try {
                 throw new Exception('Invalid channel or user ID');
             }
 
-            // Verify current user is admin of the channel
-            $stmt = $conn->prepare("
-                SELECT role FROM chat_members 
-                WHERE channel_id = ? AND user_id = ? AND left_at IS NULL
-            ");
+            // Verify current user is a member and has permission to remove members
+            // (either channel-level admin/owner, or application-level admin/super_admin)
+            $stmt = $conn->prepare("SELECT role FROM chat_members WHERE channel_id = ? AND user_id = ? AND left_at IS NULL");
             $stmt->execute([$channel_id, $user_id]);
             $member = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$member || !in_array($member['role'], ['admin', 'owner'])) {
+            if (!$member) {
+                throw new Exception('You are not a member of this channel');
+            }
+
+            $sessionRole = $_SESSION['role'] ?? '';
+            if (!in_array($member['role'], ['admin', 'owner']) && !in_array($sessionRole, ['admin', 'super_admin'])) {
                 throw new Exception('You do not have permission to remove members');
             }
 
