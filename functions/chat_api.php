@@ -42,7 +42,7 @@ try {
                     (SELECT message FROM chat_messages 
                      WHERE channel_id = c.id AND is_deleted = 0 
                      ORDER BY created_at DESC LIMIT 1) as last_message,
-                    (SELECT username FROM users WHERE id = 
+                    (SELECT username COLLATE utf8mb4_general_ci FROM users WHERE id = 
                         (SELECT user_id FROM chat_messages 
                          WHERE channel_id = c.id AND is_deleted = 0 
                          ORDER BY created_at DESC LIMIT 1)) as last_sender
@@ -73,7 +73,7 @@ try {
                 if ($channel['type'] === 'direct') {
                     // Get the other user in the DM
                     $stmtOther = $conn->prepare("
-                        SELECT u.username, u.id
+                        SELECT u.username COLLATE utf8mb4_general_ci as username, u.id
                         FROM chat_members cm
                         JOIN users u ON cm.user_id = u.id
                         WHERE cm.channel_id = ? AND cm.user_id != ?
@@ -123,14 +123,14 @@ try {
                     m.is_edited,
                     m.created_at,
                     m.updated_at,
-                    u.username as sender_name,
+                    u.username COLLATE utf8mb4_general_ci as sender_name,
                     COALESCE(
                         (
                             SELECT JSON_ARRAYAGG(
                                 JSON_OBJECT(
-                                    'emoji', cr.emoji,
+                                    'emoji', cr.emoji COLLATE utf8mb4_general_ci,
                                     'user_id', cr.user_id,
-                                    'username', uu.username
+                                    'username', uu.username COLLATE utf8mb4_general_ci
                                 )
                             )
                             FROM chat_reactions cr
