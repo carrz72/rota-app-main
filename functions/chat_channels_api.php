@@ -373,6 +373,19 @@ try {
         case 'get_users_for_dm':
             $search = trim($_GET['search'] ?? '');
 
+            // Determine current user's branch and role
+            $userBranchId = null;
+            $roleCheck = $_SESSION['role'] ?? '';
+            try {
+                $bstmt = $conn->prepare("SELECT branch_id FROM users WHERE id = ? LIMIT 1");
+                $bstmt->execute([$user_id]);
+                $bro = $bstmt->fetch(PDO::FETCH_ASSOC);
+                $userBranchId = $bro['branch_id'] ?? null;
+            } catch (Exception $e) {
+                // ignore and leave branch null
+                $userBranchId = null;
+            }
+
             $sql = "
                 SELECT 
                     u.id,
@@ -393,6 +406,17 @@ try {
             ";
 
             $params = [$user_id, $user_id, $user_id, $user_id];
+
+            // Restrict to same branch for non-super_admins
+            if (!in_array($roleCheck, ['super_admin'])) {
+                if ($userBranchId === null) {
+                    // User has no branch: only show users with NULL branch
+                    $sql .= " AND u.branch_id IS NULL";
+                } else {
+                    $sql .= " AND u.branch_id = ?";
+                    $params[] = $userBranchId;
+                }
+            }
 
             if (!empty($search)) {
                 $sql .= " AND u.username LIKE ?";
