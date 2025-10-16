@@ -23,7 +23,7 @@ $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 try {
     switch ($action) {
-        
+
         // ===== GET USER'S CHANNELS =====
         case 'get_channels':
             $stmt = $conn->prepare("
@@ -38,7 +38,7 @@ try {
                     cm.last_read_at,
                     COUNT(DISTINCT CASE WHEN m.created_at > COALESCE(cm.last_read_at, '1970-01-01') 
                           AND m.user_id != ? AND m.is_deleted = 0 THEN m.id END) as unread_count,
-                    MAX(m.created_at) as last_activity,
+                    (SELECT MAX(created_at) FROM chat_messages WHERE channel_id = c.id) as last_activity,
                     (SELECT message FROM chat_messages 
                      WHERE channel_id = c.id AND is_deleted = 0 
                      ORDER BY created_at DESC LIMIT 1) as last_message,
@@ -51,11 +51,23 @@ try {
                 LEFT JOIN chat_messages m ON m.channel_id = c.id
                 WHERE cm.user_id = ? AND cm.left_at IS NULL AND c.is_active = 1
                 GROUP BY c.id, c.name, c.type, c.description, c.branch_id, c.role_id, cm.is_muted, cm.last_read_at
-                ORDER BY last_activity DESC NULLS LAST, c.name ASC
+                ORDER BY c.name ASC
             ");
             $stmt->execute([$user_id, $user_id]);
             $channels = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
+            // Sort channels by last activity (do it in PHP to avoid GROUP BY issues)
+            usort($channels, function ($a, $b) {
+                $timeA = $a['last_activity'] ?? '1970-01-01';
+                $timeB = $b['last_activity'] ?? '1970-01-01';
+
+                if ($timeA === $timeB) {
+                    return strcmp($a['name'], $b['name']);
+                }
+
+                return ($timeB > $timeA) ? 1 : -1;
+            });
+
             // Add direct message display names
             foreach ($channels as &$channel) {
                 if ($channel['type'] === 'direct') {
@@ -75,27 +87,27 @@ try {
                     }
                 }
             }
-            
+
             echo json_encode(['success' => true, 'channels' => $channels]);
             break;
 
         // ===== GET MESSAGES FOR A CHANNEL =====
         case 'get_messages':
-            $channel_id = (int)($_GET['channel_id'] ?? 0);
-            $offset = (int)($_GET['offset'] ?? 0);
-            $limit = (int)($_GET['limit'] ?? 50);
-            
+            $channel_id = (int) ($_GET['channel_id'] ?? 0);
+            $offset = (int) ($_GET['offset'] ?? 0);
+            $limit = (int) ($_GET['limit'] ?? 50);
+
             if ($channel_id <= 0) {
                 throw new Exception('Invalid channel ID');
             }
-            
+
             // Verify user is member of channel
             $stmt = $conn->prepare("SELECT id FROM chat_members WHERE channel_id = ? AND user_id = ? AND left_at IS NULL");
             $stmt->execute([$channel_id, $user_id]);
             if (!$stmt->fetch()) {
                 throw new Exception('You are not a member of this channel');
             }
-            
+
             // Get messages
             $stmt = $conn->prepare("
                 SELECT 
@@ -112,7 +124,21 @@ try {
                     m.created_at,
                     m.updated_at,
                     u.username as sender_name,
-                    (SELECT GROUP_CONCAT(DISTINCT emoji SEPARATOR '|') FROM chat_reactions WHERE message_id = m.id) as reactions
+                    COALESCE(
+                        (
+                            SELECT JSON_ARRAYAGG(
+                                JSON_OBJECT(
+                                    'emoji', cr.emoji,
+                                    'user_id', cr.user_id,
+                                    'username', uu.username
+                                )
+                            )
+                            FROM chat_reactions cr
+                            JOIN users uu ON cr.user_id = uu.id
+                            WHERE cr.message_id = m.id
+                        ),
+                        JSON_ARRAY()
+                    ) AS reactions_json
                 FROM chat_messages m
                 JOIN users u ON m.user_id = u.id
                 WHERE m.channel_id = ? AND m.is_deleted = 0
@@ -121,42 +147,57 @@ try {
             ");
             $stmt->execute([$channel_id, $limit, $offset]);
             $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             // Process reactions
             foreach ($messages as &$message) {
-                if ($message['reactions']) {
-                    $reactions = explode('|', $message['reactions']);
-                    $reactionCounts = array_count_values($reactions);
-                    $message['reaction_summary'] = $reactionCounts;
-                } else {
-                    $message['reaction_summary'] = [];
+                $reactionSummary = [];
+                $message['reactions'] = [];
+
+                if (!empty($message['reactions_json'])) {
+                    $decoded = json_decode($message['reactions_json'], true);
+                    if (is_array($decoded)) {
+                        $message['reactions'] = $decoded;
+                        foreach ($decoded as $reaction) {
+                            $emoji = $reaction['emoji'] ?? '';
+                            if ($emoji === '') {
+                                continue;
+                            }
+                            if (!isset($reactionSummary[$emoji])) {
+                                $reactionSummary[$emoji] = 0;
+                            }
+                            $reactionSummary[$emoji]++;
+                        }
+                    }
                 }
+
+                $message['reaction_summary'] = $reactionSummary;
+                unset($message['reactions_json']);
             }
-            
+
             echo json_encode(['success' => true, 'messages' => array_reverse($messages)]);
             break;
 
         // ===== SEND MESSAGE =====
         case 'send_message':
-            $channel_id = (int)($_POST['channel_id'] ?? 0);
+            $channel_id = (int) ($_POST['channel_id'] ?? 0);
             $message = trim($_POST['message'] ?? '');
-            $reply_to_id = (int)($_POST['reply_to_id'] ?? 0) ?: null;
-            
+            $reply_to_id = (int) ($_POST['reply_to_id'] ?? 0) ?: null;
+
             if ($channel_id <= 0) {
                 throw new Exception('Invalid channel ID');
             }
-            
+
             if (empty($message)) {
                 throw new Exception('Message cannot be empty');
             }
-            
+
             // Verify membership
             $stmt = $conn->prepare("SELECT id FROM chat_members WHERE channel_id = ? AND user_id = ? AND left_at IS NULL");
             $stmt->execute([$channel_id, $user_id]);
             if (!$stmt->fetch()) {
                 throw new Exception('You are not a member of this channel');
             }
-            
+
             // Insert message
             $stmt = $conn->prepare("
                 INSERT INTO chat_messages (channel_id, user_id, message, message_type, reply_to_id)
@@ -164,12 +205,12 @@ try {
             ");
             $stmt->execute([$channel_id, $user_id, $message, $reply_to_id]);
             $message_id = $conn->lastInsertId();
-            
+
             // Get channel name and members for notifications
             $stmt = $conn->prepare("SELECT name, type FROM chat_channels WHERE id = ?");
             $stmt->execute([$channel_id]);
             $channel = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             // Send notifications to other members
             $stmt = $conn->prepare("
                 SELECT cm.user_id, u.username
@@ -179,42 +220,45 @@ try {
             ");
             $stmt->execute([$channel_id, $user_id]);
             $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            $sender_name = $_SESSION['username'] ?? 'Someone';
+
+            $stmtSender = $conn->prepare("SELECT username FROM users WHERE id = ? LIMIT 1");
+            $stmtSender->execute([$user_id]);
+            $senderRow = $stmtSender->fetch(PDO::FETCH_ASSOC);
+            $sender_name = $senderRow['username'] ?? ($_SESSION['username'] ?? 'Someone');
             $message_preview = strlen($message) > 50 ? substr($message, 0, 50) . '...' : $message;
-            
+
             foreach ($members as $member) {
                 addNotification(
+                    $conn,
                     $member['user_id'],
                     "💬 {$sender_name} in {$channel['name']}: {$message_preview}",
-                    'chat',
-                    $message_id
+                    'chat'
                 );
             }
-            
+
             echo json_encode(['success' => true, 'message_id' => $message_id, 'message' => 'Message sent']);
             break;
 
         // ===== EDIT MESSAGE =====
         case 'edit_message':
-            $message_id = (int)($_POST['message_id'] ?? 0);
+            $message_id = (int) ($_POST['message_id'] ?? 0);
             $new_message = trim($_POST['message'] ?? '');
-            
+
             if ($message_id <= 0) {
                 throw new Exception('Invalid message ID');
             }
-            
+
             if (empty($new_message)) {
                 throw new Exception('Message cannot be empty');
             }
-            
+
             // Verify ownership
             $stmt = $conn->prepare("SELECT id FROM chat_messages WHERE id = ? AND user_id = ?");
             $stmt->execute([$message_id, $user_id]);
             if (!$stmt->fetch()) {
                 throw new Exception('You can only edit your own messages');
             }
-            
+
             // Update message
             $stmt = $conn->prepare("
                 UPDATE chat_messages 
@@ -222,18 +266,18 @@ try {
                 WHERE id = ?
             ");
             $stmt->execute([$new_message, $message_id]);
-            
+
             echo json_encode(['success' => true, 'message' => 'Message updated']);
             break;
 
         // ===== DELETE MESSAGE =====
         case 'delete_message':
-            $message_id = (int)($_POST['message_id'] ?? 0);
-            
+            $message_id = (int) ($_POST['message_id'] ?? 0);
+
             if ($message_id <= 0) {
                 throw new Exception('Invalid message ID');
             }
-            
+
             // Verify ownership or admin
             $stmt = $conn->prepare("
                 SELECT m.id, m.user_id, c.id as channel_id
@@ -246,29 +290,29 @@ try {
             if (!$stmt->fetch()) {
                 throw new Exception('You can only delete your own messages');
             }
-            
+
             // Soft delete
             $stmt = $conn->prepare("UPDATE chat_messages SET is_deleted = 1 WHERE id = ?");
             $stmt->execute([$message_id]);
-            
+
             echo json_encode(['success' => true, 'message' => 'Message deleted']);
             break;
 
         // ===== MARK CHANNEL AS READ =====
         case 'mark_read':
-            $channel_id = (int)($_POST['channel_id'] ?? 0);
-            
+            $channel_id = (int) ($_POST['channel_id'] ?? 0);
+
             if ($channel_id <= 0) {
                 throw new Exception('Invalid channel ID');
             }
-            
+
             $stmt = $conn->prepare("
                 UPDATE chat_members 
                 SET last_read_at = CURRENT_TIMESTAMP 
                 WHERE channel_id = ? AND user_id = ?
             ");
             $stmt->execute([$channel_id, $user_id]);
-            
+
             echo json_encode(['success' => true, 'message' => 'Marked as read']);
             break;
 
@@ -287,19 +331,19 @@ try {
             ");
             $stmt->execute([$user_id, $user_id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            echo json_encode(['success' => true, 'unread_count' => (int)$result['total_unread']]);
+
+            echo json_encode(['success' => true, 'unread_count' => (int) $result['total_unread']]);
             break;
 
         // ===== SEARCH MESSAGES =====
         case 'search_messages':
-            $search = trim($_GET['search'] ?? '');
-            $channel_id = (int)($_GET['channel_id'] ?? 0);
-            
+            $search = trim($_GET['query'] ?? $_GET['search'] ?? '');
+            $channel_id = (int) ($_GET['channel_id'] ?? 0);
+
             if (empty($search)) {
                 throw new Exception('Search query is required');
             }
-            
+
             $sql = "
                 SELECT 
                     m.id,
@@ -308,7 +352,8 @@ try {
                     m.message,
                     m.created_at,
                     u.username as sender_name,
-                    c.name as channel_name
+                    c.name as channel_name,
+                    c.type as channel_type
                 FROM chat_messages m
                 JOIN users u ON m.user_id = u.id
                 JOIN chat_channels c ON m.channel_id = c.id
@@ -316,32 +361,32 @@ try {
                 WHERE m.is_deleted = 0 AND cm.left_at IS NULL
                     AND MATCH(m.message) AGAINST(? IN NATURAL LANGUAGE MODE)
             ";
-            
+
             $params = [$user_id, $search];
-            
+
             if ($channel_id > 0) {
                 $sql .= " AND m.channel_id = ?";
                 $params[] = $channel_id;
             }
-            
+
             $sql .= " ORDER BY m.created_at DESC LIMIT 50";
-            
+
             $stmt = $conn->prepare($sql);
             $stmt->execute($params);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             echo json_encode(['success' => true, 'results' => $results]);
             break;
 
         // ===== SET TYPING INDICATOR =====
         case 'set_typing':
-            $channel_id = (int)($_POST['channel_id'] ?? 0);
-            $is_typing = (int)($_POST['is_typing'] ?? 1);
-            
+            $channel_id = (int) ($_POST['channel_id'] ?? 0);
+            $is_typing = (int) ($_POST['is_typing'] ?? 1);
+
             if ($channel_id <= 0) {
                 throw new Exception('Invalid channel ID');
             }
-            
+
             if ($is_typing) {
                 $stmt = $conn->prepare("
                     INSERT INTO chat_typing (channel_id, user_id, started_at)
@@ -353,21 +398,21 @@ try {
                 $stmt = $conn->prepare("DELETE FROM chat_typing WHERE channel_id = ? AND user_id = ?");
                 $stmt->execute([$channel_id, $user_id]);
             }
-            
+
             echo json_encode(['success' => true]);
             break;
 
         // ===== GET TYPING USERS =====
         case 'get_typing':
-            $channel_id = (int)($_GET['channel_id'] ?? 0);
-            
+            $channel_id = (int) ($_GET['channel_id'] ?? 0);
+
             if ($channel_id <= 0) {
                 throw new Exception('Invalid channel ID');
             }
-            
+
             // Clean up old typing indicators (older than 10 seconds)
             $conn->exec("DELETE FROM chat_typing WHERE started_at < DATE_SUB(NOW(), INTERVAL 10 SECOND)");
-            
+
             // Get current typing users
             $stmt = $conn->prepare("
                 SELECT u.username
@@ -377,19 +422,19 @@ try {
             ");
             $stmt->execute([$channel_id, $user_id]);
             $typing_users = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            
+
             echo json_encode(['success' => true, 'typing_users' => $typing_users]);
             break;
-        
+
         // ===== ADD REACTION TO MESSAGE =====
         case 'add_reaction':
             $message_id = $_POST['message_id'] ?? null;
             $emoji = $_POST['emoji'] ?? null;
-            
+
             if (!$message_id || !$emoji) {
                 throw new Exception('Message ID and emoji are required');
             }
-            
+
             // Check if user is in the channel
             $stmt = $conn->prepare("
                 SELECT cm.channel_id 
@@ -401,7 +446,7 @@ try {
             if (!$stmt->fetch()) {
                 throw new Exception('Not authorized');
             }
-            
+
             // Add or toggle reaction
             $stmt = $conn->prepare("
                 INSERT INTO chat_reactions (message_id, user_id, emoji)
@@ -409,32 +454,32 @@ try {
                 ON DUPLICATE KEY UPDATE emoji = VALUES(emoji)
             ");
             $stmt->execute([$message_id, $user_id, $emoji]);
-            
+
             echo json_encode(['success' => true]);
             break;
-        
+
         // ===== REMOVE REACTION FROM MESSAGE =====
         case 'remove_reaction':
             $message_id = $_POST['message_id'] ?? null;
             $emoji = $_POST['emoji'] ?? null;
-            
+
             if (!$message_id || !$emoji) {
                 throw new Exception('Message ID and emoji are required');
             }
-            
+
             $stmt = $conn->prepare("
                 DELETE FROM chat_reactions 
                 WHERE message_id = ? AND user_id = ? AND emoji = ?
             ");
             $stmt->execute([$message_id, $user_id, $emoji]);
-            
+
             echo json_encode(['success' => true]);
             break;
 
         default:
             throw new Exception('Invalid action');
     }
-    
+
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

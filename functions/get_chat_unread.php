@@ -3,7 +3,8 @@
  * Get unread chat message count for a user
  * Used to display badge in navigation
  */
-function getUnreadChatCount($pdo, $user_id) {
+function getUnreadChatCount($pdo, $user_id)
+{
     try {
         $stmt = $pdo->prepare("
             SELECT COUNT(*) 

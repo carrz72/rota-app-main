@@ -112,7 +112,7 @@ try {
     echo "<p><strong>Active Users:</strong> $users</p>";
     echo "<p><a href='users/chat.php'>Go to Team Chat →</a></p>";
 
-} catch(PDOException $e) {
+} catch (PDOException $e) {
     echo "<p style='color: red;'>❌ Error: " . $e->getMessage() . "</p>";
 }
 ?>

@@ -388,6 +388,7 @@ try {
                     <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
                     <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                     <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                    <li><a href="chat.php"><i class="fa fa-comments"></i> Team Chat</a></li>
                     <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
                     <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
                         <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
@@ -785,46 +786,53 @@ try {
 
         <!-- Recent Shift Notes Section -->
         <?php if (!empty($recent_notes)): ?>
-            <div class="dashboard-card" style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
+            <div class="dashboard-card"
+                style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3><i class="fas fa-sticky-note"></i> Recent Shift Notes</h3>
-                    <a href="shifts.php" style="color: #fd2b2b; text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+                    <a href="shifts.php"
+                        style="color: #fd2b2b; text-decoration: none; font-size: 0.9rem; font-weight: 600;">
                         View All <i class="fa fa-arrow-right"></i>
                     </a>
                 </div>
 
                 <div style="display: grid; gap: 15px;">
-                    <?php foreach ($recent_notes as $note): 
+                    <?php foreach ($recent_notes as $note):
                         $note_date = date('M j, Y', strtotime($note['shift_date']));
                         $note_time = date('g:i A', strtotime($note['start_time'])) . ' - ' . date('g:i A', strtotime($note['end_time']));
                         $created_at = date('M j, g:i A', strtotime($note['created_at']));
                         $is_important = $note['is_important'] == 1;
-                    ?>
+                        ?>
                         <div style="background: <?php echo $is_important ? 'linear-gradient(135deg, #fff9e6 0%, #fff3d9 100%)' : '#f9f9f9'; ?>; 
                                     padding: 15px 20px; 
                                     border-radius: 12px; 
                                     border-left: 4px solid <?php echo $is_important ? '#ff9800' : '#fd2b2b'; ?>; 
                                     transition: all 0.3s ease;
                                     cursor: pointer;"
-                             onclick="window.location.href='shift_notes.php?shift_id=<?php echo $note['shift_id']; ?>'"
-                             onmouseover="this.style.boxShadow='0 4px 12px rgba(253, 43, 43, 0.2)'; this.style.transform='translateY(-2px)';"
-                             onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';">
-                            
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            onclick="window.location.href='shift_notes.php?shift_id=<?php echo $note['shift_id']; ?>'"
+                            onmouseover="this.style.boxShadow='0 4px 12px rgba(253, 43, 43, 0.2)'; this.style.transform='translateY(-2px)';"
+                            onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                                 <div style="flex: 1;">
                                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
                                         <span style="font-weight: 700; color: #333; font-size: 0.95rem;">
-                                            <i class="fas fa-calendar-day" style="color: #fd2b2b;"></i> <?php echo htmlspecialchars($note_date); ?>
+                                            <i class="fas fa-calendar-day" style="color: #fd2b2b;"></i>
+                                            <?php echo htmlspecialchars($note_date); ?>
                                         </span>
                                         <span style="color: #666; font-size: 0.9rem;">
-                                            <i class="fas fa-clock" style="color: #999;"></i> <?php echo htmlspecialchars($note_time); ?>
+                                            <i class="fas fa-clock" style="color: #999;"></i>
+                                            <?php echo htmlspecialchars($note_time); ?>
                                         </span>
-                                        <span style="background: #fd2b2b; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
+                                        <span
+                                            style="background: #fd2b2b; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
                                             <?php echo htmlspecialchars($note['role_name']); ?>
                                         </span>
                                     </div>
                                     <div style="color: #999; font-size: 0.85rem; margin-bottom: 8px;">
-                                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($note['author_name']); ?> • <?php echo $created_at; ?>
+                                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($note['author_name']); ?>
+                                        • <?php echo $created_at; ?>
                                     </div>
                                 </div>
                                 <?php if ($is_important): ?>
@@ -842,19 +850,20 @@ try {
                                     </div>
                                 <?php endif; ?>
                             </div>
-                            
-                            <div style="color: #333; line-height: 1.6; font-size: 0.95rem; padding: 10px; background: rgba(255, 255, 255, 0.7); border-radius: 6px; margin-bottom: 8px;">
-                                <?php 
-                                    $note_text = htmlspecialchars($note['note']);
-                                    // Truncate long notes
-                                    if (strlen($note_text) > 150) {
-                                        echo substr($note_text, 0, 150) . '...';
-                                    } else {
-                                        echo $note_text;
-                                    }
+
+                            <div
+                                style="color: #333; line-height: 1.6; font-size: 0.95rem; padding: 10px; background: rgba(255, 255, 255, 0.7); border-radius: 6px; margin-bottom: 8px;">
+                                <?php
+                                $note_text = htmlspecialchars($note['note']);
+                                // Truncate long notes
+                                if (strlen($note_text) > 150) {
+                                    echo substr($note_text, 0, 150) . '...';
+                                } else {
+                                    echo $note_text;
+                                }
                                 ?>
                             </div>
-                            
+
                             <div style="text-align: right;">
                                 <span style="color: #fd2b2b; font-size: 0.85rem; font-weight: 600;">
                                     View Details <i class="fa fa-arrow-right"></i>
@@ -868,61 +877,67 @@ try {
 
         <!-- Recent Team Chat Messages Section -->
         <?php if (!empty($recent_messages)): ?>
-            <div class="dashboard-card" style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
+            <div class="dashboard-card"
+                style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3><i class="fas fa-comments"></i> Recent Messages</h3>
                     <a href="chat.php" style="color: #ff9800; text-decoration: none; font-size: 0.9rem; font-weight: 600;">
-                        Open Chat <?php if ($unread_chat_count > 0): ?><span style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px;"><?php echo $unread_chat_count; ?></span><?php endif; ?>
+                        Open Chat <?php if ($unread_chat_count > 0): ?><span
+                                style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px;"><?php echo $unread_chat_count; ?></span><?php endif; ?>
                     </a>
                 </div>
 
                 <div style="display: grid; gap: 12px;">
-                    <?php foreach ($recent_messages as $msg): 
+                    <?php foreach ($recent_messages as $msg):
                         $msg_time = date('M j, g:i A', strtotime($msg['created_at']));
                         $is_own = $msg['user_id'] == $user_id;
                         $channel_display = $msg['channel_type'] === 'direct' ? 'Direct Message' : htmlspecialchars($msg['channel_name']);
-                    ?>
+                        ?>
                         <div style="background: <?php echo $is_own ? 'linear-gradient(135deg, #ffebee 0%, #ffe0e5 100%)' : '#f9f9f9'; ?>; 
                                     padding: 15px 20px; 
                                     border-radius: 12px; 
                                     border-left: 4px solid <?php echo $is_own ? '#fd2b2b' : '#ff9800'; ?>; 
                                     transition: all 0.3s ease;
-                                    cursor: pointer;"
-                             onclick="window.location.href='chat.php'"
-                             onmouseover="this.style.boxShadow='0 4px 12px rgba(255, 152, 0, 0.2)'; this.style.transform='translateY(-2px)';"
-                             onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';">
-                            
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                    cursor: pointer;" onclick="window.location.href='chat.php'"
+                            onmouseover="this.style.boxShadow='0 4px 12px rgba(255, 152, 0, 0.2)'; this.style.transform='translateY(-2px)';"
+                            onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                                 <div style="flex: 1;">
                                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
                                         <span style="font-weight: 700; color: #333; font-size: 0.95rem;">
-                                            <i class="fas fa-<?php echo $msg['channel_type'] === 'direct' ? 'user' : 'users'; ?>" style="color: #ff9800;"></i> 
+                                            <i class="fas fa-<?php echo $msg['channel_type'] === 'direct' ? 'user' : 'users'; ?>"
+                                                style="color: #ff9800;"></i>
                                             <?php echo $channel_display; ?>
                                         </span>
                                         <?php if ($is_own): ?>
-                                            <span style="background: #fd2b2b; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                                            <span
+                                                style="background: #fd2b2b; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
                                                 You
                                             </span>
                                         <?php endif; ?>
                                     </div>
                                     <div style="color: #999; font-size: 0.85rem; margin-bottom: 8px;">
-                                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($msg['sender_name']); ?> • <?php echo $msg_time; ?>
+                                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($msg['sender_name']); ?>
+                                        • <?php echo $msg_time; ?>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <div style="color: #333; line-height: 1.6; font-size: 0.95rem; padding: 10px; background: rgba(255, 255, 255, 0.7); border-radius: 6px;">
-                                <?php 
-                                    $message_text = htmlspecialchars($msg['message']);
-                                    // Truncate long messages
-                                    if (strlen($message_text) > 150) {
-                                        echo substr($message_text, 0, 150) . '...';
-                                    } else {
-                                        echo $message_text;
-                                    }
+
+                            <div
+                                style="color: #333; line-height: 1.6; font-size: 0.95rem; padding: 10px; background: rgba(255, 255, 255, 0.7); border-radius: 6px;">
+                                <?php
+                                $message_text = htmlspecialchars($msg['message']);
+                                // Truncate long messages
+                                if (strlen($message_text) > 150) {
+                                    echo substr($message_text, 0, 150) . '...';
+                                } else {
+                                    echo $message_text;
+                                }
                                 ?>
                             </div>
-                            
+
                             <div style="text-align: right; margin-top: 8px;">
                                 <span style="color: #ff9800; font-size: 0.85rem; font-weight: 600;">
                                     Reply in Chat <i class="fa fa-arrow-right"></i>
@@ -933,9 +948,10 @@ try {
                 </div>
 
                 <div style="text-align: center; margin-top: 20px;">
-                    <a href="chat.php" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;"
-                       onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(255, 152, 0, 0.3)';"
-                       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <a href="chat.php"
+                        style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(255, 152, 0, 0.3)';"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                         <i class="fas fa-comments"></i> Open Team Chat
                     </a>
                 </div>
