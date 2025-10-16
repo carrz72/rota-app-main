@@ -20,6 +20,9 @@ header {
   justify-content: space-between;
   align-items: center;
   padding: 15px 20px;
+  padding-top: max(15px, env(safe-area-inset-top));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
   background-color: transparent;
   color: #000;
   position: relative;
@@ -500,22 +503,34 @@ label,
 
 /* iOS Standalone Mode Adjustments */
 @media (display-mode: standalone) {
+  header {
+    padding-top: max(20px, calc(env(safe-area-inset-top) + 10px));
+  }
+
   @media (max-width: 768px) {
     .nav-links {
-      top: 70px !important;
+      top: calc(70px + env(safe-area-inset-top)) !important;
       margin-top: 0 !important;
     }
   }
 
   @media (max-width: 480px) {
+    header {
+      padding-top: max(15px, calc(env(safe-area-inset-top) + 8px));
+    }
+
     .nav-links {
-      top: 65px !important;
+      top: calc(65px + env(safe-area-inset-top)) !important;
     }
   }
 
   @media (max-width: 360px) {
+    header {
+      padding-top: max(12px, calc(env(safe-area-inset-top) + 6px));
+    }
+
     .nav-links {
-      top: 60px !important;
+      top: calc(60px + env(safe-area-inset-top)) !important;
     }
   }
 }

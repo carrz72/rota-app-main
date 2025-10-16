@@ -4,8 +4,8 @@
   "short_name": "Rota",
   "start_url": "./index.php",
   "display": "standalone",
-  "background_color": "Grey",
-  "theme_color": "Grey",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "scope": "./",
   "icons": [
     {

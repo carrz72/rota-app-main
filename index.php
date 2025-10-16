@@ -47,6 +47,11 @@ if (isset($_SESSION['user_id'])) {
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            box-sizing: border-box;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         .landing-container {
@@ -58,6 +63,7 @@ if (isset($_SESSION['user_id'])) {
             text-align: center;
             max-width: 800px;
             width: 90%;
+            box-sizing: border-box;
         }
 
         .hero-section {
@@ -139,6 +145,12 @@ if (isset($_SESSION['user_id'])) {
             margin-bottom: 1rem;
         }
 
+        .logo img {
+            height: 60px;
+            width: auto;
+            max-width: 100%;
+        }
+
         .feature-icon {
             font-size: 2rem;
             color: #fd2b2b;
@@ -153,6 +165,114 @@ if (isset($_SESSION['user_id'])) {
             .feature-card {
                 flex: 1 1 100%;
             }
+
+            .btn {
+                display: block;
+                margin: 10px auto;
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .landing-container {
+                margin: 20px auto;
+                padding: 1.5rem;
+                width: 95%;
+            }
+
+            .logo img {
+                height: 55px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            }
+
+            .landing-container {
+                margin: 10px auto;
+                padding: 1rem;
+                width: 98%;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+                margin-bottom: 0.75rem;
+            }
+
+            p {
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .cta-buttons {
+                margin: 1.5rem 0;
+            }
+
+            .btn {
+                font-size: 1rem;
+                padding: 10px 20px;
+            }
+
+            .features {
+                gap: 1rem;
+            }
+
+            .feature-card {
+                padding: 1rem;
+            }
+
+            .feature-card h3 {
+                font-size: 1.1rem;
+            }
+
+            .feature-card p {
+                font-size: 0.95rem;
+            }
+
+            .feature-icon {
+                font-size: 1.5rem;
+            }
+
+            .logo img {
+                height: 50px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .landing-container {
+                padding: 0.75rem;
+                margin: 5px auto;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            p {
+                font-size: 0.95rem;
+            }
+
+            .btn {
+                font-size: 0.95rem;
+                padding: 8px 16px;
+            }
+
+            .feature-card {
+                padding: 0.75rem;
+            }
+
+            .feature-card h3 {
+                font-size: 1rem;
+            }
+
+            .feature-card p {
+                font-size: 0.9rem;
+            }
+
+            .logo img {
+                height: 45px;
+            }
         }
     </style>
 </head>
@@ -166,7 +286,7 @@ if (isset($_SESSION['user_id'])) {
         } catch (e) { /* ignore */ }
     </script>
     <main class="landing-container">
-        <div class="logo"><img src="images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
+        <div class="logo"><img src="images/new logo.png" alt="Open Rota"></div>
 
         <section class="hero-section">
             <h1>Manage Your Work Schedule</h1>
