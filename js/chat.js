@@ -332,14 +332,23 @@ function startChannelsPolling() {
 
 // Load messages for current channel
 function loadMessages() {
-    if (!currentChannelId) return;
+    if (!currentChannelId) {
+        console.log('loadMessages: No current channel ID');
+        return;
+    }
+
+    console.log('loadMessages: Loading messages for channel', currentChannelId);
 
     fetch(`../functions/chat_api.php?action=get_messages&channel_id=${currentChannelId}`)
         .then(response => response.json())
         .then(data => {
+            console.log('loadMessages: Response received', data);
             if (data.success) {
+                console.log('loadMessages: Displaying', data.messages.length, 'messages');
                 displayMessages(data.messages);
                 checkTyping();
+            } else {
+                console.error('loadMessages: Failed', data.message);
             }
         })
         .catch(error => {
@@ -350,8 +359,11 @@ function loadMessages() {
 // Display messages
 function displayMessages(messages) {
     const chatMessages = document.getElementById('chatMessages');
+    console.log('displayMessages: Called with', messages.length, 'messages');
+    console.log('displayMessages: chatMessages element:', chatMessages);
 
     if (messages.length === 0) {
+        console.log('displayMessages: No messages, showing empty state');
         chatMessages.innerHTML = `
             <div class="empty-state">
                 <i class="fa fa-comment-o"></i>
