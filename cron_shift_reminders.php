@@ -2,7 +2,7 @@
 /**
  * Shift Reminder Cron Job
  * Run this script every 15 minutes via cron:
- * */15 * * * * php /var/www/rota-app/cron_shift_reminders.php
+ * Example: * /15 * * * * php /var/www/rota-app/cron_shift_reminders.php
  */
 
 require_once __DIR__ . '/includes/db.php';
