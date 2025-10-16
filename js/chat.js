@@ -1623,7 +1623,7 @@ function showEditChannelModal(channel, members) {
                 <input type="text" id="addMemberInput" placeholder="Type username..." onkeyup="searchAddMemberByBranch(event, ${channel.id}, ${channel.branch_id})">
                 <div id="addMemberResults"></div>
             </div>
-        ` : '' }
+        ` : ''}
     `;
     modal.style.display = 'flex';
 }
