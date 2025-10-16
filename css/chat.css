@@ -1459,11 +1459,11 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg,#fd2b2b 0%,#c82333 100%);
+  background: linear-gradient(135deg, #fd2b2b 0%, #c82333 100%);
   border: none;
   color: white;
   font-size: 1.4rem;
-  box-shadow: 0 10px 30px rgba(200,35,51,0.25);
+  box-shadow: 0 10px 30px rgba(200, 35, 51, 0.25);
   cursor: pointer;
 }
 .mobile-fab #mobileFabMenu {
@@ -1472,13 +1472,19 @@ body {
   right: 0;
   background: white;
   border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
-.mobile-fab .combined-menu-item { display: block; padding: 8px 12px; white-space: nowrap; }
+.mobile-fab .combined-menu-item {
+  display: block;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
 
 @media (min-width: 701px) {
-  .mobile-fab { display: none; }
+  .mobile-fab {
+    display: none;
+  }
 }
 
 @media (min-width: 769px) {
