@@ -635,7 +635,18 @@ function checkTyping() {
 
 // Open new chat modal
 function openNewChatModal() {
-    document.getElementById('newChatModal').style.display = 'flex';
+    const modal = document.getElementById('newChatModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+
+    // show loading state while fetching users
+    const usersList = document.getElementById('usersList');
+    if (usersList) {
+        usersList.innerHTML = '<div class="loading"><i class="fa fa-spinner fa-spin"></i> Loading users...</div>';
+    }
+
+    // fetch users for DM
+    loadUsersForDM();
 }
 
 // Close new chat modal
@@ -645,15 +656,39 @@ function closeNewChatModal() {
 
 // Load users for direct message
 function loadUsersForDM() {
-    fetch('../functions/chat_channels_api.php?action=get_users_for_dm')
-        .then(response => response.json())
+    const usersList = document.getElementById('usersList');
+    const url = '../functions/chat_channels_api.php?action=get_users_for_dm';
+    console.log('Fetching users for DM:', url);
+
+    const controller = new AbortController();
+    const timeoutMs = 8000; // 8s timeout
+    const to = setTimeout(() => {
+        controller.abort();
+    }, timeoutMs);
+
+    fetch(url, { signal: controller.signal })
+        .then(response => {
+            clearTimeout(to);
+            console.log('get_users_for_dm response status:', response.status);
+            return response.json();
+        })
         .then(data => {
-            if (data.success) {
+            console.log('get_users_for_dm payload:', data);
+            if (data && data.success && Array.isArray(data.users)) {
                 displayUsers(data.users);
+            } else {
+                if (usersList) usersList.innerHTML = '<p style="text-align:center;color:#6c757d;">No users available</p>';
+                console.warn('get_users_for_dm returned no users or success=false', data);
             }
         })
         .catch(error => {
+            if (error.name === 'AbortError') {
+                console.error('get_users_for_dm request aborted (timeout)');
+                if (usersList) usersList.innerHTML = '<p style="text-align:center;color:#c82333;">Request timed out</p>';
+                return;
+            }
             console.error('Error loading users:', error);
+            if (usersList) usersList.innerHTML = '<p style="text-align:center;color:#c82333;">Failed to load users</p>';
         });
 }
 
@@ -666,22 +701,50 @@ function displayUsers(users) {
         return;
     }
 
-    let html = '';
+    // Clear current list
+    usersList.innerHTML = '';
     users.forEach(user => {
         const initials = user.username.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
 
-        html += `
-            <div class="user-item" onclick="createDirectMessage(${user.user_id}, '${escapeHtml(user.username)}')">
-                <div class="user-avatar">${initials}</div>
-                <div class="user-info">
-                    <div class="user-name">${escapeHtml(user.username)}</div>
-                    <div class="user-role">${escapeHtml(user.role || 'User')}</div>
-                </div>
-            </div>
-        `;
-    });
+        const item = document.createElement('div');
+        item.className = 'user-item';
+        item.tabIndex = 0;
 
-    usersList.innerHTML = html;
+        const avatar = document.createElement('div');
+        avatar.className = 'user-avatar';
+        avatar.textContent = initials;
+
+        const info = document.createElement('div');
+        info.className = 'user-info';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'user-name';
+        nameDiv.innerHTML = escapeHtml(user.username);
+
+        const roleDiv = document.createElement('div');
+        roleDiv.className = 'user-role';
+        roleDiv.innerHTML = escapeHtml(user.role || 'User');
+
+        info.appendChild(nameDiv);
+        info.appendChild(roleDiv);
+
+        item.appendChild(avatar);
+        item.appendChild(info);
+
+        item.addEventListener('click', function () {
+            createDirectMessage(user.user_id, user.username);
+        });
+
+        // Allow keyboard selection
+        item.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                createDirectMessage(user.user_id, user.username);
+            }
+        });
+
+        usersList.appendChild(item);
+    });
 }
 
 // Filter users by search
