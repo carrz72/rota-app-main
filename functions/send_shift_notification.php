@@ -232,3 +232,24 @@ function notifyShiftDeleted($user_id, $title, $body, $data = [])
 {
     return sendPushNotification($user_id, $title, $body, $data, 'shift_deleted');
 }
+
+/**
+ * Send notification for new shift note
+ */
+function notifyShiftNote($user_id, $note_details)
+{
+    $importance = $note_details['is_important'] ? '⭐ Important: ' : '';
+    $title = $importance . "New Shift Note";
+    $body = sprintf(
+        "%s left a note for your shift on %s: %s",
+        $note_details['author_name'],
+        $note_details['shift_date'],
+        strlen($note_details['note_preview']) > 80 ? substr($note_details['note_preview'], 0, 80) . '...' : $note_details['note_preview']
+    );
+
+    $data = [
+        'url' => '/users/shift_notes.php?shift_id=' . $note_details['shift_id']
+    ];
+
+    return sendPushNotification($user_id, $title, $body, $data, 'shift_updated');
+}

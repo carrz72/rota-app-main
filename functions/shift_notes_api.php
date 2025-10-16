@@ -1,13 +1,9 @@
 <?php
-/**
- * Shift Notes API - Manage shift handover notes
- * Handles: adding notes, viewing notes, marking important, deleting
- */
-
 session_start();
 require_once '../includes/db.php';
+require_once 'send_shift_notification.php';
 
-// Check authentication
+// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -15,98 +11,69 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
-
 header('Content-Type: application/json');
+
+// Get action
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 try {
     switch ($action) {
-        
-        // Get notes for a shift
         case 'get_notes':
-            $shift_id = (int)($_GET['shift_id'] ?? 0);
+            // Get all notes for a specific shift
+            $shift_id = (int) ($_GET['shift_id'] ?? 0);
             
-            if (!$shift_id) {
-                throw new Exception('Shift ID required');
+            if ($shift_id <= 0) {
+                throw new Exception('Invalid shift ID');
             }
             
-            // Get shift info first
-            $shiftStmt = $conn->prepare("
-                SELECT s.*, u.username, r.name as role_name
+            // Verify user has access to this shift (is assigned to it or is admin)
+            $accessStmt = $conn->prepare("
+                SELECT s.*, u.username, u.role as user_role
                 FROM shifts s
-                INNER JOIN users u ON s.user_id = u.id
-                INNER JOIN roles r ON s.role_id = r.id
+                JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
             ");
-            $shiftStmt->execute([$shift_id]);
-            $shift = $shiftStmt->fetch(PDO::FETCH_ASSOC);
+            $accessStmt->execute([$shift_id]);
+            $shift = $accessStmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$shift) {
                 throw new Exception('Shift not found');
             }
             
-            // Get notes
-            $notesStmt = $conn->prepare("
-                SELECT 
-                    sn.*,
-                    u.username as author_name,
-                    u.profile_picture as author_picture
-                FROM shift_notes sn
-                INNER JOIN users u ON sn.created_by = u.id
-                WHERE sn.shift_id = ?
-                ORDER BY sn.is_important DESC, sn.created_at DESC
-            ");
-            $notesStmt->execute([$shift_id]);
-            $notes = $notesStmt->fetchAll(PDO::FETCH_ASSOC);
+            $is_admin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin']);
+            $is_assigned = $shift['user_id'] == $user_id;
             
-            // Decode JSON attachments
-            foreach ($notes as &$note) {
-                if ($note['attachments']) {
-                    $note['attachments'] = json_decode($note['attachments'], true);
-                }
+            if (!$is_admin && !$is_assigned) {
+                throw new Exception('You do not have access to this shift');
             }
             
-            echo json_encode(['success' => true, 'shift' => $shift, 'notes' => $notes]);
+            // Get all notes for this shift
+            $stmt = $conn->prepare("
+                SELECT n.*, u.username as author_name
+                FROM shift_notes n
+                JOIN users u ON n.created_by = u.id
+                WHERE n.shift_id = ?
+                ORDER BY n.is_important DESC, n.created_at DESC
+            ");
+            $stmt->execute([$shift_id]);
+            $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            echo json_encode([
+                'success' => true,
+                'notes' => $notes,
+                'shift' => $shift,
+                'can_edit' => $is_admin
+            ]);
             break;
             
-        // Get notes for user's upcoming shifts
-        case 'get_my_shift_notes':
-            $limit = min((int)($_GET['limit'] ?? 10), 50);
-            
-            $query = "
-                SELECT 
-                    s.id as shift_id, s.shift_date, s.start_time, s.end_time, s.location,
-                    r.name as role_name,
-                    COUNT(sn.id) as note_count,
-                    SUM(sn.is_important) as important_count,
-                    MAX(sn.created_at) as latest_note_at
-                FROM shifts s
-                INNER JOIN roles r ON s.role_id = r.id
-                LEFT JOIN shift_notes sn ON sn.shift_id = s.id
-                WHERE s.user_id = ? 
-                AND s.shift_date >= CURDATE()
-                GROUP BY s.id
-                HAVING note_count > 0
-                ORDER BY s.shift_date ASC, s.start_time ASC
-                LIMIT ?
-            ";
-            
-            $stmt = $conn->prepare($query);
-            $stmt->execute([$user_id, $limit]);
-            $shifts_with_notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            echo json_encode(['success' => true, 'shifts' => $shifts_with_notes]);
-            break;
-            
-        // Add a new note
         case 'add_note':
-            $shift_id = (int)($_POST['shift_id'] ?? 0);
+            // Add a new note to a shift
+            $shift_id = (int) ($_POST['shift_id'] ?? 0);
             $note = trim($_POST['note'] ?? '');
-            $is_important = (int)($_POST['is_important'] ?? 0);
-            $is_private = (int)($_POST['is_private'] ?? 0);
+            $is_important = (int) ($_POST['is_important'] ?? 0);
             
-            if (!$shift_id) {
-                throw new Exception('Shift ID required');
+            if ($shift_id <= 0) {
+                throw new Exception('Invalid shift ID');
             }
             
             if (empty($note)) {
@@ -114,11 +81,11 @@ try {
             }
             
             if (strlen($note) > 5000) {
-                throw new Exception('Note too long (max 5000 characters)');
+                throw new Exception('Note is too long (max 5000 characters)');
             }
             
-            // Verify shift exists
-            $shiftStmt = $conn->prepare("SELECT user_id FROM shifts WHERE id = ?");
+            // Verify shift exists and user has access
+            $shiftStmt = $conn->prepare("SELECT user_id, shift_date, start_time, location FROM shifts WHERE id = ?");
             $shiftStmt->execute([$shift_id]);
             $shift = $shiftStmt->fetch(PDO::FETCH_ASSOC);
             
@@ -126,149 +93,119 @@ try {
                 throw new Exception('Shift not found');
             }
             
+            $is_admin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin']);
+            $is_assigned = $shift['user_id'] == $user_id;
+            
+            if (!$is_admin && !$is_assigned) {
+                throw new Exception('You can only add notes to your own shifts');
+            }
+            
             // Insert note
-            $insertStmt = $conn->prepare("
-                INSERT INTO shift_notes (shift_id, created_by, note, is_important, is_private)
-                VALUES (?, ?, ?, ?, ?)
+            $stmt = $conn->prepare("
+                INSERT INTO shift_notes (shift_id, created_by, note, is_important)
+                VALUES (?, ?, ?, ?)
             ");
-            $insertStmt->execute([$shift_id, $user_id, $note, $is_important, $is_private]);
+            $stmt->execute([$shift_id, $user_id, $note, $is_important]);
             $note_id = $conn->lastInsertId();
             
-            // Send notification to shift owner if different from creator
-            if ($shift['user_id'] != $user_id && !$is_private) {
-                require_once 'addNotification.php';
-                require_once 'send_shift_notification.php';
-                
+            // Send notification to shift worker if different from note author
+            if ($shift['user_id'] != $user_id && $shift['user_id']) {
                 $author_name = $_SESSION['username'] ?? 'Someone';
-                $message = "$author_name added a note to your shift";
-                if ($is_important) {
-                    $message .= " (marked important)";
-                }
+                $shift_date = date('M j', strtotime($shift['shift_date']));
+                $importance = $is_important ? ' (Important)' : '';
                 
-                addNotification($conn, $shift['user_id'], $message, 'shift_note', $shift_id);
-                
-                // Send push notification
-                $shiftInfoStmt = $conn->prepare("
-                    SELECT DATE_FORMAT(shift_date, '%M %d') as date_str, 
-                           DATE_FORMAT(start_time, '%h:%i %p') as time_str
-                    FROM shifts WHERE id = ?
-                ");
-                $shiftInfoStmt->execute([$shift_id]);
-                $shiftInfo = $shiftInfoStmt->fetch(PDO::FETCH_ASSOC);
-                
-                sendPushNotification(
+                notifyShiftNote(
                     $shift['user_id'],
-                    "New shift note" . ($is_important ? " ⭐" : ""),
-                    "{$author_name}: " . substr($note, 0, 50) . (strlen($note) > 50 ? '...' : ''),
-                    ['url' => '/users/shift_notes.php?shift_id=' . $shift_id]
+                    [
+                        'shift_id' => $shift_id,
+                        'author_name' => $author_name,
+                        'note_preview' => substr($note, 0, 100),
+                        'shift_date' => $shift_date,
+                        'is_important' => $is_important
+                    ]
                 );
             }
             
-            // Get the complete note data
-            $noteStmt = $conn->prepare("
-                SELECT sn.*, u.username as author_name, u.profile_picture as author_picture
-                FROM shift_notes sn
-                INNER JOIN users u ON sn.created_by = u.id
-                WHERE sn.id = ?
-            ");
-            $noteStmt->execute([$note_id]);
-            $newNote = $noteStmt->fetch(PDO::FETCH_ASSOC);
-            
-            echo json_encode(['success' => true, 'note' => $newNote, 'note_id' => $note_id]);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Note added successfully',
+                'note_id' => $note_id
+            ]);
             break;
             
-        // Toggle important status
         case 'toggle_important':
-            $note_id = (int)($_POST['note_id'] ?? 0);
-            $is_important = (int)($_POST['is_important'] ?? 0);
+            // Toggle the importance flag of a note
+            $note_id = (int) ($_POST['note_id'] ?? 0);
             
-            if (!$note_id) {
-                throw new Exception('Note ID required');
+            if ($note_id <= 0) {
+                throw new Exception('Invalid note ID');
             }
             
-            // Verify ownership or admin
-            $is_admin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin']);
-            
-            $checkStmt = $conn->prepare("SELECT created_by FROM shift_notes WHERE id = ?");
-            $checkStmt->execute([$note_id]);
-            $note = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            // Get note details
+            $noteStmt = $conn->prepare("SELECT created_by, is_important FROM shift_notes WHERE id = ?");
+            $noteStmt->execute([$note_id]);
+            $note = $noteStmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$note) {
                 throw new Exception('Note not found');
             }
             
-            if ($note['created_by'] != $user_id && !$is_admin) {
-                throw new Exception('Access denied');
+            $is_admin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin']);
+            $is_author = $note['created_by'] == $user_id;
+            
+            if (!$is_admin && !$is_author) {
+                throw new Exception('You can only modify your own notes');
             }
             
-            // Update
-            $updateStmt = $conn->prepare("UPDATE shift_notes SET is_important = ? WHERE id = ?");
-            $updateStmt->execute([$is_important, $note_id]);
+            // Toggle importance
+            $new_importance = $note['is_important'] ? 0 : 1;
+            $stmt = $conn->prepare("UPDATE shift_notes SET is_important = ? WHERE id = ?");
+            $stmt->execute([$new_importance, $note_id]);
             
-            echo json_encode(['success' => true, 'message' => 'Note updated']);
+            echo json_encode([
+                'success' => true,
+                'is_important' => $new_importance,
+                'message' => $new_importance ? 'Marked as important' : 'Unmarked as important'
+            ]);
             break;
             
-        // Delete a note
         case 'delete_note':
-            $note_id = (int)($_POST['note_id'] ?? 0);
+            // Delete a note
+            $note_id = (int) ($_POST['note_id'] ?? 0);
             
-            if (!$note_id) {
-                throw new Exception('Note ID required');
+            if ($note_id <= 0) {
+                throw new Exception('Invalid note ID');
             }
             
-            // Verify ownership or admin
-            $is_admin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin']);
-            
-            $checkStmt = $conn->prepare("SELECT created_by FROM shift_notes WHERE id = ?");
-            $checkStmt->execute([$note_id]);
-            $note = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            // Get note details
+            $noteStmt = $conn->prepare("SELECT created_by FROM shift_notes WHERE id = ?");
+            $noteStmt->execute([$note_id]);
+            $note = $noteStmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$note) {
                 throw new Exception('Note not found');
             }
             
-            if ($note['created_by'] != $user_id && !$is_admin) {
-                throw new Exception('Access denied');
+            $is_admin = in_array($_SESSION['role'] ?? '', ['admin', 'super_admin']);
+            $is_author = $note['created_by'] == $user_id;
+            
+            if (!$is_admin && !$is_author) {
+                throw new Exception('You can only delete your own notes');
             }
             
-            // Delete
-            $deleteStmt = $conn->prepare("DELETE FROM shift_notes WHERE id = ?");
-            $deleteStmt->execute([$note_id]);
+            // Delete note
+            $stmt = $conn->prepare("DELETE FROM shift_notes WHERE id = ?");
+            $stmt->execute([$note_id]);
             
-            echo json_encode(['success' => true, 'message' => 'Note deleted']);
-            break;
-            
-        // Get statistics
-        case 'get_stats':
-            $stats = [];
-            
-            // Total notes count
-            $totalStmt = $conn->query("SELECT COUNT(*) FROM shift_notes");
-            $stats['total_notes'] = $totalStmt->fetchColumn();
-            
-            // Important notes count
-            $importantStmt = $conn->query("SELECT COUNT(*) FROM shift_notes WHERE is_important = 1");
-            $stats['important_notes'] = $importantStmt->fetchColumn();
-            
-            // Notes this week
-            $weekStmt = $conn->query("
-                SELECT COUNT(*) FROM shift_notes 
-                WHERE YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)
-            ");
-            $stats['notes_this_week'] = $weekStmt->fetchColumn();
-            
-            // My notes
-            $myNotesStmt = $conn->prepare("SELECT COUNT(*) FROM shift_notes WHERE created_by = ?");
-            $myNotesStmt->execute([$user_id]);
-            $stats['my_notes'] = $myNotesStmt->fetchColumn();
-            
-            echo json_encode(['success' => true, 'stats' => $stats]);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Note deleted successfully'
+            ]);
             break;
             
         default:
             throw new Exception('Invalid action');
     }
-    
 } catch (Exception $e) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);

@@ -383,8 +383,10 @@ if ($user_id) {
         .shift-actions {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
+        .btn-notes,
         .editBtn,
         .deleteBtn,
         .swapBtn {
@@ -396,6 +398,18 @@ if ($user_id) {
             align-items: center;
             gap: 5px;
             font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-notes {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .btn-notes:hover {
+            background-color: #f57c00;
+            transform: translateY(-1px);
         }
 
         .editBtn {
@@ -403,14 +417,26 @@ if ($user_id) {
             color: white;
         }
 
+        .editBtn:hover {
+            background-color: #0056b3;
+        }
+
         .deleteBtn {
             background-color: #dc3545;
             color: white;
         }
 
+        .deleteBtn:hover {
+            background-color: #c82333;
+        }
+
         .swapBtn {
             background-color: #6c757d;
             color: white;
+        }
+
+        .swapBtn:hover {
+            background-color: #545b62;
         }
 
         /* Modal Styles */
@@ -1565,6 +1591,11 @@ if ($user_id) {
                                     <!-- Actions -->
                                     <td>
                                         <div class="shift-actions">
+                                            <a href="shift_notes.php?shift_id=<?php echo $shift['id']; ?>" 
+                                               class="btn-notes" 
+                                               title="View shift notes and handover">
+                                                <i class="fa fa-sticky-note"></i> Notes
+                                            </a>
                                             <button class="editBtn" data-id="<?php echo $shift['id']; ?>">
                                                 <i class="fa fa-pencil"></i> Edit
                                             </button>

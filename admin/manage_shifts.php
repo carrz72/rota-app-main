@@ -358,6 +358,10 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                                         <strong>£<?php echo number_format(calculatePay($conn, $shift['id']), 2); ?></strong>
                                     </td>
                                     <td class="actions" data-label="Actions">
+                                        <a href="../users/shift_notes.php?shift_id=<?php echo $shift['id']; ?>"
+                                            class="admin-btn" style="background: #ff9800;" title="View shift notes">
+                                            <i class="fas fa-sticky-note"></i>
+                                        </a>
                                         <a href="edit_shift.php?id=<?php echo $shift['id']; ?>&return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>"
                                             class="admin-btn" title="Edit shift">
                                             <i class="fas fa-edit"></i>
