@@ -26,6 +26,34 @@ document.addEventListener('DOMContentLoaded', function () {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
     });
+
+    const createChannelForm = document.getElementById('createChannelForm');
+    if (createChannelForm) {
+        createChannelForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const name = document.getElementById('channelName').value.trim();
+            const type = document.getElementById('channelType').value;
+            if (!name || !type) return;
+            fetch('../functions/chat_channels_api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=create_channel&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        closeCreateChannelModal();
+                        loadChannels();
+                    } else {
+                        alert('Failed to create channel: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    alert('Error creating channel');
+                    console.error(error);
+                });
+        });
+    }
 });
 
 /* =======================================
@@ -605,7 +633,6 @@ function checkTyping() {
 // Open new chat modal
 function openNewChatModal() {
     document.getElementById('newChatModal').style.display = 'flex';
-    loadUsersForDM();
 }
 
 // Close new chat modal
@@ -693,6 +720,20 @@ function createDirectMessage(userId, username) {
             console.error('Error creating direct message:', error);
             alert('Error creating direct message');
         });
+}
+
+/* =======================================
+   CREATE CHANNEL
+   ======================================= */
+
+// Open create channel modal
+function openCreateChannelModal() {
+    document.getElementById('createChannelModal').style.display = 'flex';
+}
+
+// Close create channel modal
+function closeCreateChannelModal() {
+    document.getElementById('createChannelModal').style.display = 'none';
 }
 
 /* =======================================

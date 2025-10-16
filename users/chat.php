@@ -171,7 +171,14 @@ if (!$userInitial) {
                                 title="Start a direct message">
                                 <i class="fa fa-plus"></i>
                             </button>
-                            <button type="button" class="btn-close-sidebar" onclick="closeSidebar()" title="Close sidebar">
+                            <?php if ($is_admin): ?>
+                                <button type="button" class="btn-new-chat" onclick="openCreateChannelModal()"
+                                    title="Create Channel">
+                                    <i class="fa fa-plus-square"></i>
+                                </button>
+                            <?php endif; ?>
+                            <button type="button" class="btn-close-sidebar" onclick="closeSidebar()"
+                                title="Close sidebar">
                                 <i class="fa fa-times"></i>
                             </button>
                         </div>
@@ -281,6 +288,38 @@ if (!$userInitial) {
 
         <!-- New Chat Modal -->
         <div class="modal-overlay" id="newChatModal" style="display: none;">
+            <!-- Create Channel Modal (Admin only) -->
+            <?php if ($is_admin): ?>
+                <div class="modal-overlay" id="createChannelModal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3><i class="fa fa-plus-square"></i> Create Channel</h3>
+                            <button class="modal-close" onclick="closeCreateChannelModal()">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+                        <form id="createChannelForm">
+                            <div class="form-group">
+                                <label for="channelName">Channel Name</label>
+                                <input type="text" id="channelName" name="channelName" required maxlength="40"
+                                    placeholder="Enter channel name">
+                            </div>
+                            <div class="form-group">
+                                <label for="channelType">Channel Type</label>
+                                <select id="channelType" name="channelType" required>
+                                    <option value="general">Team Channel</option>
+                                    <option value="branch">Branch Huddle</option>
+                                    <option value="role">Role Group</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <button type="submit" class="chat-hero-btn" style="width:100%"><i
+                                        class="fa fa-plus-square"></i> Create Channel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            <?php endif; ?>
             <div class="modal-content">
                 <div class="modal-header">
                     <h3><i class="fa fa-user-plus"></i> Start Direct Message</h3>
