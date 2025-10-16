@@ -741,25 +741,26 @@ function loadChannels() {
            UTILITY FUNCTIONS
            ======================================= */
 
-        // Toggle mobile sidebar
-        function toggleSidebar() {
-            const sidebar = document.getElementById('chatSidebar');
-            console.log('toggleSidebar called', sidebar);
-            if (sidebar) {
-                sidebar.classList.toggle('mobile-open');
-                console.log('mobile-open class toggled. Now:', sidebar.classList);
-            } else {
-                console.warn('Sidebar element not found!');
-            }
-        }
+// Toggle mobile sidebar
+window.toggleSidebar = function() {
+    const sidebar = document.getElementById('chatSidebar');
+    console.log('toggleSidebar called', sidebar);
+    if (sidebar) {
+        sidebar.classList.toggle('mobile-open');
+        console.log('mobile-open class toggled. Now:', sidebar.classList);
+    } else {
+        console.warn('Sidebar element not found!');
+    }
+}
 
-        // Close mobile sidebar
-        function closeSidebar() {
-            const sidebar = document.getElementById('chatSidebar');
-            if (sidebar) {
-                sidebar.classList.remove('mobile-open');
-            }
-        }// Mute/unmute channel
+// Close mobile sidebar
+window.closeSidebar = function() {
+    const sidebar = document.getElementById('chatSidebar');
+    if (sidebar) {
+        sidebar.classList.remove('mobile-open');
+    }
+}
+// Mute/unmute channel
         function toggleMuteChannel() {
             if (!currentChannelId) return;
 
