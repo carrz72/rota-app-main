@@ -1690,12 +1690,11 @@ span {
 
   /* Critical: iOS Safari treats 100vw differently - it includes scrollbar */
   .dashboard-container {
-    width: 100%;
-    max-width: 100%;
+    width: calc(100% - 30px);
+    max-width: calc(100% - 30px);
     overflow-x: hidden;
-    padding: 15px;
-    padding-right: max(15px, env(safe-area-inset-right));
-    padding-left: max(15px, env(safe-area-inset-left));
+    margin: 0 15px;
+    padding: 10px;
     box-sizing: border-box;
   }
 
@@ -1816,12 +1815,10 @@ span {
   }
 
   .dashboard-container {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
+    width: calc(100% - 20px) !important;
+    max-width: calc(100% - 20px) !important;
+    margin: 0 10px !important;
     padding: 10px !important;
-    padding-right: max(15px, env(safe-area-inset-right)) !important;
-    padding-left: max(15px, env(safe-area-inset-left)) !important;
     overflow-x: hidden !important;
     box-sizing: border-box !important;
   }
@@ -1832,7 +1829,7 @@ span {
     margin-bottom: 15px !important;
     margin-right: 0 !important;
     margin-left: 0 !important;
-    padding: 15px !important;
+    padding: 12px !important;
     overflow-x: hidden !important;
     box-sizing: border-box !important;
   }
@@ -1840,8 +1837,6 @@ span {
   .table-wrapper {
     width: 100% !important;
     overflow-x: auto !important;
-    margin-right: -5px !important;
-    padding-right: 5px !important;
   }
 
   .next-shift-details,
@@ -1849,25 +1844,13 @@ span {
   .earnings-stats {
     width: 100% !important;
     max-width: 100% !important;
-    padding-right: 5px !important;
     box-sizing: border-box !important;
-  }
-
-  .next-shift-details {
-    padding: 12px !important;
   }
 
   /* Force all children to respect boundaries */
   .dashboard-card * {
     max-width: 100% !important;
     box-sizing: border-box !important;
-  }
-
-  /* Ensure text doesn't get cut off */
-  .next-shift-meta span,
-  .earnings-stat-label,
-  .earnings-stat-value {
-    padding-right: 5px !important;
   }
 }
 
