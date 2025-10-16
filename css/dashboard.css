@@ -2425,4 +2425,92 @@ span {
   .welcome-card p {
     font-size: 0.9rem;
   }
+  
+  /* Fix shifts section on mobile */
+  .shifts-section {
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  
+  .dashboard-card {
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  
+  /* Fix next shift details */
+  .next-shift-details {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .next-shift-info {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .next-shift-meta {
+    font-size: 13px;
+  }
+  
+  /* Fix upcoming shifts table */
+  .upcoming-shifts-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .upcoming-shifts-table th,
+  .upcoming-shifts-table td {
+    padding: 8px 6px;
+    font-size: 12px;
+    min-width: 70px;
+  }
+}
+
+/* Additional fixes for very small screens */
+@media (max-width: 360px) {
+  .dashboard-container {
+    padding: 8px;
+    gap: 10px;
+  }
+  
+  .welcome-card {
+    padding: 12px;
+  }
+  
+  .welcome-card h1 {
+    font-size: 1.3rem;
+  }
+  
+  .welcome-actions a {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+  
+  .quick-action-card {
+    padding: 12px;
+  }
+  
+  .analytics-card {
+    padding: 10px;
+  }
+  
+  .dashboard-card {
+    padding: 10px;
+  }
+  
+  .next-shift-meta {
+    font-size: 12px;
+  }
+  
+  .upcoming-shifts-table th,
+  .upcoming-shifts-table td {
+    padding: 6px 4px;
+    font-size: 11px;
+    min-width: 60px;
+  }
 }
