@@ -1664,58 +1664,172 @@ span {
     ======================================= */
 @supports (-webkit-touch-callout: none) {
   /* All iOS Safari devices */
+  html {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+
   body {
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
+    width: 100%;
+    position: relative;
   }
 
+  /* Critical: iOS Safari treats 100vw differently - it includes scrollbar */
   .dashboard-container {
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
     padding: 15px;
+    box-sizing: border-box;
   }
 
   .dashboard-card {
+    width: 100%;
     max-width: 100%;
     overflow-x: hidden;
     box-sizing: border-box;
   }
 
   .table-wrapper {
+    width: 100%;
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
   }
 
   .upcoming-shifts-table {
     min-width: 400px;
+    max-width: none;
   }
 
-  /* Fix for grid column spanning */
+  /* Fix for grid column spanning - critical for iOS */
   .dashboard-card[style*="grid-column"] {
+    width: 100%;
     max-width: 100%;
+    grid-column: 1 / -1;
   }
 
   /* Next shift details specific fixes */
   .next-shift-details {
+    width: 100%;
     max-width: 100%;
     overflow: hidden;
     word-wrap: break-word;
+    box-sizing: border-box;
+  }
+
+  .next-shift-info {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .next-shift-meta {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .next-shift-meta span {
     word-break: break-word;
     overflow-wrap: break-word;
+    max-width: 100%;
   }
 
   /* Earnings section */
   .earnings-stats {
+    width: 100%;
     max-width: 100%;
+    box-sizing: border-box;
   }
 
   .earnings-stat-box {
     overflow: hidden;
     word-wrap: break-word;
+    box-sizing: border-box;
+  }
+
+  /* Critical iOS fix: prevent any child from exceeding viewport */
+  .dashboard-container > * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Welcome card iOS fix */
+  .welcome-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Quick actions iOS fix */
+  .quick-actions-section {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .quick-actions-panel {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* =======================================
+    12B. ADDITIONAL IPHONE MOBILE FIXES
+    ======================================= */
+@media only screen 
+  and (max-width: 480px) 
+  and (-webkit-min-device-pixel-ratio: 2) {
+  /* Target iPhone specifically */
+  html {
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+
+  body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .dashboard-container {
+    width: calc(100% - 20px) !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 10px !important;
+    overflow-x: hidden !important;
+  }
+
+  .dashboard-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-bottom: 15px !important;
+    overflow-x: hidden !important;
+  }
+
+  .table-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  .next-shift-details,
+  .next-shift-info,
+  .earnings-stats {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Force all children to respect boundaries */
+  .dashboard-card * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 

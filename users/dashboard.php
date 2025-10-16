@@ -239,6 +239,19 @@ foreach ($ytd_shifts as $shift) {
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../css/dark_mode.css?v=<?php echo time(); ?>">
     <style>
+        /* Critical iOS Safari fix - prevent horizontal overflow */
+        @supports (-webkit-touch-callout: none) {
+            html, body {
+                overflow-x: hidden !important;
+                width: 100% !important;
+                position: relative !important;
+            }
+            * {
+                max-width: 100vw !important;
+                box-sizing: border-box !important;
+            }
+        }
+        
         [data-theme="dark"] .page-header,
         [data-theme="dark"] .current-branch-info {
             background: transparent !important;
@@ -267,7 +280,7 @@ foreach ($ytd_shifts as $shift) {
     <title>Dashboard - Open Rota</title>
 </head>
 
-<body style="overflow-x: hidden; max-width: 100vw;">
+<body style="overflow-x: hidden; width: 100%; position: relative;">
     <!-- Header -->
     <?php
     // Retrieve the notification count from the database
@@ -343,7 +356,7 @@ foreach ($ytd_shifts as $shift) {
         </div>
     </header>
 
-    <div class="dashboard-container" style="max-width: 100vw; overflow-x: hidden; box-sizing: border-box;">
+    <div class="dashboard-container" style="width: 100%; overflow-x: hidden; box-sizing: border-box;">
         <!-- Welcome Card -->
         <div class="welcome-card">
             <div class="welcome-text">
