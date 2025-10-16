@@ -114,23 +114,13 @@ try {
                 $role_name = $roleRow ? $roleRow['name'] : 'Shift';
 
                 // Send notification in background (won't block response)
-                if (function_exists('fastcgi_finish_request')) {
-                    // For PHP-FPM, send response first
-                    register_shutdown_function(function () use ($edited_user_id, $admin_name, $role_name, $formatted_date, $shift_id) {
-                        require_once __DIR__ . '/send_shift_notification.php';
-                        $title = "Shift Updated";
-                        $body = "$admin_name updated your $role_name shift on $formatted_date";
-                        $data = ['url' => '/users/shifts.php', 'shift_id' => $shift_id];
-                        sendPushNotification($edited_user_id, $title, $body, $data);
-                    });
-                } else {
-                    // For Apache mod_php, send immediately with timeout
+                register_shutdown_function(function () use ($edited_user_id, $admin_name, $role_name, $formatted_date, $shift_id) {
                     require_once __DIR__ . '/send_shift_notification.php';
                     $title = "Shift Updated";
                     $body = "$admin_name updated your $role_name shift on $formatted_date";
                     $data = ['url' => '/users/shifts.php', 'shift_id' => $shift_id];
                     notifyShiftUpdated($edited_user_id, $title, $body, $data);
-                }
+                });
             } catch (Exception $e) {
                 error_log("Failed to send push notification: " . $e->getMessage());
             }
