@@ -195,21 +195,34 @@ if ($action === 'accept') {
         $roleStmt2->execute([$swap['from_shift_id']]);
         $fromRole = $roleStmt2->fetch(PDO::FETCH_ASSOC);
 
-        // Notify proposer
+        // Prepare notification details
         $proposerDetails = [
             'shift_date' => $toShift['shift_date'],
             'start_time' => $toShift['start_time'],
             'role_name' => $toRole ? $toRole['name'] : 'Shift'
         ];
-        notifyCoverageApproved($swap['from_user_id'], $proposerDetails);
 
-        // Notify recipient
         $recipientDetails = [
             'shift_date' => $fromShift['shift_date'],
             'start_time' => $fromShift['start_time'],
             'role_name' => $fromRole ? $fromRole['name'] : 'Shift'
         ];
-        notifyCoverageApproved($swap['to_user_id'], $recipientDetails);
+
+        $from_user = $swap['from_user_id'];
+        $to_user = $swap['to_user_id'];
+
+        // Send push notifications in background (won't block response)
+        register_shutdown_function(function () use ($from_user, $to_user, $proposerDetails, $recipientDetails) {
+            require_once __DIR__ . '/send_shift_notification.php';
+            try {
+                // Notify proposer
+                notifyCoverageApproved($from_user, $proposerDetails);
+                // Notify recipient
+                notifyCoverageApproved($to_user, $recipientDetails);
+            } catch (Exception $e) {
+                error_log("Failed to send push notification: " . $e->getMessage());
+            }
+        });
     } catch (Exception $e) {
         error_log("Failed to send push notification: " . $e->getMessage());
     }

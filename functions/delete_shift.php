@@ -73,17 +73,19 @@ if ($stmt->execute($execute_params)) {
             $message = "$admin_name removed your shift on $formatted_date at $formatted_time";
             addNotification($conn, $affected_user_id, $message, "shift_update");
 
-            // Send push notification
+            // Send push notification (non-blocking)
             try {
-                require_once __DIR__ . '/send_shift_notification.php';
-
                 $title = "Shift Removed";
                 $body = "$admin_name removed your {$shift_data['role_name']} shift on $formatted_date";
                 $data = [
                     'url' => '/users/shifts.php'
                 ];
 
-                notifyShiftDeleted($affected_user_id, $title, $body, $data);
+                // Send notification in background (won't block response)
+                register_shutdown_function(function () use ($affected_user_id, $title, $body, $data) {
+                    require_once __DIR__ . '/send_shift_notification.php';
+                    notifyShiftDeleted($affected_user_id, $title, $body, $data);
+                });
             } catch (Exception $e) {
                 error_log("Failed to send push notification: " . $e->getMessage());
             }

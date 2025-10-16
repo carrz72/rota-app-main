@@ -188,8 +188,6 @@ try {
                 // Send push notification for new shift assignment (only if assigning to another user)
                 if ($user_id != $session_user_id) {
                     try {
-                        require_once __DIR__ . '/send_shift_notification.php';
-
                         // Get role name
                         $roleStmt = $conn->prepare("SELECT name FROM roles WHERE id = ?");
                         $roleStmt->execute([$role_id]);
@@ -203,7 +201,11 @@ try {
                             'role_name' => $role_name
                         ];
 
-                        notifyShiftAssigned($user_id, $shift_details);
+                        // Send notification in background (won't block response)
+                        register_shutdown_function(function () use ($user_id, $shift_details) {
+                            require_once __DIR__ . '/send_shift_notification.php';
+                            notifyShiftAssigned($user_id, $shift_details);
+                        });
                     } catch (Exception $e) {
                         error_log("Failed to send push notification: " . $e->getMessage());
                     }

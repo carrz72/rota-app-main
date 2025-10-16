@@ -172,26 +172,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 foreach ($allUsers as $user) {
                     // Send a notification to each user.
                     addNotification($conn, $user['id'], $notif_message, "shift-invite", $invitation_id);
-
-                    // Send push notification
-                    try {
-                        require_once __DIR__ . '/send_shift_notification.php';
-                        notifyShiftInvitation($user['id'], $shift_details);
-                    } catch (Exception $e) {
-                        error_log("Failed to send push notification: " . $e->getMessage());
-                    }
                 }
+
+                // Send push notifications in background (won't block response)
+                $user_ids = array_column($allUsers, 'id');
+                register_shutdown_function(function () use ($user_ids, $shift_details) {
+                    require_once __DIR__ . '/send_shift_notification.php';
+                    foreach ($user_ids as $uid) {
+                        try {
+                            notifyShiftInvitation($uid, $shift_details);
+                        } catch (Exception $e) {
+                            error_log("Failed to send push notification: " . $e->getMessage());
+                        }
+                    }
+                });
             } else {
                 // Single user invitation.
                 addNotification($conn, $invited_user_id, $notif_message, "shift-invite", $invitation_id);
 
-                // Send push notification
-                try {
+                // Send push notification in background (won't block response)
+                register_shutdown_function(function () use ($invited_user_id, $shift_details) {
                     require_once __DIR__ . '/send_shift_notification.php';
-                    notifyShiftInvitation($invited_user_id, $shift_details);
-                } catch (Exception $e) {
-                    error_log("Failed to send push notification: " . $e->getMessage());
-                }
+                    try {
+                        notifyShiftInvitation($invited_user_id, $shift_details);
+                    } catch (Exception $e) {
+                        error_log("Failed to send push notification: " . $e->getMessage());
+                    }
+                });
             }
 
             // Audit: shift invitation created
