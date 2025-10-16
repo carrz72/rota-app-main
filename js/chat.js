@@ -425,25 +425,25 @@ function displayMessages(messages) {
                 `;
             });
             reactionsHtml += '</div>';
-// Remove reaction from message
-function removeReaction(messageId, emoji) {
-    fetch('../functions/chat_api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=remove_reaction&message_id=${messageId}&emoji=${encodeURIComponent(emoji)}`
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                loadMessages();
-            } else {
-                console.error('Failed to remove reaction:', data.message);
+            // Remove reaction from message
+            function removeReaction(messageId, emoji) {
+                fetch('../functions/chat_api.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=remove_reaction&message_id=${messageId}&emoji=${encodeURIComponent(emoji)}`
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadMessages();
+                        } else {
+                            console.error('Failed to remove reaction:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error removing reaction:', error);
+                    });
             }
-        })
-        .catch(error => {
-            console.error('Error removing reaction:', error);
-        });
-}
         }
 
         const messageHtml = escapeHtml(message.message || '').replace(/\n/g, '<br>');
