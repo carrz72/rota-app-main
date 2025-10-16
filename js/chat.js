@@ -416,15 +416,17 @@ function displayMessages(messages) {
             reactionSummary.forEach((count, emoji) => {
                 const users = reactionUsers.get(emoji) || [];
                 const tooltip = users.length > 0 ? `${users.join(', ')}` : `${count} reaction${count === 1 ? '' : 's'}`;
-                // If the current user has reacted, allow them to remove their reaction by clicking
+                // If the current user has reacted, allow them to remove their reaction by clicking or tapping
                 const isOwnReaction = typeof CURRENT_USERNAME !== 'undefined' && users.includes(CURRENT_USERNAME);
+                const removeHandler = isOwnReaction ? `onclick=\"removeReaction(${message.id}, '${emoji}')\" ontouchstart=\"removeReaction(${message.id}, '${emoji}')\"` : '';
                 reactionsHtml += `
-                    <span class="reaction-item${isOwnReaction ? ' own-reaction' : ''}" title="${escapeAttribute(tooltip)}" ${isOwnReaction ? `onclick=\"removeReaction(${message.id}, '${emoji}')\"` : ''}>
+                    <span class="reaction-item${isOwnReaction ? ' own-reaction' : ''}" title="${escapeAttribute(tooltip)}" ${removeHandler}>
                         ${emoji} ${count}
                     </span>
                 `;
             });
             reactionsHtml += '</div>';
+            // Remove reaction from message
             // Remove reaction from message
             function removeReaction(messageId, emoji) {
                 fetch('../functions/chat_api.php', {

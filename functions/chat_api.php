@@ -237,7 +237,7 @@ try {
                 addNotification(
                     $conn,
                     $member['user_id'],
-                    "\uD83D\uDCAC {$sender_name} in {$channel['name']}: {$message_preview}",
+                    "{$sender_name} in {$channel['name']}: {$message_preview}",
                     'chat'
                 );
                 // Send push notification
