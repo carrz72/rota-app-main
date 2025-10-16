@@ -859,6 +859,7 @@ foreach ($ytd_shifts as $shift) {
     <script src="../js/darkmode.js"></script>
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>
+    <script src="../js/push-notifications.js"></script>
     
     <!-- Chart.js Initialization -->
     <script>
