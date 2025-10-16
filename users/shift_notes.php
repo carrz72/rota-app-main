@@ -78,34 +78,74 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
 </head>
 
 <body>
+    <?php
+    // Retrieve the notification count from the database
+    $notifications = [];
+    $notificationCount = 0;
+    if ($user_id) {
+        require_once '../includes/notifications.php';
+        $notifications = getNotifications($user_id);
+        $notificationCount = count($notifications);
+    }
+    ?>
     <header>
-        <div class="top-bar">
-            <button class="menu-toggle" id="menu-toggle">
-                <i class="fa fa-bars"></i>
-            </button>
-            <h2 class="page-title"><i class="fas fa-sticky-note"></i> Shift Notes</h2>
-            <a href="shifts.php" class="btn-back">
+        <div class="logo"><img src="../images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
+        <div class="nav-group">
+            <!-- Notification Icon -->
+            <div class="notification-container">
+                <i class="fa fa-bell notification-icon" id="notification-icon" aria-label="Notifications"></i>
+                <?php if ($notificationCount > 0): ?>
+                    <span class="notification-badge"><?php echo $notificationCount; ?></span>
+                <?php endif; ?>
+                <div class="notification-dropdown" id="notification-dropdown">
+                    <?php if (count($notifications) > 0): ?>
+                        <?php foreach ($notifications as $notification): ?>
+                            <div class="notification-item">
+                                <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                <button class="close-btn"
+                                    onclick="markAsRead(<?php echo $notification['id']; ?>)">&times;</button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="notification-item">
+                            <p>No new notifications</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <!-- Menu Toggle -->
+            <i class="fa fa-bars menu-toggle" id="menu-toggle" aria-label="Menu"></i>
+        </div>
+        <!-- Navigation Menu -->
+        <nav class="nav-links" id="nav-links">
+            <ul>
+                <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
+                <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
+                <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
+                <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
+                <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+                <?php if ($is_admin): ?>
+                    <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                <?php endif; ?>
+                <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Page Title Bar -->
+    <div style="background: linear-gradient(135deg, #fd2b2b 0%, #c82333 100%); padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(253, 43, 43, 0.3);">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 15px;">
+            <a href="shifts.php" style="color: white; text-decoration: none; font-size: 1.5rem; transition: transform 0.3s ease;" 
+               onmouseover="this.style.transform='translateX(-5px)'" 
+               onmouseout="this.style.transform='translateX(0)'">
                 <i class="fa fa-arrow-left"></i>
             </a>
+            <h2 style="color: white; margin: 0; font-size: 1.6rem; font-weight: 700; font-family: 'newFont', sans-serif;">
+                <i class="fas fa-sticky-note"></i> Shift Notes
+            </h2>
         </div>
-
-        <div class="mobile-menu" id="mobile-menu">
-            <nav>
-                <ul>
-                    <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
-                    <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
-                    <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
-                    <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
-                    <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
-                    <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-                    <?php if ($is_admin): ?>
-                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
-                    <?php endif; ?>
-                    <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+    </div>
 
     <div class="shift-notes-container">
         <!-- Shift Info Card -->
@@ -263,43 +303,22 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
             // Filter buttons
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
-        function loadNotes() {
-            fetch(`../functions/shift_notes_api.php?action=get_notes&shift_id=${shiftId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        allNotes = data.notes;
-                        updateStats();
-                        displayNotes();
-                    } else {
-                        showError(data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showError('Failed to load notes');
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    displayNotes();
                 });
-        }
+            });
 
-        function updateStats() {
-            const totalNotes = allNotes.length;
-            const importantNotes = allNotes.filter(note => note.is_important == 1).length;
-            const contributors = new Set(allNotes.map(note => note.created_by)).size;
-
-            document.getElementById('totalNotes').textContent = totalNotes;
-            document.getElementById('importantNotes').textContent = importantNotes;
-            document.getElementById('contributorCount').textContent = contributors;
-            document.getElementById('allCount').textContent = totalNotes;
-            document.getElementById('importantCount').textContent = importantNotes;
-
-            // Show/hide stats bar
-            const statsBar = document.getElementById('notesStats');
-            if (totalNotes > 0) {
-                statsBar.style.display = 'flex';
-            } else {
-                statsBar.style.display = 'none';
-            }
-        }   });
+            // Scroll to top button
+            window.addEventListener('scroll', function () {
+                const scrollTop = document.getElementById('scrollTop');
+                if (window.pageYOffset > 300) {
+                    scrollTop.classList.add('show');
+                } else {
+                    scrollTop.classList.remove('show');
+                }
+            });
 
             // Close confirm dialog on backdrop click
             document.getElementById('confirmDialog').addEventListener('click', function (e) {
@@ -453,25 +472,13 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
         }
 
         function deleteNote(noteId) {
-            noteToDelete = noteId;
-            showConfirmDialog();
-        }
-
-        function showConfirmDialog() {
-            document.getElementById('confirmDialog').classList.add('show');
-        }
-
-        function hideConfirmDialog() {
-            document.getElementById('confirmDialog').classList.remove('show');
-            noteToDelete = null;
-        }
-
-        function confirmDelete() {
-            if (!noteToDelete) return;
+            if (!confirm('Are you sure you want to delete this note?')) {
+                return;
+            }
 
             const formData = new FormData();
             formData.append('action', 'delete_note');
-            formData.append('note_id', noteToDelete);
+            formData.append('note_id', noteId);
 
             fetch('../functions/shift_notes_api.php', {
                 method: 'POST',
@@ -480,26 +487,16 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showSuccess('Note deleted successfully');
-                        hideConfirmDialog();
+                        showSuccess('Note deleted');
                         loadNotes();
                     } else {
                         showError(data.message);
-                        hideConfirmDialog();
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     showError('Failed to delete note');
-                    hideConfirmDialog();
                 });
-        }
-
-        function scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
         }
 
         function showSuccess(message) {
@@ -529,10 +526,61 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
             return div.innerHTML;
         }
 
-        // Mobile menu toggle
-        document.getElementById('menu-toggle').addEventListener('click', function () {
-            document.getElementById('mobile-menu').classList.toggle('active');
+        // ========== NAVIGATION MENU FUNCTIONS ==========
+
+        // Menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+
+        menuToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            navLinks.classList.toggle('show');
         });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
+                navLinks.classList.remove('show');
+            }
+        });
+
+        // Notification toggle
+        const notificationIcon = document.getElementById('notification-icon');
+        const notificationDropdown = document.getElementById('notification-dropdown');
+
+        if (notificationIcon) {
+            notificationIcon.addEventListener('click', function (e) {
+                e.stopPropagation();
+                notificationDropdown.style.display =
+                    notificationDropdown.style.display === 'block' ? 'none' : 'block';
+            });
+        }
+
+        // Close notification dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (notificationDropdown && !notificationDropdown.contains(e.target) &&
+                !notificationIcon.contains(e.target)) {
+                notificationDropdown.style.display = 'none';
+            }
+        });
+
+        // Mark notification as read
+        function markAsRead(notificationId) {
+            fetch('../functions/mark_notification.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id=' + notificationId
+            })
+                .then(response => response.text())
+                .then(data => {
+                    location.reload(); // Reload to update notification count
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
     </script>
 </body>
 
