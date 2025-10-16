@@ -20,18 +20,19 @@
       applyTheme(serverTheme === 'dark' ? 'dark' : 'light');
       try { localStorage.setItem(storageKey, serverTheme === 'dark' ? 'dark' : 'light'); } catch (e) {}
     } else {
-      // Fall back to localStorage or prefers-color-scheme (for guests)
+      // Fall back to localStorage only - do NOT use prefers-color-scheme
+      // User must explicitly select dark mode
       const saved = (function(){ try { return localStorage.getItem(storageKey); } catch(e){ return null; } })();
-      if (saved) {
-        applyTheme(saved);
+      if (saved === 'dark') {
+        applyTheme('dark');
       } else {
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        applyTheme(prefersDark ? 'dark' : 'light');
+        // Default to light mode
+        applyTheme('light');
       }
     }
   } catch (e) {
-    // If anything goes wrong, silently continue — theme will be default.
-    try { const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; applyTheme(prefersDark ? 'dark' : 'light'); } catch (e2){}
+    // If anything goes wrong, default to light mode
+    applyTheme('light');
   }
 
   if(toggle){
