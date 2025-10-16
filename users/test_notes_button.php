@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Notes Button Test</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -9,18 +10,21 @@
             padding: 20px;
             background: #f5f5f5;
         }
+
         .test-section {
             background: white;
             padding: 20px;
             margin-bottom: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .shift-actions {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
+
         .btn-notes,
         .editBtn,
         .deleteBtn,
@@ -36,38 +40,53 @@
             text-decoration: none;
             transition: all 0.3s ease;
         }
+
         .btn-notes {
             background-color: #ff9800;
             color: white;
         }
+
         .btn-notes:hover {
             background-color: #f57c00;
             transform: translateY(-1px);
         }
+
         .editBtn {
             background-color: #007bff;
             color: white;
         }
+
         .deleteBtn {
             background-color: #dc3545;
             color: white;
         }
+
         .swapBtn {
             background-color: #6c757d;
             color: white;
         }
+
         .status {
             padding: 10px;
             border-radius: 4px;
             margin: 10px 0;
         }
-        .success { background: #d4edda; color: #155724; }
-        .info { background: #d1ecf1; color: #0c5460; }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
     </style>
 </head>
+
 <body>
     <h1>🔍 Shift Notes Button Test</h1>
-    
+
     <div class="test-section">
         <h2>Test 1: Button Styling</h2>
         <p>If you can see an orange "Notes" button below, the CSS is working:</p>
@@ -109,7 +128,7 @@
             '../css/shift_notes.css' => file_exists('../css/shift_notes.css'),
             '../setup_shift_notes.sql' => file_exists('../setup_shift_notes.sql')
         ];
-        
+
         foreach ($files as $file => $exists) {
             $status = $exists ? 'success' : 'warning';
             $icon = $exists ? '✅' : '❌';
@@ -122,14 +141,14 @@
         <h2>Test 4: Database Table Check</h2>
         <?php
         require_once '../includes/db.php';
-        
+
         try {
             $stmt = $conn->query("SHOW TABLES LIKE 'shift_notes'");
             $tableExists = $stmt->rowCount() > 0;
-            
+
             if ($tableExists) {
                 echo "<div class='status success'>✅ <strong>shift_notes</strong> table EXISTS</div>";
-                
+
                 // Count notes
                 $countStmt = $conn->query("SELECT COUNT(*) as count FROM shift_notes");
                 $count = $countStmt->fetch(PDO::FETCH_ASSOC)['count'];
@@ -148,17 +167,17 @@
         <h2>Test 5: Check Your Shifts</h2>
         <?php
         session_start();
-        
+
         if (isset($_SESSION['user_id'])) {
             echo "<div class='status success'>✅ You are logged in as User ID: " . $_SESSION['user_id'] . "</div>";
-            
+
             // Get user's shifts
             $stmt = $conn->prepare("SELECT COUNT(*) as count FROM shifts WHERE user_id = ?");
             $stmt->execute([$_SESSION['user_id']]);
             $shiftCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
-            
+
             echo "<div class='status info'>📅 You have <strong>$shiftCount</strong> shifts</div>";
-            
+
             if ($shiftCount > 0) {
                 echo "<div class='status success'>✅ You should see the Notes button on shifts.php</div>";
                 echo "<p><a href='shifts.php' style='display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;'>Go to My Shifts →</a></p>";
@@ -184,4 +203,5 @@
     </div>
 
 </body>
+
 </html>

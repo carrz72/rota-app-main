@@ -83,17 +83,6 @@
     <script>try { if (localStorage.getItem('rota_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { }
     </script>
 
-    @media (max-width: 480px) {
-    .otp-inputs {
-    gap: 8px;
-    }
-
-    .otp-input {
-    width: 45px;
-    height: 45px;
-    font-size: 1.1rem;
-    }
-    }
     </style>
 </head>
 

@@ -1474,7 +1474,14 @@ if ($user_id) {
                                                 <small><strong>£<?php echo number_format($shift['pay'], 2); ?></strong></small>
 
                                                 <!-- Quick actions for calendar view -->
-                                                <div style="margin-top: 5px; display: flex; gap: 5px;">
+                                                <!-- DEBUG: shift id = <?php echo isset($shift['id']) ? $shift['id'] : 'NOT SET'; ?> -->
+                                                <div style="margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap;">
+                                                    <button type="button" class="notesBtn"
+                                                        onclick="console.log('Direct onclick fired! Shift ID: <?php echo isset($shift['id']) ? $shift['id'] : 'NONE'; ?>'); window.location.href='shift_notes.php?shift_id=<?php echo isset($shift['id']) ? $shift['id'] : '0'; ?>'; return false;"
+                                                        style="padding: 2px 6px; font-size: 10px; background: #ff9800; color: white; border: none; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px;"
+                                                        title="View shift notes and handover">
+                                                        <i class="fa fa-sticky-note"></i> Notes
+                                                    </button>
                                                     <button class="editBtn" data-id="<?php echo $shift['id']; ?>"
                                                         style="padding: 2px 6px; font-size: 10px; background: #3366cc; color: white; border: none; border-radius: 3px; cursor: pointer;">
                                                         <i class="fa fa-pencil"></i>
@@ -2179,6 +2186,25 @@ if ($user_id) {
                     window.location.href = this.href;
                     e.preventDefault();
                 });
+            });
+
+            // Handle Notes button clicks - with capture phase to catch early
+            const notesBtns = document.querySelectorAll('.notesBtn');
+            console.log('Found ' + notesBtns.length + ' notes buttons');
+            notesBtns.forEach(btn => {
+                // Add listener in capture phase (runs before bubble phase)
+                btn.addEventListener('click', function (e) {
+                    console.log('Notes button clicked! Shift ID: ' + this.dataset.shiftId);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const shiftId = this.dataset.shiftId;
+                    console.log('Navigating to: shift_notes.php?shift_id=' + shiftId);
+                    setTimeout(function () {
+                        window.location.href = 'shift_notes.php?shift_id=' + shiftId;
+                    }, 100);
+                    return false;
+                }, true); // true = capture phase
             });
         });
     </script>
