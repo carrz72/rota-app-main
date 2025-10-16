@@ -386,6 +386,7 @@ try {
                 <ul>
                     <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
                     <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
+                    <li><a href="coverage_requests.php"><i class="fa fa-hands-helping"></i> Shift Coverage</a></li>
                     <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
                     <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                     <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>

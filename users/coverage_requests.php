@@ -629,10 +629,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <ul>
                     <li><a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a></li>
                     <li><a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a></li>
+                    <li><a href="coverage_requests.php"><i class="fas fa-hands-helping"></i> Shift Coverage</a></li>
                     <li><a href="rota.php"><i class="fa fa-table"></i> Rota</a></li>
                     <li><a href="roles.php"><i class="fa fa-users"></i> Roles</a></li>
                     <li><a href="payroll.php"><i class="fa fa-money"></i> Payroll</a></li>
+                    <li><a href="chat.php"><i class="fa fa-comments"></i> Team Chat</a></li>
                     <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+                    <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
+                        <li><a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a></li>
+                    <?php endif; ?>
                     <li><a href="../functions/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
                 </ul>
             </nav>
@@ -775,7 +780,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         <!-- Shift Swap Tab -->
         <div id="swap-tab" class="tab-content">
             <div class="form-section">
-                <h2><i class="fas fa-exchange-alt"></i> Shift Swap Proposals</h2>
+                <h2><i class="fas fa-handshake"></i> Shift Swap Proposals</h2>
                 <p>Propose a swap by offering one of your shifts in exchange for a coverage request, or accept a swap
                     offered to you.</p>
 
@@ -910,7 +915,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <form method="POST" style="display: inline-block;">
                                 <input type="hidden" name="request_id" value="<?php echo $request['id']; ?>">
                                 <button type="submit" name="offer_coverage" class="btn btn-success">
-                                    <i class="fas fa-check"></i>
+                                    <i class="fas fa-handshake"></i>
                                     Accept Request
                                 </button>
                             </form>
@@ -1245,7 +1250,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <div class="detail-item">
                                 <div class="detail-label"><i class="fas fa-sticky-note"></i> Notes</div>
                                 <div class="detail-value">
-                                    <?php echo nl2br(htmlspecialchars($f['description'] ?? 'No notes')); ?></div>
+                                    <?php echo nl2br(htmlspecialchars($f['description'] ?? 'No notes')); ?>
+                                </div>
                             </div>
                             <div class="detail-item" id="extra-details-<?php echo (int) $f['id']; ?>"
                                 style="display:none; grid-column: 1 / -1; background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 10px;">
