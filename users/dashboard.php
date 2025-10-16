@@ -10,8 +10,9 @@ require_once '../includes/session_config.php';
 // Include DB connection.
 require_once '../includes/db.php';
 if (!$conn) {
-    $conn = new PDO("mysql:host=localhost;dbname=rota_app", "username", "password");
+    $conn = new PDO("mysql:host=localhost;dbname=rota_app;charset=utf8mb4", "username", "password");
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn->exec("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci");
 }
 
 // Include pay calculation function.
