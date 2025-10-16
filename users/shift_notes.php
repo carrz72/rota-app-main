@@ -71,6 +71,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
     <link rel="icon" type="image/png" href="../images/icon.png">
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../images/icon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/navigation.css">
@@ -134,14 +135,16 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
     </header>
 
     <!-- Page Title Bar -->
-    <div style="background: linear-gradient(135deg, #fd2b2b 0%, #c82333 100%); padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(253, 43, 43, 0.3);">
+    <div
+        style="background: linear-gradient(135deg, #fd2b2b 0%, #c82333 100%); padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(253, 43, 43, 0.3);">
         <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 15px;">
-            <a href="shifts.php" style="color: white; text-decoration: none; font-size: 1.5rem; transition: transform 0.3s ease;" 
-               onmouseover="this.style.transform='translateX(-5px)'" 
-               onmouseout="this.style.transform='translateX(0)'">
+            <a href="shifts.php"
+                style="color: white; text-decoration: none; font-size: 1.5rem; transition: transform 0.3s ease;"
+                onmouseover="this.style.transform='translateX(-5px)'" onmouseout="this.style.transform='translateX(0)'">
                 <i class="fa fa-arrow-left"></i>
             </a>
-            <h2 style="color: white; margin: 0; font-size: 1.6rem; font-weight: 700; font-family: 'newFont', sans-serif;">
+            <h2
+                style="color: white; margin: 0; font-size: 1.6rem; font-weight: 700; font-family: 'newFont', sans-serif;">
                 <i class="fas fa-sticky-note"></i> Shift Notes
             </h2>
         </div>

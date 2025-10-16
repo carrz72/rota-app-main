@@ -214,6 +214,21 @@ foreach ($ytd_shifts as $shift) {
     $ytd_earnings += (float) calculatePay($conn, $shift['id']);
 }
 
+// Get recent shift notes for user's upcoming shifts
+$recent_notes = [];
+$stmt_notes = $conn->prepare("
+    SELECT sn.*, s.shift_date, s.start_time, s.end_time, r.name as role_name, u.username as author_name
+    FROM shift_notes sn
+    JOIN shifts s ON sn.shift_id = s.id
+    JOIN roles r ON s.role_id = r.id
+    JOIN users u ON sn.created_by = u.id
+    WHERE s.user_id = ? AND s.shift_date >= CURDATE()
+    ORDER BY sn.created_at DESC
+    LIMIT 5
+");
+$stmt_notes->execute([$user_id]);
+$recent_notes = $stmt_notes->fetchAll(PDO::FETCH_ASSOC);
+
 // Do not set $conn to null here because we need it later for the overlapping shifts query.
 ?>
 <!DOCTYPE html>
@@ -734,6 +749,89 @@ foreach ($ytd_shifts as $shift) {
                 <?php endif; ?>
             </div>
         </div> <!-- End Shifts Section -->
+
+        <!-- Recent Shift Notes Section -->
+        <?php if (!empty($recent_notes)): ?>
+            <div class="dashboard-card" style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3><i class="fas fa-sticky-note"></i> Recent Shift Notes</h3>
+                    <a href="shifts.php" style="color: #fd2b2b; text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+                        View All <i class="fa fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <div style="display: grid; gap: 15px;">
+                    <?php foreach ($recent_notes as $note): 
+                        $note_date = date('M j, Y', strtotime($note['shift_date']));
+                        $note_time = date('g:i A', strtotime($note['start_time'])) . ' - ' . date('g:i A', strtotime($note['end_time']));
+                        $created_at = date('M j, g:i A', strtotime($note['created_at']));
+                        $is_important = $note['is_important'] == 1;
+                    ?>
+                        <div style="background: <?php echo $is_important ? 'linear-gradient(135deg, #fff9e6 0%, #fff3d9 100%)' : '#f9f9f9'; ?>; 
+                                    padding: 15px 20px; 
+                                    border-radius: 12px; 
+                                    border-left: 4px solid <?php echo $is_important ? '#ff9800' : '#fd2b2b'; ?>; 
+                                    transition: all 0.3s ease;
+                                    cursor: pointer;"
+                             onclick="window.location.href='shift_notes.php?shift_id=<?php echo $note['shift_id']; ?>'"
+                             onmouseover="this.style.boxShadow='0 4px 12px rgba(253, 43, 43, 0.2)'; this.style.transform='translateY(-2px)';"
+                             onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                        <span style="font-weight: 700; color: #333; font-size: 0.95rem;">
+                                            <i class="fas fa-calendar-day" style="color: #fd2b2b;"></i> <?php echo htmlspecialchars($note_date); ?>
+                                        </span>
+                                        <span style="color: #666; font-size: 0.9rem;">
+                                            <i class="fas fa-clock" style="color: #999;"></i> <?php echo htmlspecialchars($note_time); ?>
+                                        </span>
+                                        <span style="background: #fd2b2b; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
+                                            <?php echo htmlspecialchars($note['role_name']); ?>
+                                        </span>
+                                    </div>
+                                    <div style="color: #999; font-size: 0.85rem; margin-bottom: 8px;">
+                                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($note['author_name']); ?> • <?php echo $created_at; ?>
+                                    </div>
+                                </div>
+                                <?php if ($is_important): ?>
+                                    <div style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+                                                color: white; 
+                                                padding: 5px 12px; 
+                                                border-radius: 20px; 
+                                                font-size: 0.8rem; 
+                                                font-weight: 700;
+                                                display: flex;
+                                                align-items: center;
+                                                gap: 5px;
+                                                box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);">
+                                        <i class="fas fa-star"></i> Important
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div style="color: #333; line-height: 1.6; font-size: 0.95rem; padding: 10px; background: rgba(255, 255, 255, 0.7); border-radius: 6px; margin-bottom: 8px;">
+                                <?php 
+                                    $note_text = htmlspecialchars($note['note']);
+                                    // Truncate long notes
+                                    if (strlen($note_text) > 150) {
+                                        echo substr($note_text, 0, 150) . '...';
+                                    } else {
+                                        echo $note_text;
+                                    }
+                                ?>
+                            </div>
+                            
+                            <div style="text-align: right;">
+                                <span style="color: #fd2b2b; font-size: 0.85rem; font-weight: 600;">
+                                    View Details <i class="fa fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
             <!-- Admin Quick Access -->
