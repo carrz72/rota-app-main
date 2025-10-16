@@ -359,6 +359,8 @@ function loadMessages() {
 // Display messages
 function displayMessages(messages) {
     const chatMessages = document.getElementById('chatMessages');
+    // Store messages globally for emoji picker access
+    window.lastLoadedMessages = messages;
     console.log('displayMessages: Called with', messages.length, 'messages');
     console.log('displayMessages: chatMessages element:', chatMessages);
 
