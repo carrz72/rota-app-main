@@ -415,7 +415,7 @@ try {
                 <a href="shifts.php"><i class="fa fa-calendar"></i> My Shifts</a>
                 <a href="rota.php"><i class="fa fa-table"></i> Rota</a>
                 <a href="payroll.php"><i class="fa fa-money"></i> Payroll</a>
-                <a href="coverage_requests.php"><i class="fa fa-exchange"></i> Coverage Requests</a>
+                <a href="coverage_requests.php"><i class="fas fa-hands-helping"></i> Shift Coverage</a>
                 <a href="settings.php"><i class="fa fa-cog"></i> Settings</a>
                 <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
                     <a href="../admin/admin_dashboard.php"><i class="fa fa-shield"></i> Admin</a>
@@ -431,17 +431,17 @@ try {
                         <span class="action-badge pulse"><?php echo $pending_coverage_count; ?></span>
                     <?php endif; ?>
                     <div class="action-icon" style="background: linear-gradient(135deg, #fd2b2b, #ff6b6b);">
-                        <i class="fas fa-exchange-alt"></i>
+                        <i class="fas fa-hands-helping"></i>
                     </div>
                     <h3>Request Coverage</h3>
-                    <p>Find someone to cover your shift</p>
+                    <p>Ask another branch to cover your shift</p>
                 </div>
                 <div class="quick-action-card" onclick="window.location.href='coverage_requests.php?view=swap'">
                     <div class="action-icon" style="background: linear-gradient(135deg, #0d6efd, #6ea8fe);">
-                        <i class="fas fa-sync-alt"></i>
+                        <i class="fas fa-handshake"></i>
                     </div>
                     <h3>Swap Shift</h3>
-                    <p>Exchange shifts with colleagues</p>
+                    <p>Offer your shift in exchange for another</p>
                 </div>
                 <div class="quick-action-card" onclick="window.location.href='rota.php'">
                     <div class="action-icon" style="background: linear-gradient(135deg, #198754, #75b798);">

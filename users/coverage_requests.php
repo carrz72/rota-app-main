@@ -641,7 +641,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
     <div class="container">
         <div class="page-header">
-            <h1><i class="fas fa-exchange-alt"></i> Shift Coverage</h1>
+            <h1><i class="fas fa-hands-helping"></i> Shift Coverage</h1>
             <p>Your branch: <strong><?php echo htmlspecialchars($user_branch['name']); ?></strong></p>
         </div>
 
@@ -704,32 +704,38 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             <form method="GET" class="filter-form">
                 <div class="filter-group">
                     <i class="fas fa-search"></i>
-                    <input type="text" name="search" placeholder="Search by user, role, or branch..." 
-                           value="<?php echo htmlspecialchars($search_query); ?>" class="filter-input">
+                    <input type="text" name="search" placeholder="Search by user, role, or branch..."
+                        value="<?php echo htmlspecialchars($search_query); ?>" class="filter-input">
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-filter"></i> Status:</label>
                     <select name="filter_status" class="filter-select">
                         <option value="all" <?php echo $filter_status === 'all' ? 'selected' : ''; ?>>All</option>
-                        <option value="pending" <?php echo $filter_status === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                        <option value="fulfilled" <?php echo $filter_status === 'fulfilled' ? 'selected' : ''; ?>>Fulfilled</option>
+                        <option value="pending" <?php echo $filter_status === 'pending' ? 'selected' : ''; ?>>Pending
+                        </option>
+                        <option value="fulfilled" <?php echo $filter_status === 'fulfilled' ? 'selected' : ''; ?>>
+                            Fulfilled</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-exclamation-circle"></i> Urgency:</label>
                     <select name="filter_urgency" class="filter-select">
                         <option value="all" <?php echo $filter_urgency === 'all' ? 'selected' : ''; ?>>All</option>
-                        <option value="urgent" <?php echo $filter_urgency === 'urgent' ? 'selected' : ''; ?>>Urgent</option>
-                        <option value="normal" <?php echo $filter_urgency === 'normal' ? 'selected' : ''; ?>>Normal</option>
+                        <option value="urgent" <?php echo $filter_urgency === 'urgent' ? 'selected' : ''; ?>>Urgent
+                        </option>
+                        <option value="normal" <?php echo $filter_urgency === 'normal' ? 'selected' : ''; ?>>Normal
+                        </option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-calendar"></i> From:</label>
-                    <input type="date" name="filter_date_from" value="<?php echo htmlspecialchars($filter_date_from); ?>" class="filter-input">
+                    <input type="date" name="filter_date_from"
+                        value="<?php echo htmlspecialchars($filter_date_from); ?>" class="filter-input">
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-calendar"></i> To:</label>
-                    <input type="date" name="filter_date_to" value="<?php echo htmlspecialchars($filter_date_to); ?>" class="filter-input">
+                    <input type="date" name="filter_date_to" value="<?php echo htmlspecialchars($filter_date_to); ?>"
+                        class="filter-input">
                 </div>
                 <button type="submit" class="filter-btn"><i class="fas fa-search"></i> Apply</button>
                 <a href="coverage_requests.php" class="filter-btn secondary"><i class="fas fa-times"></i> Clear</a>
@@ -744,7 +750,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         <!-- Modern Tab System -->
         <div class="tabs">
             <button class="tab active" onclick="showTab('available')">
-                <i class="fas fa-list"></i>
+                <i class="fas fa-list-check"></i>
                 <span>Available</span>
                 <?php if (count($available_requests) > 0): ?>
                     <span class="tab-badge"><?php echo count($available_requests); ?></span>
@@ -762,7 +768,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <?php endif; ?>
             </button>
             <button class="tab" onclick="showTab('swap')">
-                <i class="fas fa-exchange-alt"></i>
+                <i class="fas fa-handshake"></i>
                 <span>Swaps</span>
             </button>
         </div>
@@ -808,7 +814,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <?php else: ?>
                     <?php foreach ($swap_proposals as $swap): ?>
                         <div class="request-card">
-                            <div><strong>Proposed by:</strong> <?php echo htmlspecialchars($swap['proposer_name'] ?? 'Unknown'); ?></div>
+                            <div><strong>Proposed by:</strong>
+                                <?php echo htmlspecialchars($swap['proposer_name'] ?? 'Unknown'); ?></div>
                             <div><strong>Offered Shift:</strong>
                                 <?php echo date('M j, Y', strtotime($swap['shift_date'])) . ' ' . date('g:i A', strtotime($swap['start_time'])) . ' - ' . date('g:i A', strtotime($swap['end_time'])) . ' (' . htmlspecialchars($swap['role_name'] ?? 'Unknown') . ')'; ?>
                             </div>
@@ -1230,31 +1237,39 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <div class="detail-value"><?php echo htmlspecialchars($f['target_branch_name']); ?></div>
                             </div>
                             <?php if (!empty($f['role_name'])): ?>
-                            <div class="detail-item">
-                                <div class="detail-label"><i class="fas fa-user-tag"></i> Role</div>
-                                <div class="detail-value"><?php echo htmlspecialchars($f['role_name']); ?></div>
-                            </div>
+                                <div class="detail-item">
+                                    <div class="detail-label"><i class="fas fa-user-tag"></i> Role</div>
+                                    <div class="detail-value"><?php echo htmlspecialchars($f['role_name']); ?></div>
+                                </div>
                             <?php endif; ?>
                             <div class="detail-item">
                                 <div class="detail-label"><i class="fas fa-sticky-note"></i> Notes</div>
-                                <div class="detail-value"><?php echo nl2br(htmlspecialchars($f['description'] ?? 'No notes')); ?></div>
+                                <div class="detail-value">
+                                    <?php echo nl2br(htmlspecialchars($f['description'] ?? 'No notes')); ?></div>
                             </div>
-                            <div class="detail-item" id="extra-details-<?php echo (int) $f['id']; ?>" style="display:none; grid-column: 1 / -1; background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 10px;">
+                            <div class="detail-item" id="extra-details-<?php echo (int) $f['id']; ?>"
+                                style="display:none; grid-column: 1 / -1; background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 10px;">
                                 <div class="detail-label"><i class="fas fa-info-circle"></i> Additional Information</div>
                                 <div style="display: grid; gap: 8px; margin-top: 8px;">
                                     <div><strong>Request ID:</strong> #<?php echo $f['id']; ?></div>
-                                    <div><strong>Status:</strong> <span style="color: #198754; font-weight: 600;"><?php echo ucfirst($f['status']); ?></span></div>
-                                    <div><strong>Urgency:</strong> 
-                                        <span class="badge badge-<?php echo $f['urgency_level'] === 'urgent' ? 'danger' : 'info'; ?>">
+                                    <div><strong>Status:</strong> <span
+                                            style="color: #198754; font-weight: 600;"><?php echo ucfirst($f['status']); ?></span>
+                                    </div>
+                                    <div><strong>Urgency:</strong>
+                                        <span
+                                            class="badge badge-<?php echo $f['urgency_level'] === 'urgent' ? 'danger' : 'info'; ?>">
                                             <?php echo ucfirst($f['urgency_level'] ?? 'normal'); ?>
                                         </span>
                                     </div>
-                                    <div><strong>Covered On:</strong> <?php echo date('M j, Y g:i A', strtotime($f['fulfilled_at'] ?? $f['created_at'])); ?></div>
+                                    <div><strong>Covered On:</strong>
+                                        <?php echo date('M j, Y g:i A', strtotime($f['fulfilled_at'] ?? $f['created_at'])); ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div style="margin-top:10px; text-align:right;">
-                            <button onclick="toggleDetails(<?php echo (int) $f['id']; ?>)" class="btn btn-secondary btn-sm" id="view-btn-<?php echo (int) $f['id']; ?>">
+                            <button onclick="toggleDetails(<?php echo (int) $f['id']; ?>)" class="btn btn-secondary btn-sm"
+                                id="view-btn-<?php echo (int) $f['id']; ?>">
                                 <i class="fas fa-eye"></i> View More
                             </button>
                             <?php if (!empty($f['shift_id'])): ?>
@@ -1327,11 +1342,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <label for="urgency_level">Urgency Level</label>
                             <select name="urgency_level" required>
                                 <option value="low" <?php if ($edit_request['urgency_level'] == 'low')
-                                    echo 'selected'; ?>>Low</option>
+                                    echo 'selected'; ?>>Low
+                                </option>
                                 <option value="medium" <?php if ($edit_request['urgency_level'] == 'medium')
                                     echo 'selected'; ?>>Medium</option>
                                 <option value="high" <?php if ($edit_request['urgency_level'] == 'high')
-                                    echo 'selected'; ?>>High</option>
+                                    echo 'selected'; ?>>
+                                    High</option>
                                 <option value="critical" <?php if ($edit_request['urgency_level'] == 'critical')
                                     echo 'selected'; ?>>Critical</option>
                             </select>
@@ -1880,7 +1897,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         function toggleDetails(requestId) {
             const detailsDiv = document.getElementById('extra-details-' + requestId);
             const button = document.getElementById('view-btn-' + requestId);
-            
+
             if (detailsDiv && button) {
                 if (detailsDiv.style.display === 'none' || detailsDiv.style.display === '') {
                     detailsDiv.style.display = 'block';
