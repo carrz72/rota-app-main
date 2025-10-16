@@ -106,7 +106,6 @@ function handleLinkNavigation(event) {
     // For PWA, always use location.href to stay within the app
     window.location.href = navigateUrl;
 }
-}
 
 // Handle form submissions
 function handleFormSubmit(event) {

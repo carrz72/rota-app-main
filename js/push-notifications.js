@@ -3,7 +3,7 @@
     'use strict';
 
     // IMPORTANT: Replace with your actual VAPID public key from push_config.php
-    const VAPID_PUBLIC_KEY = 'BMrynh06K7vNvRFfK9WHwJBpXmXSOj08-4T3FXdxGD2S3LrW0HHbxF0XtqOWwp3Vj3XLchLXvKJqS5K6kY6K-fU';
+    const VAPID_PUBLIC_KEY = 'BDujEyd4Q023y8o2QJq1tOVTBbb-ShmmcPZwI8xP-3j7yroNYJXhAaLdFku1qzHLRWDvkGoOvgy2_gAV90yJ2v4';
 
     // Convert VAPID key from base64 to Uint8Array
     function urlBase64ToUint8Array(base64String) {
