@@ -327,6 +327,46 @@ function selectChannel(channelId, channelName, channelType, options = {}) {
     if (window.innerWidth <= 768) {
         document.getElementById('chatSidebar').classList.remove('mobile-open');
     }
+
+    // Show or hide Edit button based on permissions
+    (function updateEditButtonVisibility() {
+        const editBtn = document.getElementById('editChannelBtn');
+        if (!editBtn) return;
+
+        // If current user is application admin or super_admin, show the edit button (but only if they are a member)
+        if (typeof CURRENT_USER_ROLE !== 'undefined' && (CURRENT_USER_ROLE === 'admin' || CURRENT_USER_ROLE === 'super_admin')) {
+            // Check membership quickly via API for this channel
+            fetch(`../functions/chat_channels_api.php?action=get_members&channel_id=${channelId}`)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success && Array.isArray(d.members)) {
+                        const isMember = d.members.some(m => Number(m.id) === Number(CURRENT_USER_ID));
+                        editBtn.style.display = isMember ? 'inline-flex' : 'none';
+                    } else {
+                        editBtn.style.display = 'none';
+                    }
+                })
+                .catch(() => { editBtn.style.display = 'none'; });
+            return;
+        }
+
+        // Otherwise, show edit if the current user is a channel admin/owner
+        fetch(`../functions/chat_channels_api.php?action=get_members&channel_id=${channelId}`)
+            .then(r => r.json())
+            .then(d => {
+                if (d.success && Array.isArray(d.members)) {
+                    const me = d.members.find(m => Number(m.id) === Number(CURRENT_USER_ID));
+                    if (me && (me.channel_role === 'admin' || me.channel_role === 'owner')) {
+                        editBtn.style.display = 'inline-flex';
+                    } else {
+                        editBtn.style.display = 'none';
+                    }
+                } else {
+                    editBtn.style.display = 'none';
+                }
+            })
+            .catch(() => { editBtn.style.display = 'none'; });
+    })();
 }
 
 // Filter channels by search

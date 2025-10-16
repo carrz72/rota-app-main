@@ -291,6 +291,9 @@ if (!$userInitial) {
                             <button class="btn-icon" data-action="toggle-channel-info" title="Channel Info">
                                 <i class="fa fa-info-circle"></i>
                             </button>
+                            <button class="btn-icon" data-action="open-edit-channel" id="editChannelBtn" title="Edit Channel" style="display:none">
+                                <i class="fa fa-edit"></i>
+                            </button>
                             <button class="btn-icon" data-action="toggle-mute" title="Mute/Unmute" id="muteBtn">
                                 <i class="fa fa-bell"></i>
                             </button>
@@ -541,6 +544,9 @@ if (!$userInitial) {
                     break;
                 case 'toggle-mute':
                     if (typeof toggleMuteChannel === 'function') toggleMuteChannel();
+                    break;
+                case 'open-edit-channel':
+                    if (typeof openEditChannelModal === 'function') openEditChannelModal(typeof currentChannelId !== 'undefined' ? currentChannelId : null);
                     break;
                 case 'attach-file':
                     if (typeof attachFile === 'function') attachFile();
