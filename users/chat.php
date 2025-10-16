@@ -114,6 +114,9 @@ $unread_notifications = $stmt->fetchColumn();
                         <p>Choose from the list on the left</p>
                     </div>
                     <div class="chat-header-actions" id="chatHeaderActions" style="display: none;">
+                        <button class="btn-icon" onclick="toggleSearch()" title="Search Messages">
+                            <i class="fa fa-search"></i>
+                        </button>
                         <button class="btn-icon" onclick="toggleChannelInfo()" title="Channel Info">
                             <i class="fa fa-info-circle"></i>
                         </button>
@@ -121,6 +124,17 @@ $unread_notifications = $stmt->fetchColumn();
                             <i class="fa fa-bell"></i>
                         </button>
                     </div>
+                </div>
+                
+                <!-- Search Panel -->
+                <div class="search-panel" id="searchPanel" style="display: none;">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="searchInput" placeholder="Search messages..." onkeyup="searchMessages()">
+                        <button class="btn-close-search" onclick="toggleSearch()">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="search-results"></div>
                 </div>
 
                 <!-- Messages Area -->

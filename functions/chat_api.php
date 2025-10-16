@@ -380,6 +380,56 @@ try {
             
             echo json_encode(['success' => true, 'typing_users' => $typing_users]);
             break;
+        
+        // ===== ADD REACTION TO MESSAGE =====
+        case 'add_reaction':
+            $message_id = $_POST['message_id'] ?? null;
+            $emoji = $_POST['emoji'] ?? null;
+            
+            if (!$message_id || !$emoji) {
+                throw new Exception('Message ID and emoji are required');
+            }
+            
+            // Check if user is in the channel
+            $stmt = $conn->prepare("
+                SELECT cm.channel_id 
+                FROM chat_messages m
+                JOIN chat_members cm ON m.channel_id = cm.channel_id
+                WHERE m.id = ? AND cm.user_id = ?
+            ");
+            $stmt->execute([$message_id, $user_id]);
+            if (!$stmt->fetch()) {
+                throw new Exception('Not authorized');
+            }
+            
+            // Add or toggle reaction
+            $stmt = $conn->prepare("
+                INSERT INTO chat_reactions (message_id, user_id, emoji)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE emoji = VALUES(emoji)
+            ");
+            $stmt->execute([$message_id, $user_id, $emoji]);
+            
+            echo json_encode(['success' => true]);
+            break;
+        
+        // ===== REMOVE REACTION FROM MESSAGE =====
+        case 'remove_reaction':
+            $message_id = $_POST['message_id'] ?? null;
+            $emoji = $_POST['emoji'] ?? null;
+            
+            if (!$message_id || !$emoji) {
+                throw new Exception('Message ID and emoji are required');
+            }
+            
+            $stmt = $conn->prepare("
+                DELETE FROM chat_reactions 
+                WHERE message_id = ? AND user_id = ? AND emoji = ?
+            ");
+            $stmt->execute([$message_id, $user_id, $emoji]);
+            
+            echo json_encode(['success' => true]);
+            break;
 
         default:
             throw new Exception('Invalid action');

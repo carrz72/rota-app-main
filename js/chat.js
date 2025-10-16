@@ -10,6 +10,8 @@ let messagesPollInterval = null;
 let channelsPollInterval = null;
 let typingTimeout = null;
 let lastMessageId = null;
+let contextMenuMessage = null;
+let editingMessageId = null;
 
 // Initialize chat on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -239,7 +241,7 @@ function displayMessages(messages) {
         }
         
         html += `
-            <div class="message-group ${isOwn ? 'own' : ''}">
+            <div class="message-group ${isOwn ? 'own' : ''}" data-message-id="${message.id}" data-is-own="${isOwn}" oncontextmenu="showMessageMenu(event, ${message.id}, ${isOwn})">
                 ${!isOwn ? `<div class="message-avatar">${initials}</div>` : ''}
                 <div class="message-content">
                     ${!isOwn ? `<div class="message-sender">${escapeHtml(message.sender_name)}</div>` : ''}
@@ -249,6 +251,25 @@ function displayMessages(messages) {
                             ${timeStr}
                             ${message.is_edited ? '<span class="message-edited">(edited)</span>' : ''}
                         </div>
+                        ${isOwn ? `
+                            <div class="message-actions">
+                                <button class="action-btn" onclick="startEditMessage(${message.id}, '${escapeHtml(message.message).replace(/'/g, "\\'")}'); event.stopPropagation();" title="Edit">
+                                    <i class="fa fa-edit"></i>
+                                </button>
+                                <button class="action-btn" onclick="deleteMessage(${message.id}); event.stopPropagation();" title="Delete">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                                <button class="action-btn" onclick="showReactionPicker(${message.id}); event.stopPropagation();" title="React">
+                                    <i class="fa fa-smile-o"></i>
+                                </button>
+                            </div>
+                        ` : `
+                            <div class="message-actions">
+                                <button class="action-btn" onclick="showReactionPicker(${message.id}); event.stopPropagation();" title="React">
+                                    <i class="fa fa-smile-o"></i>
+                                </button>
+                            </div>
+                        `}
                     </div>
                     ${reactionsHtml}
                 </div>
@@ -494,7 +515,164 @@ function toggleMuteChannel() {
 
 // Toggle channel info
 function toggleChannelInfo() {
-    alert('Channel info coming soon!');
+    showChannelMembers();
+}
+
+// Show channel members
+function showChannelMembers() {
+    if (!currentChannelId) return;
+    
+    fetch(`../functions/chat_channels_api.php?action=get_members&channel_id=${currentChannelId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayChannelMembers(data.members);
+            }
+        })
+        .catch(error => console.error('Error loading members:', error));
+}
+
+// Display channel members in modal
+function displayChannelMembers(members) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'channelInfoModal';
+    
+    let membersHtml = '';
+    members.forEach(member => {
+        const initials = member.username.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        const roleColor = member.role === 'owner' ? '#fd2b2b' : member.role === 'admin' ? '#ff9800' : '#6c757d';
+        
+        membersHtml += `
+            <div class="member-item">
+                <div class="user-avatar" style="background: linear-gradient(135deg, ${roleColor} 0%, ${roleColor}cc 100%);">${initials}</div>
+                <div class="user-info">
+                    <div class="user-name">${escapeHtml(member.username)}</div>
+                    <div class="user-role" style="color: ${roleColor};">
+                        <i class="fa fa-shield"></i> ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa fa-users"></i> Channel Members (${members.length})</h3>
+                <button class="modal-close" onclick="closeChannelInfo()">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="member-list">
+                ${membersHtml}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Close channel info modal
+function closeChannelInfo() {
+    const modal = document.getElementById('channelInfoModal');
+    if (modal) modal.remove();
+}
+
+/* =======================================
+   MESSAGE SEARCH
+   ======================================= */
+
+let searchTimeout = null;
+
+// Toggle search panel
+function toggleSearch() {
+    const panel = document.getElementById('searchPanel');
+    const input = document.getElementById('searchInput');
+    
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        input.focus();
+    } else {
+        panel.style.display = 'none';
+        input.value = '';
+        document.getElementById('searchResults').innerHTML = '';
+    }
+}
+
+// Search messages
+function searchMessages() {
+    const query = document.getElementById('searchInput').value.trim();
+    const resultsDiv = document.getElementById('searchResults');
+    
+    if (!query) {
+        resultsDiv.innerHTML = '';
+        return;
+    }
+    
+    // Debounce search
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    searchTimeout = setTimeout(() => {
+        resultsDiv.innerHTML = '<div class="loading"><i class="fa fa-spinner fa-spin"></i> Searching...</div>';
+        
+        const channelParam = currentChannelId ? `&channel_id=${currentChannelId}` : '';
+        fetch(`../functions/chat_api.php?action=search_messages&query=${encodeURIComponent(query)}${channelParam}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displaySearchResults(data.messages);
+                } else {
+                    resultsDiv.innerHTML = '<div class="no-results">No messages found</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                resultsDiv.innerHTML = '<div class="error">Search failed</div>';
+            });
+    }, 500);
+}
+
+// Display search results
+function displaySearchResults(messages) {
+    const resultsDiv = document.getElementById('searchResults');
+    
+    if (messages.length === 0) {
+        resultsDiv.innerHTML = '<div class="no-results"><i class="fa fa-search"></i> No messages found</div>';
+        return;
+    }
+    
+    let html = '';
+    messages.forEach(msg => {
+        const date = new Date(msg.created_at);
+        const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        
+        html += `
+            <div class="search-result-item" onclick="jumpToMessage(${msg.channel_id}, ${msg.id})">
+                <div class="result-header">
+                    <strong>${escapeHtml(msg.sender_name)}</strong>
+                    <span class="result-time">${timeStr}</span>
+                </div>
+                <div class="result-message">${escapeHtml(msg.message)}</div>
+                <div class="result-channel">
+                    <i class="fa fa-comments"></i> ${escapeHtml(msg.channel_name || 'Unknown')}
+                </div>
+            </div>
+        `;
+    });
+    
+    resultsDiv.innerHTML = html;
+}
+
+// Jump to a message (open channel and scroll to message)
+function jumpToMessage(channelId, messageId) {
+    if (channelId !== currentChannelId) {
+        // Load the channel first, then we would need to scroll to the message
+        // For now, just load the channel
+        selectChannel(channelId, 'Channel', 'general');
+    }
+    
+    toggleSearch();
 }
 
 // Attach file
@@ -516,6 +694,230 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/* =======================================
+   MESSAGE ACTIONS
+   ======================================= */
+
+// Show context menu for message
+function showMessageMenu(event, messageId, isOwn) {
+    event.preventDefault();
+    contextMenuMessage = messageId;
+    
+    // Remove existing menu if any
+    const existingMenu = document.getElementById('messageContextMenu');
+    if (existingMenu) existingMenu.remove();
+    
+    const menu = document.createElement('div');
+    menu.id = 'messageContextMenu';
+    menu.className = 'context-menu';
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+    
+    let menuItems = '';
+    if (isOwn) {
+        menuItems = `
+            <div class="context-menu-item" onclick="startEditMessage(${messageId}); closeContextMenu();">
+                <i class="fa fa-edit"></i> Edit Message
+            </div>
+            <div class="context-menu-item" onclick="deleteMessage(${messageId}); closeContextMenu();">
+                <i class="fa fa-trash"></i> Delete Message
+            </div>
+        `;
+    }
+    menuItems += `
+        <div class="context-menu-item" onclick="showReactionPicker(${messageId}); closeContextMenu();">
+            <i class="fa fa-smile-o"></i> Add Reaction
+        </div>
+    `;
+    
+    menu.innerHTML = menuItems;
+    document.body.appendChild(menu);
+    
+    // Close menu when clicking elsewhere
+    setTimeout(() => {
+        document.addEventListener('click', closeContextMenu);
+    }, 100);
+    
+    return false;
+}
+
+// Close context menu
+function closeContextMenu() {
+    const menu = document.getElementById('messageContextMenu');
+    if (menu) menu.remove();
+    document.removeEventListener('click', closeContextMenu);
+}
+
+// Start editing a message
+function startEditMessage(messageId, currentText) {
+    editingMessageId = messageId;
+    const input = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    // Get current message text if not provided
+    if (!currentText) {
+        const messageBubble = document.querySelector(`[data-message-id="${messageId}"] .message-text`);
+        currentText = messageBubble ? messageBubble.textContent : '';
+    }
+    
+    input.value = currentText;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    
+    // Change send button to update button
+    sendBtn.innerHTML = '<i class="fa fa-check"></i>';
+    sendBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+    
+    // Show cancel button
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'cancelEditBtn';
+    cancelBtn.className = 'btn-send';
+    cancelBtn.style.background = '#6c757d';
+    cancelBtn.innerHTML = '<i class="fa fa-times"></i>';
+    cancelBtn.onclick = cancelEditMessage;
+    sendBtn.parentNode.insertBefore(cancelBtn, sendBtn);
+}
+
+// Cancel editing
+function cancelEditMessage() {
+    editingMessageId = null;
+    const input = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    
+    input.value = '';
+    sendBtn.innerHTML = '<i class="fa fa-paper-plane"></i>';
+    sendBtn.style.background = 'linear-gradient(135deg, #fd2b2b 0%, #c82333 100%)';
+    
+    if (cancelBtn) cancelBtn.remove();
+}
+
+// Edit message (called from sendMessage when editing)
+function editMessage(messageId, newText) {
+    fetch('../functions/chat_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=edit_message&message_id=${messageId}&message=${encodeURIComponent(newText)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cancelEditMessage();
+            loadMessages();
+        } else {
+            alert('Failed to edit message: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error editing message:', error);
+        alert('Error editing message');
+    });
+}
+
+// Delete message with confirmation
+function deleteMessage(messageId) {
+    if (!confirm('Delete this message? This cannot be undone.')) return;
+    
+    fetch('../functions/chat_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=delete_message&message_id=${messageId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadMessages();
+            loadChannels();
+        } else {
+            alert('Failed to delete message: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting message:', error);
+        alert('Error deleting message');
+    });
+}
+
+/* =======================================
+   EMOJI REACTIONS
+   ======================================= */
+
+const commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥'];
+
+// Show emoji reaction picker
+function showReactionPicker(messageId) {
+    // Remove existing picker if any
+    const existingPicker = document.getElementById('reactionPicker');
+    if (existingPicker) existingPicker.remove();
+    
+    const picker = document.createElement('div');
+    picker.id = 'reactionPicker';
+    picker.className = 'emoji-picker';
+    
+    const messageBubble = document.querySelector(`[data-message-id="${messageId}"] .message-bubble`);
+    if (!messageBubble) return;
+    
+    const rect = messageBubble.getBoundingClientRect();
+    picker.style.left = rect.left + 'px';
+    picker.style.top = (rect.bottom + 5) + 'px';
+    
+    let html = '<div class="emoji-grid">';
+    commonEmojis.forEach(emoji => {
+        html += `<span class="emoji-option" onclick="addReaction(${messageId}, '${emoji}')">${emoji}</span>`;
+    });
+    html += '</div>';
+    
+    picker.innerHTML = html;
+    document.body.appendChild(picker);
+    
+    // Close picker when clicking elsewhere
+    setTimeout(() => {
+        document.addEventListener('click', closeReactionPicker);
+    }, 100);
+}
+
+// Close reaction picker
+function closeReactionPicker() {
+    const picker = document.getElementById('reactionPicker');
+    if (picker) picker.remove();
+    document.removeEventListener('click', closeReactionPicker);
+}
+
+// Add reaction to message
+function addReaction(messageId, emoji) {
+    closeReactionPicker();
+    
+    fetch('../functions/chat_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=add_reaction&message_id=${messageId}&emoji=${encodeURIComponent(emoji)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadMessages();
+        } else {
+            console.error('Failed to add reaction:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error adding reaction:', error);
+    });
+}
+
+// Modify sendMessage to handle editing
+const originalSendMessage = sendMessage;
+function sendMessage() {
+    if (editingMessageId) {
+        const input = document.getElementById('messageInput');
+        const newText = input.value.trim();
+        if (!newText) return;
+        editMessage(editingMessageId, newText);
+    } else {
+        originalSendMessage();
+    }
 }
 
 // Cleanup on page unload
