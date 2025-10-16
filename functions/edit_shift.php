@@ -104,6 +104,28 @@ try {
             // Notify the user whose shift was edited
             $message = "$admin_name updated your shift for $formatted_date ($formatted_time)";
             addNotification($conn, $edited_user_id, $message, "shift_update");
+            
+            // Send push notification
+            try {
+                require_once __DIR__ . '/send_shift_notification.php';
+                
+                // Get role name
+                $roleStmt = $conn->prepare("SELECT name FROM roles WHERE id = ?");
+                $roleStmt->execute([$role_id]);
+                $roleRow = $roleStmt->fetch(PDO::FETCH_ASSOC);
+                $role_name = $roleRow ? $roleRow['name'] : 'Shift';
+                
+                $title = "Shift Updated";
+                $body = "$admin_name updated your $role_name shift on $formatted_date";
+                $data = [
+                    'url' => '/users/shifts.php',
+                    'shift_id' => $shift_id
+                ];
+                
+                sendPushNotification($edited_user_id, $title, $body, $data);
+            } catch (Exception $e) {
+                error_log("Failed to send push notification: " . $e->getMessage());
+            }
         }
     }
 
