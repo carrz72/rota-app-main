@@ -669,6 +669,37 @@ if ($period === 'week') {
             font-weight: 600;
         }
 
+        /* Shift actions on rota */
+        .shift-actions-rota {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .btn-notes-small {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: #ff9800;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-notes-small:hover {
+            background: #f57c00;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-notes-small i {
+            font-size: 11px;
+        }
+
         /* Enhanced Calendar View Responsiveness */
         .calendar-view {
             display: grid;
@@ -1215,6 +1246,13 @@ if ($period === 'week') {
                                                 ?>
                                             </div>
                                             <?php endif; ?>
+                                            <div class="shift-actions-rota">
+                                                <a href="shift_notes.php?shift_id=<?php echo $shift['id']; ?>" 
+                                                   class="btn-notes-small" 
+                                                   title="View shift notes">
+                                                    <i class="fa fa-sticky-note"></i> Notes
+                                                </a>
+                                            </div>
                                         </div>
                                     <?php
                                     endforeach;
