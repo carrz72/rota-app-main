@@ -146,7 +146,7 @@ try {
 
     // ===== CUSTOM REMINDERS =====
     echo "\nChecking for custom reminders...\n";
-    
+
     // Get all enabled custom reminder preferences
     $customPrefsStmt = $conn->prepare("
         SELECT * FROM shift_reminder_preferences 
@@ -154,13 +154,13 @@ try {
     ");
     $customPrefsStmt->execute();
     $customPrefs = $customPrefsStmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     $customRemindersSent = 0;
-    
+
     foreach ($customPrefs as $pref) {
         // Calculate the time range for this reminder
         $targetTime = clone $now;
-        
+
         switch ($pref['reminder_type']) {
             case 'minutes':
                 $targetTime->modify('+' . $pref['reminder_value'] . ' minutes');
@@ -175,15 +175,15 @@ try {
                 $windowMinutes = 15; // 15 minute window for day-based reminders
                 break;
         }
-        
+
         $windowStartCustom = clone $targetTime;
         $windowStartCustom->modify('-' . $windowMinutes . ' minutes');
         $windowEndCustom = clone $targetTime;
         $windowEndCustom->modify('+' . $windowMinutes . ' minutes');
-        
+
         // Create a unique reminder type identifier
         $reminderTypeId = 'custom_' . $pref['id'];
-        
+
         // Find shifts for this user in this time window
         $customShiftsStmt = $conn->prepare("
             SELECT s.*, u.username, r.name as role_name
@@ -200,16 +200,16 @@ try {
                 AND srs.reminder_type = ?
             )
         ");
-        
+
         $customShiftsStmt->execute([
             $pref['user_id'],
             $windowStartCustom->format('Y-m-d H:i:s'),
             $windowEndCustom->format('Y-m-d H:i:s'),
             $reminderTypeId
         ]);
-        
+
         $customShifts = $customShiftsStmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         foreach ($customShifts as $shift) {
             // Format the reminder text
             $timeText = $pref['reminder_value'] . ' ' . $pref['reminder_type'];
@@ -217,7 +217,7 @@ try {
                 // Singular form
                 $timeText = rtrim($timeText, 's');
             }
-            
+
             $title = "Shift Reminder";
             $body = sprintf(
                 "Your %s shift starts in %s (%s at %s)",
@@ -226,12 +226,12 @@ try {
                 $shift['location'] ?? '',
                 date('g:i A', strtotime($shift['start_time']))
             );
-            
+
             $data = [
                 'url' => '/users/shifts.php',
                 'shift_id' => $shift['id']
             ];
-            
+
             if (sendPushNotification($pref['user_id'], $title, $body, $data)) {
                 // Mark as sent
                 $markSent = $conn->prepare("
@@ -246,7 +246,7 @@ try {
             }
         }
     }
-    
+
     if ($customRemindersSent > 0) {
         echo "Sent $customRemindersSent custom reminders\n";
     }
