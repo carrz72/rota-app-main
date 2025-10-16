@@ -1370,10 +1370,20 @@ span {
   table-layout: auto;
 }
 
-/* Dashboard card should not overflow */
+/* Dashboard card should handle table overflow properly */
 .dashboard-card {
-  overflow-x: hidden;
+  overflow-x: auto;
   max-width: 100%;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Ensure table doesn't break card on desktop */
+@media (min-width: 769px) {
+  .dashboard-card {
+    overflow-x: hidden;
+  }
 }
 
 .upcoming-shifts-table th {
@@ -2253,7 +2263,7 @@ span {
 
 /* Insights Card */
 .analytics-card.insights {
-  background: #343a40;
+  background: #fd2b2b;
   color: white;
 }
 
@@ -2452,19 +2462,43 @@ span {
     font-size: 13px;
   }
 
-  /* Fix upcoming shifts table */
-  .upcoming-shifts-table {
-    display: block;
-    width: 100%;
+  /* Fix upcoming shifts table with better scrolling */
+  .dashboard-card:has(.upcoming-shifts-table) {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  .upcoming-shifts-table {
+    display: table;
+    width: 100%;
+    min-width: 500px;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .upcoming-shifts-table thead,
+  .upcoming-shifts-table tbody,
+  .upcoming-shifts-table tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
   }
 
   .upcoming-shifts-table th,
   .upcoming-shifts-table td {
     padding: 8px 6px;
     font-size: 12px;
-    min-width: 70px;
+    min-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* First column slightly wider for date */
+  .upcoming-shifts-table th:first-child,
+  .upcoming-shifts-table td:first-child {
+    min-width: 100px;
   }
 }
 
@@ -2504,10 +2538,24 @@ span {
     font-size: 12px;
   }
 
+  /* Better table handling on very small screens */
+  .dashboard-card:has(.upcoming-shifts-table) {
+    padding: 8px;
+  }
+
+  .upcoming-shifts-table {
+    min-width: 450px;
+  }
+
   .upcoming-shifts-table th,
   .upcoming-shifts-table td {
     padding: 6px 4px;
     font-size: 11px;
-    min-width: 60px;
+    min-width: 70px;
+  }
+
+  .upcoming-shifts-table th:first-child,
+  .upcoming-shifts-table td:first-child {
+    min-width: 90px;
   }
 }
