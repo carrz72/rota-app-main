@@ -1,4 +1,4 @@
-<?php
+✅ Table 'shift_reminder_preferences' EXISTS!<?php
 ob_start();
 require_once '../includes/session_starter.php';
 require_once '../includes/error_handler.php';
@@ -1075,9 +1075,12 @@ if ($user_id) {
                             <button type="button" id="addReminderBtn" class="btn btn-success" style="padding: 8px 15px;">
                                 <i class="fas fa-plus"></i> Add
                             </button>
+                            <button type="button" id="testNotificationBtn" class="btn btn-info" style="padding: 8px 15px;">
+                                <i class="fas fa-paper-plane"></i> Send Test
+                            </button>
                         </div>
                         <small style="display: block; margin-top: 8px; color: #666;">
-                            <i class="fas fa-info-circle"></i> Create custom reminders at any time before your shifts
+                            <i class="fas fa-info-circle"></i> Create up to 10 custom reminders (max: 24h for minutes, 7 days for hours, 30 days for days)
                         </small>
                     </div>
 
@@ -1478,18 +1481,23 @@ if ($user_id) {
                 remindersList.innerHTML = reminders.map(reminder => {
                     const label = `${reminder.reminder_value} ${reminder.reminder_type} before shift`;
                     const checked = reminder.enabled ? 'checked' : '';
+                    const isEnabled = reminder.enabled ? true : false;
                     
                     return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: ${reminder.enabled ? '#e3f2fd' : '#f5f5f5'}; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: ${isEnabled ? '#e3f2fd' : '#f5f5f5'}; border: 1px solid ${isEnabled ? '#90caf9' : '#e0e0e0'}; border-radius: 8px; margin-bottom: 10px; transition: all 0.3s ease; ${isEnabled ? '' : 'opacity: 0.65;'}">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <input type="checkbox" ${checked} onchange="toggleReminder(${reminder.id}, this.checked)" 
                                        style="width: 18px; height: 18px; cursor: pointer;">
-                                <span style="color: ${reminder.enabled ? '#1976d2' : '#666'}; font-weight: ${reminder.enabled ? '500' : 'normal'};">
-                                    <i class="fas fa-clock"></i> ${label}
+                                <span style="color: ${isEnabled ? '#1976d2' : '#666'}; font-weight: ${isEnabled ? '600' : 'normal'};">
+                                    <i class="fas fa-clock" style="color: ${isEnabled ? '#2196f3' : '#999'};"></i> ${label}
+                                </span>
+                                <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background: ${isEnabled ? '#4caf50' : '#999'}; color: white; font-weight: 500;">
+                                    ${isEnabled ? 'Active' : 'Disabled'}
                                 </span>
                             </div>
                             <button type="button" onclick="deleteReminder(${reminder.id})" 
-                                    style="background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                                    style="background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s;" 
+                                    onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
@@ -1593,6 +1601,36 @@ if ($user_id) {
                 })
                 .catch(error => console.error('Error:', error));
             };
+
+            // Test notification button
+            const testBtn = document.getElementById('testNotificationBtn');
+            if (testBtn) {
+                testBtn.addEventListener('click', function() {
+                    testBtn.disabled = true;
+                    testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                    
+                    fetch('../functions/send_test_notification.php', {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        testBtn.disabled = false;
+                        testBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Test';
+                        
+                        const msg = document.createElement('div');
+                        msg.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${data.success ? '#4caf50' : '#f44336'}; color: white; padding: 15px 20px; border-radius: 5px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.2);`;
+                        msg.innerHTML = `<i class="fas fa-${data.success ? 'check' : 'times'}"></i> ${data.message}`;
+                        document.body.appendChild(msg);
+                        setTimeout(() => msg.remove(), 4000);
+                    })
+                    .catch(error => {
+                        testBtn.disabled = false;
+                        testBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Test';
+                        console.error('Error:', error);
+                        alert('Failed to send test notification');
+                    });
+                });
+            }
 
             // Initial load
             loadReminders();

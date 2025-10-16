@@ -18,8 +18,17 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 try {
     switch ($action) {
         case 'get':
-            // Get all custom reminders for the user
-            $stmt = $conn->prepare("SELECT * FROM shift_reminder_preferences WHERE user_id = ? ORDER BY reminder_type, reminder_value");
+            // Get all custom reminders for the user (sorted by time before shift)
+            $stmt = $conn->prepare("
+                SELECT * FROM shift_reminder_preferences 
+                WHERE user_id = ? 
+                ORDER BY 
+                    CASE reminder_type 
+                        WHEN 'minutes' THEN reminder_value 
+                        WHEN 'hours' THEN reminder_value * 60
+                        WHEN 'days' THEN reminder_value * 1440
+                    END ASC
+            ");
             $stmt->execute([$user_id]);
             $reminders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -31,13 +40,34 @@ try {
             $type = $_POST['type'] ?? 'hours';
             $value = (int) ($_POST['value'] ?? 1);
 
-            // Validate
+            // Validate type
             if (!in_array($type, ['minutes', 'hours', 'days'])) {
                 throw new Exception('Invalid reminder type');
             }
 
+            // Validate minimum value
             if ($value < 1) {
                 throw new Exception('Reminder value must be at least 1');
+            }
+
+            // Validate maximum values
+            $maxLimits = [
+                'minutes' => 1440,  // 24 hours max
+                'hours' => 168,     // 7 days max
+                'days' => 30        // 30 days max
+            ];
+
+            if ($value > $maxLimits[$type]) {
+                throw new Exception("Maximum for {$type} is {$maxLimits[$type]}");
+            }
+
+            // Check total reminder count (max 10 per user)
+            $countStmt = $conn->prepare("SELECT COUNT(*) FROM shift_reminder_preferences WHERE user_id = ?");
+            $countStmt->execute([$user_id]);
+            $count = $countStmt->fetchColumn();
+
+            if ($count >= 10) {
+                throw new Exception('You can only have up to 10 custom reminders');
             }
 
             // Check for duplicates
