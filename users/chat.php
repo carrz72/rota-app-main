@@ -352,22 +352,58 @@ if (!$userInitial) {
 
     <!-- Fallback: ensure toggleSidebar/closeSidebar exist even if chat.js failed to load -->
     <script>
-        if (typeof window.toggleSidebar !== 'function') {
-            console.warn('chat.js failed to load or parse; providing fallback toggleSidebar/closeSidebar');
-            window.toggleSidebar = function () {
-                const sidebar = document.getElementById('chatSidebar');
-                if (sidebar) {
-                    sidebar.classList.toggle('mobile-open');
-                    console.log('Fallback: toggled sidebar; classList:', sidebar.classList);
-                } else {
-                    console.warn('Fallback: sidebar element not found');
-                }
-            };
-            window.closeSidebar = function () {
-                const sidebar = document.getElementById('chatSidebar');
-                if (sidebar) sidebar.classList.remove('mobile-open');
-            };
-        }
+        (function () {
+            // Provide lightweight fallbacks so the UI works even if chat.js fails to load.
+            if (typeof window.toggleSidebar !== 'function') {
+                console.warn('chat.js failed to load or parse; providing fallback toggleSidebar/closeSidebar');
+                window.toggleSidebar = function () {
+                    const sidebar = document.getElementById('chatSidebar');
+                    if (sidebar) {
+                        sidebar.classList.toggle('mobile-open');
+                        console.log('Fallback: toggled sidebar; classList:', sidebar.classList);
+                    } else {
+                        console.warn('Fallback: sidebar element not found');
+                    }
+                };
+                window.closeSidebar = function () {
+                    const sidebar = document.getElementById('chatSidebar');
+                    if (sidebar) sidebar.classList.remove('mobile-open');
+                };
+            }
+
+            // Modal fallbacks for the quick buttons on the page
+            if (typeof window.openNewChatModal !== 'function') {
+                window.openNewChatModal = function () {
+                    const modal = document.getElementById('newChatModal');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                        console.log('Fallback: opened new chat modal');
+                    } else {
+                        console.warn('Fallback: newChatModal element not found');
+                    }
+                };
+                window.closeNewChatModal = function () {
+                    const modal = document.getElementById('newChatModal');
+                    if (modal) modal.style.display = 'none';
+                };
+            }
+
+            if (typeof window.openCreateChannelModal !== 'function') {
+                window.openCreateChannelModal = function () {
+                    const modal = document.getElementById('createChannelModal');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                        console.log('Fallback: opened create channel modal');
+                    } else {
+                        console.warn('Fallback: createChannelModal element not found or user not admin');
+                    }
+                };
+                window.closeCreateChannelModal = function () {
+                    const modal = document.getElementById('createChannelModal');
+                    if (modal) modal.style.display = 'none';
+                };
+            }
+        })();
     </script>
 
     <script>
