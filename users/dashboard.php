@@ -133,7 +133,7 @@ $weekly_earnings = [];
 for ($i = 3; $i >= 0; $i--) {
     $week_start = date('Y-m-d', strtotime("-$i weeks saturday"));
     $week_end = date('Y-m-d', strtotime("$week_start +6 days"));
-    
+
     $stmt_week = $conn->prepare(
         "SELECT COALESCE(SUM(r.base_pay * 
             CASE 
@@ -146,7 +146,7 @@ for ($i = 3; $i >= 0; $i--) {
     );
     $stmt_week->execute([$user_id, $week_start, $week_end]);
     $week_data = $stmt_week->fetch(PDO::FETCH_ASSOC);
-    
+
     $weekly_earnings[] = [
         'label' => date('M d', strtotime($week_start)),
         'value' => round($week_data['earnings'] ?? 0, 2)
@@ -233,7 +233,8 @@ foreach ($ytd_shifts as $shift) {
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <link rel="icon" type="image/png" href="../images/icon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="stylesheet" href="../css/dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="../css/navigation.css?v=<?php echo time(); ?>">
     <link rel="manifest" href="../manifest.json">
@@ -241,17 +242,20 @@ foreach ($ytd_shifts as $shift) {
     <style>
         /* Critical iOS Safari fix - prevent horizontal overflow */
         @supports (-webkit-touch-callout: none) {
-            html, body {
+
+            html,
+            body {
                 overflow-x: hidden !important;
                 width: 100% !important;
                 position: relative !important;
             }
+
             * {
                 max-width: 100vw !important;
                 box-sizing: border-box !important;
             }
         }
-        
+
         [data-theme="dark"] .page-header,
         [data-theme="dark"] .current-branch-info {
             background: transparent !important;
@@ -442,7 +446,7 @@ foreach ($ytd_shifts as $shift) {
         <!-- Performance Analytics -->
         <div class="analytics-panel">
             <h2><i class="fas fa-chart-line"></i> Performance Analytics</h2>
-            
+
             <div class="analytics-grid">
                 <!-- Weekly Earnings Chart -->
                 <div class="analytics-card">
@@ -451,9 +455,9 @@ foreach ($ytd_shifts as $shift) {
                     <div class="chart-stats">
                         <div class="chart-stat">
                             <span class="stat-label">Average</span>
-                            <span class="stat-value">£<?php 
-                                $avg_weekly = count($weekly_earnings) > 0 ? array_sum(array_column($weekly_earnings, 'value')) / count($weekly_earnings) : 0;
-                                echo number_format($avg_weekly, 0); 
+                            <span class="stat-value">£<?php
+                            $avg_weekly = count($weekly_earnings) > 0 ? array_sum(array_column($weekly_earnings, 'value')) / count($weekly_earnings) : 0;
+                            echo number_format($avg_weekly, 0);
                             ?></span>
                         </div>
                         <div class="chart-stat">
@@ -491,11 +495,11 @@ foreach ($ytd_shifts as $shift) {
                     </div>
                     <div class="insight-row">
                         <div class="insight-label">Projected Monthly</div>
-                        <div class="insight-value">£<?php 
-                            $days_in_month = date('t');
-                            $current_day = date('j');
-                            $projected = $days_in_month > 0 ? ($total_earnings / $current_day) * $days_in_month : 0;
-                            echo number_format($projected, 0); 
+                        <div class="insight-value">£<?php
+                        $days_in_month = date('t');
+                        $current_day = date('j');
+                        $projected = $days_in_month > 0 ? ($total_earnings / $current_day) * $days_in_month : 0;
+                        echo number_format($projected, 0);
                         ?></div>
                     </div>
                     <div class="insight-row">
@@ -511,70 +515,70 @@ foreach ($ytd_shifts as $shift) {
             <!-- Next Shift Section -->
             <div class="dashboard-card">
                 <h3><i class="fas fa-clock"></i> Next Shift</h3>
-            <?php if ($next_shift): ?>
-                <?php
-                $formattedDate = date("l, F j, Y", strtotime($next_shift['shift_date']));
-                $formattedStart = date("g:i A", strtotime($next_shift['start_time']));
-                $formattedEnd = date("g:i A", strtotime($next_shift['end_time']));
-
-                // Calculate days until next shift
-                $today = new DateTime('today');
-                $shift_date = new DateTime($next_shift['shift_date']);
-                $days_until = $today->diff($shift_date)->days;
-                $days_label = $days_until == 0 ? 'Today' : ($days_until == 1 ? 'Tomorrow' : "In $days_until days");
-
-                // Compute next shift's start datetime
-                $next_start_dt = date("Y-m-d H:i:s", strtotime($next_shift['shift_date'] . " " . $next_shift['start_time']));
-                // If the shift spans overnight (start > end), add one day to the end datetime
-                if (strtotime($next_shift['start_time']) < strtotime($next_shift['end_time'])) {
-                    $next_end_dt = date("Y-m-d H:i:s", strtotime($next_shift['shift_date'] . " " . $next_shift['end_time']));
-                } else {
-                    $next_end_dt = date("Y-m-d H:i:s", strtotime(date("Y-m-d", strtotime($next_shift['shift_date'] . " +1 day")) . " " . $next_shift['end_time']));
-                }
-                ?>
-                <div class="next-shift-details">
-                    <div class="next-shift-date">
-                        <span class="day-badge"><?php echo date("d", strtotime($next_shift['shift_date'])); ?></span>
-                        <?php echo $formattedDate; ?>
-                        <span style="color: #fd2b2b; font-weight: bold;"><?php echo $days_label; ?></span>
-                    </div>
-
-                    <div class="next-shift-info">
-                        <div class="next-shift-meta">
-                            <i class="fas fa-clock"></i>
-                            <span><?php echo $formattedStart; ?> - <?php echo $formattedEnd; ?></span>
-                        </div>
-
-                        <div class="next-shift-meta">
-                            <i class="fas fa-briefcase"></i>
-                            <span><?php echo htmlspecialchars($next_shift['role_name']); ?></span>
-                        </div>
-
-                        <div class="next-shift-meta">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span>
-                                <?php
-                                $nloc = $next_shift['location'] ?? '';
-                                if ($nloc === 'Cross-branch coverage' && !empty($next_shift['branch_name'])) {
-                                    echo htmlspecialchars($nloc) . ' (' . htmlspecialchars($next_shift['branch_name']) . ')';
-                                } else {
-                                    echo htmlspecialchars($nloc);
-                                }
-                                ?>
-                            </span>
-                        </div>
-
-                        <div class="next-shift-meta">
-                            <i class="fas fa-pound-sign"></i>
-                            <span>£<?php echo number_format($next_shift['estimated_pay'], 2); ?></span>
-                        </div>
-                    </div>
-
+                <?php if ($next_shift): ?>
                     <?php
-                    // Query overlapping shifts with matching location
-                    $overlappingShifts = [];
-                    try {
-                        $query = "
+                    $formattedDate = date("l, F j, Y", strtotime($next_shift['shift_date']));
+                    $formattedStart = date("g:i A", strtotime($next_shift['start_time']));
+                    $formattedEnd = date("g:i A", strtotime($next_shift['end_time']));
+
+                    // Calculate days until next shift
+                    $today = new DateTime('today');
+                    $shift_date = new DateTime($next_shift['shift_date']);
+                    $days_until = $today->diff($shift_date)->days;
+                    $days_label = $days_until == 0 ? 'Today' : ($days_until == 1 ? 'Tomorrow' : "In $days_until days");
+
+                    // Compute next shift's start datetime
+                    $next_start_dt = date("Y-m-d H:i:s", strtotime($next_shift['shift_date'] . " " . $next_shift['start_time']));
+                    // If the shift spans overnight (start > end), add one day to the end datetime
+                    if (strtotime($next_shift['start_time']) < strtotime($next_shift['end_time'])) {
+                        $next_end_dt = date("Y-m-d H:i:s", strtotime($next_shift['shift_date'] . " " . $next_shift['end_time']));
+                    } else {
+                        $next_end_dt = date("Y-m-d H:i:s", strtotime(date("Y-m-d", strtotime($next_shift['shift_date'] . " +1 day")) . " " . $next_shift['end_time']));
+                    }
+                    ?>
+                    <div class="next-shift-details">
+                        <div class="next-shift-date">
+                            <span class="day-badge"><?php echo date("d", strtotime($next_shift['shift_date'])); ?></span>
+                            <?php echo $formattedDate; ?>
+                            <span style="color: #fd2b2b; font-weight: bold;"><?php echo $days_label; ?></span>
+                        </div>
+
+                        <div class="next-shift-info">
+                            <div class="next-shift-meta">
+                                <i class="fas fa-clock"></i>
+                                <span><?php echo $formattedStart; ?> - <?php echo $formattedEnd; ?></span>
+                            </div>
+
+                            <div class="next-shift-meta">
+                                <i class="fas fa-briefcase"></i>
+                                <span><?php echo htmlspecialchars($next_shift['role_name']); ?></span>
+                            </div>
+
+                            <div class="next-shift-meta">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>
+                                    <?php
+                                    $nloc = $next_shift['location'] ?? '';
+                                    if ($nloc === 'Cross-branch coverage' && !empty($next_shift['branch_name'])) {
+                                        echo htmlspecialchars($nloc) . ' (' . htmlspecialchars($next_shift['branch_name']) . ')';
+                                    } else {
+                                        echo htmlspecialchars($nloc);
+                                    }
+                                    ?>
+                                </span>
+                            </div>
+
+                            <div class="next-shift-meta">
+                                <i class="fas fa-pound-sign"></i>
+                                <span>£<?php echo number_format($next_shift['estimated_pay'], 2); ?></span>
+                            </div>
+                        </div>
+
+                        <?php
+                        // Query overlapping shifts with matching location
+                        $overlappingShifts = [];
+                        try {
+                            $query = "
                             SELECT s.*, u.username 
                             FROM shifts s 
                             JOIN users u ON s.user_id = u.id 
@@ -588,144 +592,147 @@ foreach ($ytd_shifts as $shift) {
                                 ) > :next_start_dt
                               )
                         ";
-                        $stmtOverlap = $conn->prepare($query);
-                        $stmtOverlap->execute([
-                            ':user_id' => $user_id,
-                            ':location' => $next_shift['location'],
-                            ':next_start_dt' => $next_start_dt,
-                            ':next_end_dt' => $next_end_dt
-                        ]);
-                        $overlappingShifts = $stmtOverlap->fetchAll(PDO::FETCH_ASSOC);
-                    } catch (PDOException $e) {
-                        $overlappingShifts = [];
-                    }
-
-                    if (!empty($overlappingShifts)) {
-                        echo "<div class='overlap-info'>";
-                        echo "<h4><i class='fas fa-users'></i> Working with Colleagues</h4>";
-                        echo "<ul class='colleague-list'>";
-                        foreach ($overlappingShifts as $colleague) {
-                            $colStart = date("g:i A", strtotime($colleague['start_time']));
-                            echo "<li class='colleague-item'>" . htmlspecialchars($colleague['username']) .
-                                " <span class='time-badge'>" . $colStart . "</span></li>";
+                            $stmtOverlap = $conn->prepare($query);
+                            $stmtOverlap->execute([
+                                ':user_id' => $user_id,
+                                ':location' => $next_shift['location'],
+                                ':next_start_dt' => $next_start_dt,
+                                ':next_end_dt' => $next_end_dt
+                            ]);
+                            $overlappingShifts = $stmtOverlap->fetchAll(PDO::FETCH_ASSOC);
+                        } catch (PDOException $e) {
+                            $overlappingShifts = [];
                         }
-                        echo "</ul>";
-                        echo "</div>";
-                    }
-                    ?>
-                </div>
-            <?php else: ?>
-                <div class="next-shift-details" style="text-align: center; padding: 30px;">
-                    <i class="fas fa-calendar-times" style="font-size: 2rem; color: #ddd; margin-bottom: 15px;"></i>
-                    <p style="margin: 0; color: #777;">No upcoming shifts scheduled</p>
-                    <a href="shifts.php" style="display: inline-block; margin-top: 15px;">Add a new shift</a>
-                </div>
-            <?php endif; ?>
-        </div>
 
-        <!-- Earnings Section -->
-        <div class="dashboard-card">
-            <h3><i class="fas fa-chart-line"></i> Hours & Earnings</h3>
-
-            <div class="period-selector">
-                <form method="GET">
-                    <label for="period">Time Period:</label>
-                    <select name="period" id="period" onchange="this.form.submit()">
-                        <option value="week" <?php echo ($period == 'week') ? 'selected' : ''; ?>>This Week</option>
-                        <option value="month" <?php echo ($period == 'month') ? 'selected' : ''; ?>>This Month</option>
-                        <option value="year" <?php echo ($period == 'year') ? 'selected' : ''; ?>>This Year</option>
-                    </select>
-                </form>
-            </div>
-
-            <div class="earnings-stats">
-                <div class="earnings-stat-box">
-                    <div class="earnings-stat-label">Hours Worked</div>
-                    <div class="earnings-stat-value"><?php echo $formatted_total_hours; ?></div>
-                </div>
-                <div class="earnings-stat-box">
-                    <div class="earnings-stat-label">Total Earnings</div>
-                    <div class="earnings-stat-value">£<?php echo number_format($total_earnings, 2); ?></div>
-                </div>
-            </div>
-
-            <?php if (count($shifts) > 0): ?>
-                <div style="margin-top: 20px; font-size: 0.9rem; color: #666;">
-                    <p>Most common working days:</p>
-                    <div style="display: flex; gap: 5px; margin-top: 5px;">
-                        <?php
-                        $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                        $max_val = max($day_distribution);
-
-                        foreach ($day_distribution as $index => $count) {
-                            $opacity = $max_val > 0 ? ($count / $max_val) : 0;
-                            $opacity = max(0.2, $opacity); // Minimum opacity of 0.2
-                            echo "<div style='background-color: rgba(253, 43, 43, {$opacity}); color: white; padding: 5px; 
-                              border-radius: 4px; text-align: center; flex: 1;'>{$days[$index]}</div>";
+                        if (!empty($overlappingShifts)) {
+                            echo "<div class='overlap-info'>";
+                            echo "<h4><i class='fas fa-users'></i> Working with Colleagues</h4>";
+                            echo "<ul class='colleague-list'>";
+                            foreach ($overlappingShifts as $colleague) {
+                                $colStart = date("g:i A", strtotime($colleague['start_time']));
+                                echo "<li class='colleague-item'>" . htmlspecialchars($colleague['username']) .
+                                    " <span class='time-badge'>" . $colStart . "</span></li>";
+                            }
+                            echo "</ul>";
+                            echo "</div>";
                         }
                         ?>
                     </div>
+                <?php else: ?>
+                    <div class="next-shift-details" style="text-align: center; padding: 30px;">
+                        <i class="fas fa-calendar-times" style="font-size: 2rem; color: #ddd; margin-bottom: 15px;"></i>
+                        <p style="margin: 0; color: #777;">No upcoming shifts scheduled</p>
+                        <a href="shifts.php" style="display: inline-block; margin-top: 15px;">Add a new shift</a>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Earnings Section -->
+            <div class="dashboard-card">
+                <h3><i class="fas fa-chart-line"></i> Hours & Earnings</h3>
+
+                <div class="period-selector">
+                    <form method="GET">
+                        <label for="period">Time Period:</label>
+                        <select name="period" id="period" onchange="this.form.submit()">
+                            <option value="week" <?php echo ($period == 'week') ? 'selected' : ''; ?>>This Week</option>
+                            <option value="month" <?php echo ($period == 'month') ? 'selected' : ''; ?>>This Month
+                            </option>
+                            <option value="year" <?php echo ($period == 'year') ? 'selected' : ''; ?>>This Year</option>
+                        </select>
+                    </form>
                 </div>
-            <?php endif; ?>
-        </div>
 
-        <!-- Upcoming Shifts Section -->
-        <div class="dashboard-card" style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
-            <h3><i class="fas fa-calendar-alt"></i> Upcoming Shifts</h3>
+                <div class="earnings-stats">
+                    <div class="earnings-stat-box">
+                        <div class="earnings-stat-label">Hours Worked</div>
+                        <div class="earnings-stat-value"><?php echo $formatted_total_hours; ?></div>
+                    </div>
+                    <div class="earnings-stat-box">
+                        <div class="earnings-stat-label">Total Earnings</div>
+                        <div class="earnings-stat-value">£<?php echo number_format($total_earnings, 2); ?></div>
+                    </div>
+                </div>
 
-            <?php if (!empty($next_shifts)): ?>
-                <div class="table-wrapper">
-                <table class="upcoming-shifts-table">
-                    <tr>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Role</th>
-                        <th>Location</th>
-                        <th>Est. Pay</th>
-                    </tr>
+                <?php if (count($shifts) > 0): ?>
+                    <div style="margin-top: 20px; font-size: 0.9rem; color: #666;">
+                        <p>Most common working days:</p>
+                        <div style="display: flex; gap: 5px; margin-top: 5px;">
+                            <?php
+                            $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                            $max_val = max($day_distribution);
 
-                    <?php
-                    $current_date = '';
-                    foreach ($next_shifts as $shift):
-                        $shift_date = date("Y-m-d", strtotime($shift['shift_date']));
-                        $is_new_date = ($shift_date != $current_date);
-                        $current_date = $shift_date;
+                            foreach ($day_distribution as $index => $count) {
+                                $opacity = $max_val > 0 ? ($count / $max_val) : 0;
+                                $opacity = max(0.2, $opacity); // Minimum opacity of 0.2
+                                echo "<div style='background-color: rgba(253, 43, 43, {$opacity}); color: white; padding: 5px; 
+                              border-radius: 4px; text-align: center; flex: 1;'>{$days[$index]}</div>";
+                            }
+                            ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
 
-                        // Format for display
-                        $formattedShiftDate = date("D, M j, Y", strtotime($shift['shift_date']));
-                        $formattedStartTime = date("g:i A", strtotime($shift['start_time']));
-                        $formattedEndTime = date("g:i A", strtotime($shift['end_time']));
-                        ?>
-                        <tr>
-                            <td><?php echo $formattedShiftDate; ?></td>
-                            <td><?php echo $formattedStartTime; ?> - <?php echo $formattedEndTime; ?></td>
-                            <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
-                            <td>
-                                <?php
-                                $loc = $shift['location'] ?? '';
-                                if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
-                                    echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
-                                } else {
-                                    echo htmlspecialchars($loc);
-                                }
+            <!-- Upcoming Shifts Section -->
+            <div class="dashboard-card"
+                style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
+                <h3><i class="fas fa-calendar-alt"></i> Upcoming Shifts</h3>
+
+                <?php if (!empty($next_shifts)): ?>
+                    <div class="table-wrapper">
+                        <table class="upcoming-shifts-table">
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Role</th>
+                                <th>Location</th>
+                                <th>Est. Pay</th>
+                            </tr>
+
+                            <?php
+                            $current_date = '';
+                            foreach ($next_shifts as $shift):
+                                $shift_date = date("Y-m-d", strtotime($shift['shift_date']));
+                                $is_new_date = ($shift_date != $current_date);
+                                $current_date = $shift_date;
+
+                                // Format for display
+                                $formattedShiftDate = date("D, M j, Y", strtotime($shift['shift_date']));
+                                $formattedStartTime = date("g:i A", strtotime($shift['start_time']));
+                                $formattedEndTime = date("g:i A", strtotime($shift['end_time']));
                                 ?>
-                            </td>
-                            <td><strong>£<?php echo number_format($shift['estimated_pay'], 2); ?></strong></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </table>
-                </div>
+                                <tr>
+                                    <td><?php echo $formattedShiftDate; ?></td>
+                                    <td><?php echo $formattedStartTime; ?> - <?php echo $formattedEndTime; ?></td>
+                                    <td><?php echo htmlspecialchars($shift['role_name']); ?></td>
+                                    <td>
+                                        <?php
+                                        $loc = $shift['location'] ?? '';
+                                        if ($loc === 'Cross-branch coverage' && !empty($shift['branch_name'])) {
+                                            echo htmlspecialchars($loc) . ' (' . htmlspecialchars($shift['branch_name']) . ')';
+                                        } else {
+                                            echo htmlspecialchars($loc);
+                                        }
+                                        ?>
+                                    </td>
+                                    <td><strong>£<?php echo number_format($shift['estimated_pay'], 2); ?></strong></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </table>
+                    </div>
 
-                <div style="margin-top: 15px; text-align: right;">
-                    <a href="shifts.php" style="font-size: 0.9rem;">View all shifts <i class="fa fa-arrow-right"></i></a>
-                </div>
-            <?php else: ?>
-                <div style="text-align: center; padding: 30px; color: #777;">
-                    <i class="fas fa-calendar-minus" style="font-size: 2rem; color: #ddd; margin-bottom: 15px;"></i>
-                    <p>No additional upcoming shifts scheduled.</p>
-                </div>
-            <?php endif; ?>
-        </div>
+                    <div style="margin-top: 15px; text-align: right;">
+                        <a href="shifts.php" style="font-size: 0.9rem;">View all shifts <i
+                                class="fa fa-arrow-right"></i></a>
+                    </div>
+                <?php else: ?>
+                    <div style="text-align: center; padding: 30px; color: #777;">
+                        <i class="fas fa-calendar-minus" style="font-size: 2rem; color: #ddd; margin-bottom: 15px;"></i>
+                        <p>No additional upcoming shifts scheduled.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div> <!-- End Shifts Section -->
 
         <?php if (isset($_SESSION['role']) && (($_SESSION['role'] === 'admin') || ($_SESSION['role'] === 'super_admin'))): ?>
@@ -860,144 +867,144 @@ foreach ($ytd_shifts as $shift) {
     <script src="../js/pwa-debug.js"></script>
     <script src="../js/links.js"></script>
     <script src="../js/push-notifications.js"></script>
-    
+
     <!-- Chart.js Initialization -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if Chart.js is loaded
-        if (typeof Chart === 'undefined') {
-            console.error('Chart.js not loaded');
-            return;
-        }
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if Chart.js is loaded
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js not loaded');
+                return;
+            }
 
-        // Weekly Earnings Chart
-        const earningsCtx = document.getElementById('earningsChart');
-        if (earningsCtx) {
-            const weeklyData = <?php echo json_encode($weekly_earnings); ?>;
-            
-            new Chart(earningsCtx, {
-                type: 'line',
-                data: {
-                    labels: weeklyData.map(w => w.label),
-                    datasets: [{
-                        label: 'Weekly Earnings (£)',
-                        data: weeklyData.map(w => w.value),
-                        borderColor: '#fd2b2b',
-                        backgroundColor: 'rgba(253, 43, 43, 0.1)',
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: true,
-                        pointBackgroundColor: '#fd2b2b',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 7
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
+            // Weekly Earnings Chart
+            const earningsCtx = document.getElementById('earningsChart');
+            if (earningsCtx) {
+                const weeklyData = <?php echo json_encode($weekly_earnings); ?>;
+
+                new Chart(earningsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: weeklyData.map(w => w.label),
+                        datasets: [{
+                            label: 'Weekly Earnings (£)',
+                            data: weeklyData.map(w => w.value),
                             borderColor: '#fd2b2b',
-                            borderWidth: 1,
-                            displayColors: false,
-                            callbacks: {
-                                label: function(context) {
-                                    return '£' + context.parsed.y.toFixed(2);
+                            backgroundColor: 'rgba(253, 43, 43, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#fd2b2b',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: '#fd2b2b',
+                                borderWidth: 1,
+                                displayColors: false,
+                                callbacks: {
+                                    label: function (context) {
+                                        return '£' + context.parsed.y.toFixed(2);
+                                    }
                                 }
                             }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '£' + value;
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function (value) {
+                                        return '£' + value;
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
                                 }
                             },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Role Distribution Chart
-        const roleCtx = document.getElementById('roleChart');
-        if (roleCtx) {
-            const roleData = <?php echo json_encode($role_distribution); ?>;
-            
-            const colors = [
-                'rgba(253, 43, 43, 0.8)',
-                'rgba(13, 110, 253, 0.8)',
-                'rgba(25, 135, 84, 0.8)',
-                'rgba(111, 66, 193, 0.8)',
-                'rgba(255, 193, 7, 0.8)'
-            ];
-            
-            new Chart(roleCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: roleData.map(r => r.role_name),
-                    datasets: [{
-                        data: roleData.map(r => r.count),
-                        backgroundColor: colors,
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            borderColor: '#fd2b2b',
-                            borderWidth: 1,
-                            displayColors: true,
-                            callbacks: {
-                                label: function(context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                    return context.label + ': ' + context.parsed + ' shifts (' + percentage + '%)';
+                            x: {
+                                grid: {
+                                    display: false
                                 }
                             }
                         }
                     }
-                }
-            });
-            
-            // Color the legend dots
-            const legendDots = document.querySelectorAll('.legend-dot');
-            legendDots.forEach((dot, index) => {
-                if (colors[index]) {
-                    dot.style.backgroundColor = colors[index];
-                }
-            });
-        }
-    });
+                });
+            }
+
+            // Role Distribution Chart
+            const roleCtx = document.getElementById('roleChart');
+            if (roleCtx) {
+                const roleData = <?php echo json_encode($role_distribution); ?>;
+
+                const colors = [
+                    'rgba(253, 43, 43, 0.8)',
+                    'rgba(13, 110, 253, 0.8)',
+                    'rgba(25, 135, 84, 0.8)',
+                    'rgba(111, 66, 193, 0.8)',
+                    'rgba(255, 193, 7, 0.8)'
+                ];
+
+                new Chart(roleCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: roleData.map(r => r.role_name),
+                        datasets: [{
+                            data: roleData.map(r => r.count),
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: '#fd2b2b',
+                                borderWidth: 1,
+                                displayColors: true,
+                                callbacks: {
+                                    label: function (context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return context.label + ': ' + context.parsed + ' shifts (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Color the legend dots
+                const legendDots = document.querySelectorAll('.legend-dot');
+                legendDots.forEach((dot, index) => {
+                    if (colors[index]) {
+                        dot.style.backgroundColor = colors[index];
+                    }
+                });
+            }
+        });
     </script>
 </body>
 

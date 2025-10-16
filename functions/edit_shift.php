@@ -104,7 +104,7 @@ try {
             // Notify the user whose shift was edited
             $message = "$admin_name updated your shift for $formatted_date ($formatted_time)";
             addNotification($conn, $edited_user_id, $message, "shift_update");
-            
+
             // Send push notification (non-blocking - failures won't affect the response)
             try {
                 // Get role name
@@ -112,11 +112,11 @@ try {
                 $roleStmt->execute([$role_id]);
                 $roleRow = $roleStmt->fetch(PDO::FETCH_ASSOC);
                 $role_name = $roleRow ? $roleRow['name'] : 'Shift';
-                
+
                 // Send notification in background (won't block response)
                 if (function_exists('fastcgi_finish_request')) {
                     // For PHP-FPM, send response first
-                    register_shutdown_function(function() use ($edited_user_id, $admin_name, $role_name, $formatted_date, $shift_id) {
+                    register_shutdown_function(function () use ($edited_user_id, $admin_name, $role_name, $formatted_date, $shift_id) {
                         require_once __DIR__ . '/send_shift_notification.php';
                         $title = "Shift Updated";
                         $body = "$admin_name updated your $role_name shift on $formatted_date";

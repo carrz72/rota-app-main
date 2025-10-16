@@ -138,13 +138,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Get the invitation ID.
             $invitation_id = $conn->lastInsertId();
             $notif_message = "You have a new shift invitation. Click to view details.";
-            
+
             // Get role name for push notification
             $roleStmt = $conn->prepare("SELECT name FROM roles WHERE id = ?");
             $roleStmt->execute([$role_id]);
             $roleRow = $roleStmt->fetch(PDO::FETCH_ASSOC);
             $role_name = $roleRow ? $roleRow['name'] : 'Shift';
-            
+
             // Prepare shift details for push notification
             $shift_details = [
                 'invitation_id' => $invitation_id,
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 foreach ($allUsers as $user) {
                     // Send a notification to each user.
                     addNotification($conn, $user['id'], $notif_message, "shift-invite", $invitation_id);
-                    
+
                     // Send push notification
                     try {
                         require_once __DIR__ . '/send_shift_notification.php';
@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // Single user invitation.
                 addNotification($conn, $invited_user_id, $notif_message, "shift-invite", $invitation_id);
-                
+
                 // Send push notification
                 try {
                     require_once __DIR__ . '/send_shift_notification.php';

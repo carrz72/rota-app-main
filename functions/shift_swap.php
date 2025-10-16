@@ -181,20 +181,20 @@ if ($action === 'accept') {
 
     addNotification($conn, (int) $swap['from_user_id'], $msgProposer, 'shift_update');
     addNotification($conn, (int) $swap['to_user_id'], $msgRecipient, 'shift_update');
-    
+
     // Send push notifications
     try {
         require_once __DIR__ . '/send_shift_notification.php';
-        
+
         // Get role names for both shifts
         $roleStmt1 = $conn->prepare("SELECT r.name FROM shifts s JOIN roles r ON s.role_id = r.id WHERE s.id = ?");
         $roleStmt1->execute([$swap['to_shift_id']]);
         $toRole = $roleStmt1->fetch(PDO::FETCH_ASSOC);
-        
+
         $roleStmt2 = $conn->prepare("SELECT r.name FROM shifts s JOIN roles r ON s.role_id = r.id WHERE s.id = ?");
         $roleStmt2->execute([$swap['from_shift_id']]);
         $fromRole = $roleStmt2->fetch(PDO::FETCH_ASSOC);
-        
+
         // Notify proposer
         $proposerDetails = [
             'shift_date' => $toShift['shift_date'],
@@ -202,7 +202,7 @@ if ($action === 'accept') {
             'role_name' => $toRole ? $toRole['name'] : 'Shift'
         ];
         notifyCoverageApproved($swap['from_user_id'], $proposerDetails);
-        
+
         // Notify recipient
         $recipientDetails = [
             'shift_date' => $fromShift['shift_date'],
