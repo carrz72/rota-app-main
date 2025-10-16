@@ -1,4 +1,4 @@
-const CACHE_NAME = "rota-app-cache-v7";
+const CACHE_NAME = "rota-app-cache-v11";
 const OFFLINE_PAGE = "./offline.html";
 const urlsToCache = [
     "./",
