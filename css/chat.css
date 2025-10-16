@@ -95,6 +95,9 @@ body {
   color: #1f2933;
 }
 
+.combined-menu-item {
+  cursor: pointer;
+}
 .chat-page {
   max-width: 1400px;
   margin: 0 auto 60px;
