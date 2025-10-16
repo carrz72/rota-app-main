@@ -130,9 +130,21 @@ if (!$userInitial) {
                     <p class="chat-hero-sub">Coordinate shifts, share updates, and keep every branch aligned in real
                         time.</p>
                     <div class="chat-hero-actions">
-                        <button type="button" class="chat-hero-btn" onclick="openNewChatModal()">
-                            <i class="fa fa-plus"></i> Start conversation
-                        </button>
+                        <div class="combined-dropdown" style="position: relative; display: inline-block;">
+                            <button type="button" class="chat-hero-btn" id="heroCombinedBtn" onclick="toggleCombinedMenu('heroMenu')" aria-haspopup="true" aria-expanded="false">
+                                <i class="fa fa-plus"></i> New <i class="fa fa-caret-down" style="margin-left:8px;"></i>
+                            </button>
+                            <div class="combined-menu" id="heroMenu" style="display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); z-index: 1000; min-width: 200px; border-radius: 6px; overflow: hidden;">
+                                <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" onclick="openNewChatModal(); toggleCombinedMenu('heroMenu');">
+                                    <i class="fa fa-user-plus" style="margin-right:8px"></i> Start Direct Message
+                                </button>
+                                <?php if ($is_admin): ?>
+                                    <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" onclick="openCreateChannelModal(); toggleCombinedMenu('heroMenu');">
+                                        <i class="fa fa-plus-square" style="margin-right:8px"></i> Create Channel
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                         <a class="chat-hero-link" href="#chatMessages">
                             Jump to messages <i class="fa fa-arrow-right"></i>
                         </a>
@@ -167,18 +179,22 @@ if (!$userInitial) {
                     <div class="chat-sidebar-header">
                         <h2><i class="fa fa-comments"></i> Channels</h2>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <button type="button" class="btn-new-chat" onclick="openNewChatModal()"
-                                title="Start a direct message">
-                                <i class="fa fa-plus"></i>
-                            </button>
-                            <?php if ($is_admin): ?>
-                                <button type="button" class="btn-new-chat" onclick="openCreateChannelModal()"
-                                    title="Create Channel">
-                                    <i class="fa fa-plus-square"></i>
+                            <div class="combined-dropdown" style="position: relative;">
+                                <button type="button" class="btn-new-chat" id="sidebarCombinedBtn" onclick="toggleCombinedMenu('sidebarMenu')" title="New" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fa fa-plus"></i>
                                 </button>
-                            <?php endif; ?>
-                            <button type="button" class="btn-close-sidebar" onclick="closeSidebar()"
-                                title="Close sidebar">
+                                <div class="combined-menu" id="sidebarMenu" style="display: none; position: absolute; left: 0; top: 100%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); z-index: 1000; min-width: 200px; border-radius: 6px; overflow: hidden;">
+                                    <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" onclick="openNewChatModal(); toggleCombinedMenu('sidebarMenu');" title="Start a direct message">
+                                        <i class="fa fa-user-plus" style="margin-right:8px"></i> Start Direct Message
+                                    </button>
+                                    <?php if ($is_admin): ?>
+                                        <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" onclick="openCreateChannelModal(); toggleCombinedMenu('sidebarMenu');" title="Create Channel">
+                                            <i class="fa fa-plus-square" style="margin-right:8px"></i> Create Channel
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close-sidebar" onclick="closeSidebar()" title="Close sidebar">
                                 <i class="fa fa-times"></i>
                             </button>
                         </div>
@@ -350,66 +366,81 @@ if (!$userInitial) {
     <!-- JavaScript -->
     <script src="../js/chat.js?v=<?php echo time(); ?>"></script>
 
-    <!-- Fallback: ensure toggleSidebar/closeSidebar exist even if chat.js failed to load -->
-    <script>
-        (function () {
-            // Provide lightweight fallbacks so the UI works even if chat.js fails to load.
-            if (typeof window.toggleSidebar !== 'function') {
-                console.warn('chat.js failed to load or parse; providing fallback toggleSidebar/closeSidebar');
-                window.toggleSidebar = function () {
-                    const sidebar = document.getElementById('chatSidebar');
-                    if (sidebar) {
-                        sidebar.classList.toggle('mobile-open');
-                        console.log('Fallback: toggled sidebar; classList:', sidebar.classList);
-                    } else {
-                        console.warn('Fallback: sidebar element not found');
-                    }
-                };
-                window.closeSidebar = function () {
-                    const sidebar = document.getElementById('chatSidebar');
-                    if (sidebar) sidebar.classList.remove('mobile-open');
-                };
-            }
-
-            // Modal fallbacks for the quick buttons on the page
-            if (typeof window.openNewChatModal !== 'function') {
-                window.openNewChatModal = function () {
-                    const modal = document.getElementById('newChatModal');
-                    if (modal) {
-                        modal.style.display = 'flex';
-                        console.log('Fallback: opened new chat modal');
-                    } else {
-                        console.warn('Fallback: newChatModal element not found');
-                    }
-                };
-                window.closeNewChatModal = function () {
-                    const modal = document.getElementById('newChatModal');
-                    if (modal) modal.style.display = 'none';
-                };
-            }
-
-            if (typeof window.openCreateChannelModal !== 'function') {
-                window.openCreateChannelModal = function () {
-                    const modal = document.getElementById('createChannelModal');
-                    if (modal) {
-                        modal.style.display = 'flex';
-                        console.log('Fallback: opened create channel modal');
-                    } else {
-                        console.warn('Fallback: createChannelModal element not found or user not admin');
-                    }
-                };
-                window.closeCreateChannelModal = function () {
-                    const modal = document.getElementById('createChannelModal');
-                    if (modal) modal.style.display = 'none';
-                };
-            }
-        })();
-    </script>
+    <!-- NOTE: Removed previous JS fallbacks now that chat.js loads correctly. If chat.js fails to load, menu items will briefly not work. -->
 
     <script>
         // Pass PHP variables to JavaScript
         const CURRENT_USER_ID = <?php echo $user_id; ?>;
         const CURRENT_USERNAME = "<?php echo htmlspecialchars($user['username']); ?>";
+    </script>
+    <script>
+        // Combined menu toggle for hero/sidebar combined New button
+        function toggleCombinedMenu(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Close combined menus when clicking outside
+        document.addEventListener('click', function (e) {
+            ['heroMenu', 'sidebarMenu'].forEach(id => {
+                const menu = document.getElementById(id);
+                const btn = document.getElementById(id === 'heroMenu' ? 'heroCombinedBtn' : 'sidebarCombinedBtn');
+                if (menu && btn) {
+                    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                        menu.style.display = 'none';
+                    }
+                }
+            });
+        });
+        // Keyboard and ARIA support
+        function setAriaExpanded(btnId, expanded) {
+            const b = document.getElementById(btnId);
+            if (b) b.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        }
+
+        function toggleCombinedMenuWithAria(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const isOpen = el.style.display === 'block';
+            el.style.display = isOpen ? 'none' : 'block';
+            const btnId = id === 'heroMenu' ? 'heroCombinedBtn' : 'sidebarCombinedBtn';
+            setAriaExpanded(btnId, !isOpen);
+            // If opening, focus the first menu item for accessibility
+            if (!isOpen) {
+                const first = el.querySelector('.combined-menu-item');
+                if (first && typeof first.focus === 'function') {
+                    first.focus();
+                }
+            }
+        }
+
+        // Replace existing call sites to use ARIA-aware toggler if present
+        window.toggleCombinedMenu = function (id) { toggleCombinedMenuWithAria(id); };
+
+        // Keyboard support: open with Enter/Space when focused, close with Esc
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                ['heroMenu', 'sidebarMenu'].forEach(id => {
+                    const menu = document.getElementById(id);
+                    if (menu && menu.style.display === 'block') menu.style.display = 'none';
+                    const btnId = id === 'heroMenu' ? 'heroCombinedBtn' : 'sidebarCombinedBtn';
+                    setAriaExpanded(btnId, false);
+                });
+            }
+        });
+
+        ['heroCombinedBtn', 'sidebarCombinedBtn'].forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            btn.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const menuId = btnId === 'heroCombinedBtn' ? 'heroMenu' : 'sidebarMenu';
+                    toggleCombinedMenuWithAria(menuId);
+                }
+            });
+        });
     </script>
     <script>
         (function () {

@@ -1369,6 +1369,49 @@ body {
   .channel-item {
     padding: 14px 12px;
     gap: 12px;
+
+  /* Combined New dropdown/menu styles */
+  .combined-dropdown { position: relative; }
+  .combined-menu {
+    display: none;
+    position: absolute;
+    background: #fff;
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(15,23,42,0.08);
+    min-width: 180px;
+    overflow: hidden;
+    z-index: 1200;
+  }
+  .combined-menu .combined-menu-item {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    text-align: left;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 600;
+    color: #1f2933;
+  }
+  .combined-menu .combined-menu-item:hover {
+    background: rgba(253,43,43,0.06);
+    color: #c82333;
+  }
+
+  /* dropdown pop-in animation */
+  @keyframes dropdownPopIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .combined-menu {
+    animation: dropdownPopIn 160ms ease;
+  }
+
+  @media (max-width: 700px) {
+    .combined-menu { min-width: 160px; right: 0; left: auto; }
+    .chat-hero-actions { gap: 8px; }
+  }
   }
 
   .channel-avatar {
