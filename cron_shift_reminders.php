@@ -144,6 +144,113 @@ try {
         }
     }
 
+    // ===== CUSTOM REMINDERS =====
+    echo "\nChecking for custom reminders...\n";
+    
+    // Get all enabled custom reminder preferences
+    $customPrefsStmt = $conn->prepare("
+        SELECT * FROM shift_reminder_preferences 
+        WHERE enabled = 1
+    ");
+    $customPrefsStmt->execute();
+    $customPrefs = $customPrefsStmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $customRemindersSent = 0;
+    
+    foreach ($customPrefs as $pref) {
+        // Calculate the time range for this reminder
+        $targetTime = clone $now;
+        
+        switch ($pref['reminder_type']) {
+            case 'minutes':
+                $targetTime->modify('+' . $pref['reminder_value'] . ' minutes');
+                $windowMinutes = 5; // 5 minute window for minute-based reminders
+                break;
+            case 'hours':
+                $targetTime->modify('+' . $pref['reminder_value'] . ' hours');
+                $windowMinutes = 10; // 10 minute window for hour-based reminders
+                break;
+            case 'days':
+                $targetTime->modify('+' . $pref['reminder_value'] . ' days');
+                $windowMinutes = 15; // 15 minute window for day-based reminders
+                break;
+        }
+        
+        $windowStartCustom = clone $targetTime;
+        $windowStartCustom->modify('-' . $windowMinutes . ' minutes');
+        $windowEndCustom = clone $targetTime;
+        $windowEndCustom->modify('+' . $windowMinutes . ' minutes');
+        
+        // Create a unique reminder type identifier
+        $reminderTypeId = 'custom_' . $pref['id'];
+        
+        // Find shifts for this user in this time window
+        $customShiftsStmt = $conn->prepare("
+            SELECT s.*, u.username, r.name as role_name
+            FROM shifts s
+            JOIN users u ON s.user_id = u.id
+            JOIN roles r ON s.role_id = r.id
+            WHERE u.id = ?
+            AND u.push_notifications_enabled = 1
+            AND CONCAT(s.shift_date, ' ', s.start_time) BETWEEN ? AND ?
+            AND NOT EXISTS (
+                SELECT 1 FROM shift_reminders_sent srs
+                WHERE srs.user_id = s.user_id
+                AND srs.shift_id = s.id
+                AND srs.reminder_type = ?
+            )
+        ");
+        
+        $customShiftsStmt->execute([
+            $pref['user_id'],
+            $windowStartCustom->format('Y-m-d H:i:s'),
+            $windowEndCustom->format('Y-m-d H:i:s'),
+            $reminderTypeId
+        ]);
+        
+        $customShifts = $customShiftsStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($customShifts as $shift) {
+            // Format the reminder text
+            $timeText = $pref['reminder_value'] . ' ' . $pref['reminder_type'];
+            if ($pref['reminder_value'] == 1) {
+                // Singular form
+                $timeText = rtrim($timeText, 's');
+            }
+            
+            $title = "Shift Reminder";
+            $body = sprintf(
+                "Your %s shift starts in %s (%s at %s)",
+                $shift['role_name'],
+                $timeText,
+                $shift['location'] ?? '',
+                date('g:i A', strtotime($shift['start_time']))
+            );
+            
+            $data = [
+                'url' => '/users/shifts.php',
+                'shift_id' => $shift['id']
+            ];
+            
+            if (sendPushNotification($pref['user_id'], $title, $body, $data)) {
+                // Mark as sent
+                $markSent = $conn->prepare("
+                    INSERT INTO shift_reminders_sent (user_id, shift_id, reminder_type)
+                    VALUES (?, ?, ?)
+                ");
+                $markSent->execute([$pref['user_id'], $shift['id'], $reminderTypeId]);
+                echo "  ✓ Sent custom reminder ({$timeText}) to {$shift['username']} for shift #{$shift['id']}\n";
+                $customRemindersSent++;
+            } else {
+                echo "  ✗ Failed to send custom reminder to {$shift['username']}\n";
+            }
+        }
+    }
+    
+    if ($customRemindersSent > 0) {
+        echo "Sent $customRemindersSent custom reminders\n";
+    }
+
     // Clean up old reminder records (older than 7 days)
     $cleanupStmt = $conn->prepare("DELETE FROM shift_reminders_sent WHERE sent_at < DATE_SUB(NOW(), INTERVAL 7 DAY)");
     $deletedRows = $cleanupStmt->execute() ? $cleanupStmt->rowCount() : 0;
@@ -152,7 +259,7 @@ try {
     }
 
     echo "\n[" . date('Y-m-d H:i:s') . "] Shift reminder check completed\n";
-    echo "Summary: Sent " . count($shifts24h) . " x 24h reminders, " . count($shifts1h) . " x 1h reminders\n";
+    echo "Summary: Sent " . count($shifts24h) . " x 24h, " . count($shifts1h) . " x 1h, $customRemindersSent x custom reminders\n";
 
 } catch (Exception $e) {
     echo "ERROR: " . $e->getMessage() . "\n";

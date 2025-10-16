@@ -1050,6 +1050,37 @@ if ($user_id) {
                         </div>
                     </div>
 
+                    <!-- Custom Reminders Section -->
+                    <h4 style="margin-top: 30px; margin-bottom: 15px; font-size: 1.1rem; color: #333;">
+                        <i class="fas fa-bell-plus"></i> Custom Reminders
+                    </h4>
+                    
+                    <div id="customRemindersList" style="margin-bottom: 20px;">
+                        <!-- Custom reminders will be loaded here -->
+                    </div>
+
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h5 style="margin: 0 0 10px 0; font-size: 0.95rem; color: #555;">
+                            <i class="fas fa-plus-circle"></i> Add New Reminder
+                        </h5>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="number" id="reminderValue" min="1" max="999" value="2" 
+                                   style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                            <select id="reminderType" style="padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                                <option value="minutes">Minutes</option>
+                                <option value="hours" selected>Hours</option>
+                                <option value="days">Days</option>
+                            </select>
+                            <span style="color: #666;">before shift</span>
+                            <button type="button" id="addReminderBtn" class="btn btn-success" style="padding: 8px 15px;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <small style="display: block; margin-top: 8px; color: #666;">
+                            <i class="fas fa-info-circle"></i> Create custom reminders at any time before your shifts
+                        </small>
+                    </div>
+
                     <button type="submit" name="update_push_preferences" class="btn btn-primary" style="margin-top: 20px;">
                         <i class="fas fa-save"></i> Save Push Notification Settings
                     </button>
@@ -1414,6 +1445,157 @@ if ($user_id) {
             
             // Initial check
             updatePermissionStatus();
+        });
+    </script>
+
+    <!-- Custom Reminders Management -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const remindersList = document.getElementById('customRemindersList');
+            const addBtn = document.getElementById('addReminderBtn');
+            const valueInput = document.getElementById('reminderValue');
+            const typeSelect = document.getElementById('reminderType');
+
+            // Load custom reminders
+            function loadReminders() {
+                fetch('../functions/manage_custom_reminders.php?action=get')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            displayReminders(data.reminders);
+                        }
+                    })
+                    .catch(error => console.error('Error loading reminders:', error));
+            }
+
+            // Display reminders
+            function displayReminders(reminders) {
+                if (reminders.length === 0) {
+                    remindersList.innerHTML = '<p style="color: #999; font-size: 0.9rem; padding: 10px; background: #f8f9fa; border-radius: 5px;">No custom reminders yet. Add one below!</p>';
+                    return;
+                }
+
+                remindersList.innerHTML = reminders.map(reminder => {
+                    const label = `${reminder.reminder_value} ${reminder.reminder_type} before shift`;
+                    const checked = reminder.enabled ? 'checked' : '';
+                    
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: ${reminder.enabled ? '#e3f2fd' : '#f5f5f5'}; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" ${checked} onchange="toggleReminder(${reminder.id}, this.checked)" 
+                                       style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="color: ${reminder.enabled ? '#1976d2' : '#666'}; font-weight: ${reminder.enabled ? '500' : 'normal'};">
+                                    <i class="fas fa-clock"></i> ${label}
+                                </span>
+                            </div>
+                            <button type="button" onclick="deleteReminder(${reminder.id})" 
+                                    style="background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Add new reminder
+            addBtn.addEventListener('click', function() {
+                const value = parseInt(valueInput.value);
+                const type = typeSelect.value;
+
+                if (value < 1) {
+                    alert('Please enter a valid number (at least 1)');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('action', 'add');
+                formData.append('type', type);
+                formData.append('value', value);
+
+                fetch('../functions/manage_custom_reminders.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadReminders();
+                        valueInput.value = '2';
+                        typeSelect.value = 'hours';
+                        
+                        // Show success message
+                        const msg = document.createElement('div');
+                        msg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4caf50; color: white; padding: 15px 20px; border-radius: 5px; z-index: 10000;';
+                        msg.innerHTML = '<i class="fas fa-check"></i> Reminder added successfully!';
+                        document.body.appendChild(msg);
+                        setTimeout(() => msg.remove(), 3000);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to add reminder');
+                });
+            });
+
+            // Toggle reminder (global function)
+            window.toggleReminder = function(id, enabled) {
+                const formData = new FormData();
+                formData.append('action', 'toggle');
+                formData.append('id', id);
+                formData.append('enabled', enabled ? 1 : 0);
+
+                fetch('../functions/manage_custom_reminders.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadReminders();
+                    } else {
+                        alert('Error: ' + data.message);
+                        loadReminders();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            };
+
+            // Delete reminder (global function)
+            window.deleteReminder = function(id) {
+                if (!confirm('Are you sure you want to delete this reminder?')) {
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('action', 'delete');
+                formData.append('id', id);
+
+                fetch('../functions/manage_custom_reminders.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadReminders();
+                        
+                        // Show success message
+                        const msg = document.createElement('div');
+                        msg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #f44336; color: white; padding: 15px 20px; border-radius: 5px; z-index: 10000;';
+                        msg.innerHTML = '<i class="fas fa-trash"></i> Reminder deleted';
+                        document.body.appendChild(msg);
+                        setTimeout(() => msg.remove(), 3000);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            };
+
+            // Initial load
+            loadReminders();
         });
     </script>
 
