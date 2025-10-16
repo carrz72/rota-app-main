@@ -1347,7 +1347,7 @@ if (menuToggle && navLinks) {
 }
 
 // Mark notification as read
-function markAsRead(element) {
+function markNotificationAsRead(element) {
     const notificationId = element.getAttribute('data-id');
 
     fetch('../functions/mark_notification.php', {
