@@ -1263,7 +1263,6 @@ function closeReactionPicker() {
 // Add reaction to message
 function addReaction(messageId, emoji) {
     closeReactionPicker();
-
     fetch('../functions/chat_api.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1279,6 +1278,28 @@ function addReaction(messageId, emoji) {
         })
         .catch(error => {
             console.error('Error adding reaction:', error);
+        });
+}
+
+// Remove reaction from message
+function removeReaction(messageId, emoji) {
+    console.log('removeReaction called', { messageId, emoji });
+    fetch('../functions/chat_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=remove_reaction&message_id=${messageId}&emoji=${encodeURIComponent(emoji)}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('removeReaction response', data);
+            if (data.success) {
+                loadMessages();
+            } else {
+                console.error('Failed to remove reaction:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error removing reaction:', error);
         });
 }
 
