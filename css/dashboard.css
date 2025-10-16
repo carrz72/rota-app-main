@@ -1798,9 +1798,7 @@ span {
 /* =======================================
     12B. ADDITIONAL IPHONE MOBILE FIXES
     ======================================= */
-@media only screen 
-  and (max-width: 480px) 
-  and (-webkit-min-device-pixel-ratio: 2) {
+@media only screen and (max-width: 480px) and (-webkit-min-device-pixel-ratio: 2) {
   /* Target iPhone specifically */
   html {
     overflow-x: hidden !important;
@@ -2011,7 +2009,7 @@ span {
 }
 
 .quick-action-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -2078,7 +2076,8 @@ span {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 2px 8px rgba(253, 43, 43, 0.3);
   }
@@ -2110,12 +2109,10 @@ span {
   margin-top: 40px;
   margin-bottom: 40px;
   padding-top: 30px;
-
 }
 
-.dashboard-card{
- margin-bottom: 10px;
-
+.dashboard-card {
+  margin-bottom: 10px;
 }
 
 .analytics-panel h2 {
@@ -2297,62 +2294,62 @@ span {
     padding: 12px;
     gap: 15px;
   }
-  
+
   .quick-action-card {
     padding: 12px;
   }
-  
+
   .action-icon {
     width: 48px;
     height: 48px;
     font-size: 20px;
     margin-bottom: 10px;
   }
-  
+
   .quick-action-card h3 {
     font-size: 13px;
     margin: 8px 0 6px;
   }
-  
+
   .quick-action-card p {
     font-size: 11px;
   }
-  
+
   .analytics-panel {
     padding: 15px;
     margin-bottom: 20px;
   }
-  
+
   .analytics-panel h2 {
     font-size: 18px;
     margin-bottom: 15px;
   }
-  
+
   .analytics-card {
     padding: 15px;
     min-height: auto;
   }
-  
+
   .analytics-card canvas {
     max-height: 180px !important;
   }
-  
+
   .chart-stats {
     flex-direction: row;
     gap: 15px;
   }
-  
+
   .welcome-card {
     padding: 15px;
     flex-direction: column;
     gap: 15px;
   }
-  
+
   .welcome-actions {
     width: 100%;
     justify-content: flex-start;
   }
-  
+
   .welcome-actions a {
     font-size: 0.85rem;
     padding: 8px 12px;
@@ -2364,97 +2361,97 @@ span {
     padding: 10px;
     gap: 12px;
   }
-  
+
   .quick-actions-panel {
     grid-template-columns: 1fr;
     gap: 10px;
   }
-  
+
   .quick-action-card {
     padding: 15px;
   }
-  
+
   .action-icon {
     width: 50px;
     height: 50px;
     font-size: 22px;
   }
-  
+
   .quick-action-card h3 {
     font-size: 14px;
   }
-  
+
   .action-badge {
     width: 24px;
     height: 24px;
     font-size: 11px;
   }
-  
+
   .analytics-panel {
     padding: 12px;
   }
-  
+
   .analytics-panel h2 {
     font-size: 16px;
   }
-  
+
   .analytics-card {
     padding: 12px;
   }
-  
+
   .analytics-card h3 {
     font-size: 14px;
   }
-  
+
   .analytics-card canvas {
     max-height: 160px !important;
   }
-  
+
   .chart-stat .stat-value {
     font-size: 18px;
   }
-  
+
   .insight-value {
     font-size: 16px;
   }
-  
+
   .welcome-card h1 {
     font-size: 1.5rem;
   }
-  
+
   .welcome-card p {
     font-size: 0.9rem;
   }
-  
+
   /* Fix shifts section on mobile */
   .shifts-section {
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
   }
-  
+
   .dashboard-card {
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
   }
-  
+
   /* Fix next shift details */
   .next-shift-details {
     width: 100%;
     box-sizing: border-box;
   }
-  
+
   .next-shift-info {
     display: grid;
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  
+
   .next-shift-meta {
     font-size: 13px;
   }
-  
+
   /* Fix upcoming shifts table */
   .upcoming-shifts-table {
     display: block;
@@ -2462,7 +2459,7 @@ span {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .upcoming-shifts-table th,
   .upcoming-shifts-table td {
     padding: 8px 6px;
@@ -2477,36 +2474,36 @@ span {
     padding: 8px;
     gap: 10px;
   }
-  
+
   .welcome-card {
     padding: 12px;
   }
-  
+
   .welcome-card h1 {
     font-size: 1.3rem;
   }
-  
+
   .welcome-actions a {
     font-size: 0.75rem;
     padding: 6px 10px;
   }
-  
+
   .quick-action-card {
     padding: 12px;
   }
-  
+
   .analytics-card {
     padding: 10px;
   }
-  
+
   .dashboard-card {
     padding: 10px;
   }
-  
+
   .next-shift-meta {
     font-size: 12px;
   }
-  
+
   .upcoming-shifts-table th,
   .upcoming-shifts-table td {
     padding: 6px 4px;
