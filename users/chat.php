@@ -135,11 +135,11 @@ if (!$userInitial) {
                                 <i class="fa fa-plus"></i> New <i class="fa fa-caret-down" style="margin-left:8px;"></i>
                             </button>
                             <div class="combined-menu" id="heroMenu" style="display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); z-index: 1000; min-width: 200px; border-radius: 6px; overflow: hidden;">
-                                <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" onclick="openNewChatModal(); toggleCombinedMenu('heroMenu');">
+                                <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" data-action="start-dm" tabindex="0">
                                     <i class="fa fa-user-plus" style="margin-right:8px"></i> Start Direct Message
                                 </button>
                                 <?php if ($is_admin): ?>
-                                    <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" onclick="openCreateChannelModal(); toggleCombinedMenu('heroMenu');">
+                                    <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" data-action="create-channel" tabindex="0">
                                         <i class="fa fa-plus-square" style="margin-right:8px"></i> Create Channel
                                     </button>
                                 <?php endif; ?>
@@ -184,11 +184,11 @@ if (!$userInitial) {
                                     <i class="fa fa-plus"></i>
                                 </button>
                                 <div class="combined-menu" id="sidebarMenu" style="display: none; position: absolute; left: 0; top: 100%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); z-index: 1000; min-width: 200px; border-radius: 6px; overflow: hidden;">
-                                    <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" onclick="openNewChatModal(); toggleCombinedMenu('sidebarMenu');" title="Start a direct message">
+                                    <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" data-action="start-dm" tabindex="0" title="Start a direct message">
                                         <i class="fa fa-user-plus" style="margin-right:8px"></i> Start Direct Message
                                     </button>
                                     <?php if ($is_admin): ?>
-                                        <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" onclick="openCreateChannelModal(); toggleCombinedMenu('sidebarMenu');" title="Create Channel">
+                                        <button type="button" class="combined-menu-item" style="display:block; width:100%; padding:10px 12px; border:none; background:none; text-align:left;" data-action="create-channel" tabindex="0" title="Create Channel">
                                             <i class="fa fa-plus-square" style="margin-right:8px"></i> Create Channel
                                         </button>
                                     <?php endif; ?>
@@ -441,6 +441,57 @@ if (!$userInitial) {
                 }
             });
         });
+
+        // Delegate clicks on combined-menu items by data-action
+        document.addEventListener('click', function (e) {
+            const actionEl = e.target.closest && e.target.closest('.combined-menu-item');
+            if (actionEl) {
+                const action = actionEl.getAttribute('data-action');
+                if (action === 'start-dm') {
+                    openNewChatModal();
+                } else if (action === 'create-channel') {
+                    openCreateChannelModal();
+                }
+                // close all combined menus
+                ['heroMenu', 'sidebarMenu'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+                ['heroCombinedBtn','sidebarCombinedBtn'].forEach(bid => setAriaExpanded(bid, false));
+            }
+        });
+
+        // Mobile FAB: add a floating button to trigger actions on mobile
+        (function addMobileFab() {
+            const fab = document.createElement('div');
+            fab.id = 'mobileFab';
+            fab.innerHTML = `
+                <button id="mobileFabBtn" aria-haspopup="true" aria-expanded="false" title="New">
+                    <i class="fa fa-plus"></i>
+                </button>
+                <div id="mobileFabMenu" style="display:none">
+                    <button class="combined-menu-item" data-action="start-dm">Start Direct Message</button>
+                    <?php if ($is_admin): ?>
+                        <button class="combined-menu-item" data-action="create-channel">Create Channel</button>
+                    <?php endif; ?>
+                </div>
+            `;
+            fab.className = 'mobile-fab';
+            document.body.appendChild(fab);
+
+            const btn = document.getElementById('mobileFabBtn');
+            const menu = document.getElementById('mobileFabMenu');
+            if (btn && menu) {
+                btn.addEventListener('click', function () {
+                    const open = menu.style.display === 'block';
+                    menu.style.display = open ? 'none' : 'block';
+                    btn.setAttribute('aria-expanded', (!open).toString());
+                });
+                document.addEventListener('click', function (ev) {
+                    if (!fab.contains(ev.target)) {
+                        menu.style.display = 'none';
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+        })();
     </script>
     <script>
         (function () {
