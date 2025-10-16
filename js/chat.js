@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.error(error);
                 });
         });
-    }
-});
+        // removed extra closing brace
+    });
 
 /* =======================================
    CHANNELS
@@ -1562,15 +1562,15 @@ function loadChannels() {
             body: `action=delete_channel&channel_id=${encodeURIComponent(channelId)}`
         })
             .then(response => response.json())
-            .then data => {
+            .then(data => {
                 if (data.success) {
                     loadChannels();
                 } else {
                     alert('Failed to delete channel: ' + (data.message || 'Unknown error'));
                 }
             })
-        .catch (error => {
-            alert('Error deleting channel');
-            console.error(error);
-        });
+            .catch(error => {
+                alert('Error deleting channel');
+                console.error(error);
+            });
     }
