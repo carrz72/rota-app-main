@@ -1,13 +1,24 @@
-const CACHE_NAME = "rota-app-cache-v6";
+const CACHE_NAME = "rota-app-cache-v7";
+const OFFLINE_PAGE = "./offline.html";
 const urlsToCache = [
     "./",
     "./index.php",
+    "./offline.html",
     "./css/styles.css",
     "./css/navigation.css",
+    "./css/dashboard.css",
+    "./css/dark_mode.css",
+    "./css/loginandregister.css",
     "./images/icon.png",
+    "./images/new logo.png",
+    "./images/backg3.jpg",
     "./js/links.js",
     "./js/menu.js",
-    "./fonts/CooperHewitt-Book.otf"
+    "./js/darkmode.js",
+    "./js/session-timeout.js",
+    "./js/session-protection.js",
+    "./fonts/CooperHewitt-Book.otf",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
 ];
 
 self.addEventListener("install", event => {
@@ -80,11 +91,17 @@ self.addEventListener('fetch', event => {
                             console.log('[ServiceWorker] Serving from cache after fetch failure');
                             return cachedResponse;
                         }
-                        // Return a basic offline page if nothing else works
-                        return new Response('<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>You are offline</h1><p>Please check your connection and try again.</p></body></html>', {
-                            headers: { 'Content-Type': 'text/html' },
-                            status: 200,
-                            statusText: 'OK'
+                        // Return proper offline page
+                        return caches.match(OFFLINE_PAGE).then(offlinePage => {
+                            if (offlinePage) {
+                                return offlinePage;
+                            }
+                            // Fallback if offline page isn't cached
+                            return new Response('<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>You are offline</h1><p>Please check your connection and try again.</p></body></html>', {
+                                headers: { 'Content-Type': 'text/html' },
+                                status: 200,
+                                statusText: 'OK'
+                            });
                         });
                     });
                 })
@@ -153,4 +170,98 @@ self.addEventListener("activate", event => {
         })
     );
     return self.clients.claim();
+});
+
+// ============================================
+// PUSH NOTIFICATIONS
+// ============================================
+
+// Listen for push events
+self.addEventListener('push', event => {
+    console.log('[ServiceWorker] Push notification received');
+
+    let data = {
+        title: 'Open Rota',
+        body: 'You have a new notification',
+        icon: '/images/icon.png',
+        badge: '/images/icon.png',
+        url: '/users/dashboard.php'
+    };
+
+    if (event.data) {
+        try {
+            data = event.data.json();
+        } catch (e) {
+            console.error('Error parsing push data:', e);
+        }
+    }
+
+    const options = {
+        body: data.body,
+        icon: data.icon || '/images/icon.png',
+        badge: data.badge || '/images/icon.png',
+        tag: data.tag || 'notification-' + Date.now(),
+        requireInteraction: data.requireInteraction || false,
+        data: {
+            url: data.url || '/users/dashboard.php',
+            timestamp: data.timestamp || Date.now()
+        },
+        actions: [
+            {
+                action: 'view',
+                title: 'View',
+                icon: '/images/icon.png'
+            },
+            {
+                action: 'close',
+                title: 'Close'
+            }
+        ],
+        vibrate: [200, 100, 200],
+        sound: '/notification.mp3'
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+// Handle notification clicks
+self.addEventListener('notificationclick', event => {
+    console.log('[ServiceWorker] Notification clicked:', event.action);
+
+    event.notification.close();
+
+    if (event.action === 'close') {
+        return;
+    }
+
+    // Get the URL from notification data
+    const urlToOpen = event.notification.data.url || '/users/dashboard.php';
+    const fullUrl = new URL(urlToOpen, self.location.origin).href;
+
+    event.waitUntil(
+        clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true
+        })
+        .then(windowClients => {
+            // Check if there's already a window open with this URL
+            for (let client of windowClients) {
+                if (client.url === fullUrl && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // If not, open new window
+            if (clients.openWindow) {
+                return clients.openWindow(fullUrl);
+            }
+        })
+    );
+});
+
+// Handle notification close
+self.addEventListener('notificationclose', event => {
+    console.log('[ServiceWorker] Notification closed:', event.notification.tag);
+    // You could track this for analytics
 });

@@ -25,7 +25,9 @@ document.addEventListener('DOMContentLoaded', function () {
         menuToggle.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            navLinks.classList.toggle('show');
+            const isOpen = navLinks.classList.toggle('show');
+            // Update ARIA attribute for accessibility
+            menuToggle.setAttribute('aria-expanded', isOpen);
             console.log('Menu toggled');
         });
 
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 !navLinks.contains(event.target) &&
                 navLinks.classList.contains('show')) {
                 navLinks.classList.remove('show');
+                menuToggle.setAttribute('aria-expanded', 'false');
             }
         });
 

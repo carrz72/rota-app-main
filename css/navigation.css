@@ -6,6 +6,27 @@
   font-style: normal;
 }
 
+/* Skip to main content link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #fd2b2b;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  z-index: 10000;
+  font-weight: 600;
+  transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
 /* Ensure Font Awesome icons display properly */
 .fa,
 .nav-links i {
@@ -53,11 +74,19 @@ header {
   z-index: 1002;
   padding: 5px;
   position: relative;
+  background: transparent;
+  border: none;
+  color: inherit;
 }
 
 .menu-toggle:hover {
   transition: 0.4s;
   transform: translateX(2px);
+}
+
+.menu-toggle:focus {
+  outline: 2px solid #fd2b2b;
+  outline-offset: 2px;
 }
 
 /* Navigation Menu */
@@ -165,6 +194,9 @@ header .notification-icon,
   font-style: normal !important;
   transition: all 0.3s ease !important;
   pointer-events: auto !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 5px !important;
 }
 
 header .notification-icon:hover,
@@ -172,6 +204,13 @@ header .notification-icon:hover,
 #notification-icon:hover {
   transform: scale(1.2) !important;
   color: #fd2b2b !important;
+}
+
+header .notification-icon:focus,
+.header .notification-icon:focus,
+#notification-icon:focus {
+  outline: 2px solid #fd2b2b !important;
+  outline-offset: 2px !important;
 }
 
 header .notification-badge,
@@ -733,5 +772,186 @@ label,
     left: auto;
     max-width: 280px;
     position: fixed;
+  }
+}
+
+/* ============================================
+   PUSH NOTIFICATION PROMPT MODAL
+   ============================================ */
+
+.notification-prompt-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+.notification-prompt-content {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.notification-prompt-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.notification-prompt-content h3 {
+  color: #333;
+  font-size: 24px;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.notification-prompt-content p {
+  color: #666;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.notification-prompt-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.notification-prompt-content ul li {
+  padding: 8px 0;
+  color: #444;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-prompt-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.notification-prompt-buttons button {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.btn-enable-notifications {
+  background: #fd2b2b;
+  color: white;
+}
+
+.btn-enable-notifications:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(253, 43, 43, 0.3);
+}
+
+.btn-maybe-later {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.btn-maybe-later:hover {
+  background: #e0e0e0;
+}
+
+/* Toast Notification */
+.notification-toast {
+  position: fixed;
+  bottom: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 15px 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: bottom 0.3s ease;
+  z-index: 10001;
+  min-width: 300px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.notification-toast.show {
+  bottom: 30px;
+}
+
+.notification-toast.success {
+  background: #28a745;
+}
+
+.notification-toast.error {
+  background: #dc3545;
+}
+
+.notification-toast.info {
+  background: #17a2b8;
+}
+
+@media (max-width: 480px) {
+  .notification-prompt-content {
+    padding: 20px;
+    width: 95%;
+  }
+
+  .notification-prompt-icon {
+    font-size: 48px;
+  }
+
+  .notification-prompt-content h3 {
+    font-size: 20px;
+  }
+
+  .notification-prompt-content p {
+    font-size: 14px;
+  }
+
+  .notification-prompt-content ul li {
+    font-size: 13px;
+  }
+
+  .notification-prompt-buttons {
+    flex-direction: column;
+  }
+
+  .notification-prompt-buttons button {
+    width: 100%;
+  }
+
+  .notification-toast {
+    min-width: 280px;
+    width: 90%;
   }
 }

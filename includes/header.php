@@ -46,19 +46,32 @@ if ($user_id) {
 </head>
 
 <body>
-    <header style="opacity: 0; transition: opacity 0.5s ease;">
-        <div class="logo"><img src="images/new logo.png" alt="Open Rota" style="height: 60px;"></div>
+    <!-- Skip to main content link for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <header style="opacity: 0; transition: opacity 0.5s ease;" role="banner">
+        <div class="logo"><img src="images/new logo.png" alt="Open Rota Logo" style="height: 60px;"></div>
         <div class="nav-group">
 
             <div class="notification-container">
                 <!-- Bell Icon -->
-                <i class="fa fa-bell notification-icon" id="notification-icon"></i>
+                <button class="notification-icon" 
+                        id="notification-icon"
+                        aria-label="View notifications"
+                        aria-expanded="false"
+                        aria-haspopup="true"
+                        aria-controls="notification-dropdown">
+                    <i class="fa fa-bell" aria-hidden="true"></i>
                 <?php if ($notificationCount > 0): ?>
-                    <span class="notification-badge"><?php echo $notificationCount; ?></span>
+                    <span class="notification-badge" aria-label="<?php echo $notificationCount; ?> unread notifications"><?php echo $notificationCount; ?></span>
                 <?php endif; ?>
+                </button>
 
                 <!-- Notifications Dropdown -->
-                <div class="notification-dropdown" id="notification-dropdown">
+                <div class="notification-dropdown" 
+                     id="notification-dropdown"
+                     role="menu"
+                     aria-label="Notifications">
                     <?php if ($notificationCount > 0): ?>
                         <?php foreach ($notifications as $notif): ?>
                             <?php if ($notif['type'] === 'shift-invite' && !empty($notif['related_id'])): ?>
@@ -91,11 +104,15 @@ if ($user_id) {
                 </div>
             </div>
 
-            <div class="menu-toggle" id="menu-toggle">
-                ☰
-            </div>
-            <nav class="nav-links" id="nav-links">
-                <ul>
+            <button class="menu-toggle" 
+                    id="menu-toggle"
+                    aria-label="Toggle navigation menu"
+                    aria-expanded="false"
+                    aria-controls="nav-links">
+                <span aria-hidden="true">☰</span>
+            </button>
+            <nav class="nav-links" id="nav-links" aria-label="Main navigation" role="navigation">
+                <ul role="list">
                     <li><a href="../users/dashboard.php">Dashboard</a></li>
                     <li><a href="shifts.php">My Shifts</a></li>
                     <li><a href="rota.php">Rota</a></li>
@@ -143,7 +160,10 @@ if ($user_id) {
                 notificationIcon.addEventListener('click', function (e) {
                     e.stopPropagation(); // prevent the click from bubbling up
                     // Toggle dropdown visibility
-                    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+                    const isOpen = dropdown.style.display === "block";
+                    dropdown.style.display = isOpen ? "none" : "block";
+                    // Update ARIA attribute for accessibility
+                    notificationIcon.setAttribute('aria-expanded', !isOpen);
                 });
             }
 
@@ -154,6 +174,7 @@ if ($user_id) {
                     !notificationIcon.contains(e.target) &&
                     !dropdown.contains(e.target)) {
                     dropdown.style.display = "none";
+                    notificationIcon.setAttribute('aria-expanded', 'false');
                 }
             });
 
@@ -228,6 +249,7 @@ if ($user_id) {
     <script src="../js/session-protection.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/darkmode.js"></script>
+    <script src="../js/push-notifications.js"></script>
 
     <script>
         // Initialize session configuration

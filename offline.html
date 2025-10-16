@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Open Rota</title>
+    <style>
+        @font-face {
+            font-family: "newFont";
+            src: url("fonts/CooperHewitt-Book.otf");
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "newFont", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .offline-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .offline-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, #fd2b2b 0%, #ff6b6b 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+
+        .offline-icon::before {
+            content: "📡";
+            font-size: 60px;
+            filter: grayscale(100%);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(253, 43, 43, 0.7);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 20px rgba(253, 43, 43, 0);
+            }
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .retry-button {
+            background: linear-gradient(135deg, #fd2b2b 0%, #ff6b6b 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(253, 43, 43, 0.3);
+        }
+
+        .retry-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(253, 43, 43, 0.4);
+        }
+
+        .retry-button:active {
+            transform: translateY(0);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .cached-notice {
+            margin-top: 30px;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 5px;
+            text-align: left;
+            font-size: 14px;
+            color: #856404;
+        }
+
+        .cached-notice strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 480px) {
+            .offline-container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            p {
+                font-size: 14px;
+            }
+
+            .offline-icon {
+                width: 100px;
+                height: 100px;
+            }
+
+            .offline-icon::before {
+                font-size: 50px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="offline-container">
+        <div class="offline-icon"></div>
+        <h1>You're Offline</h1>
+        <p>It looks like you've lost your internet connection. Please check your network settings and try again.</p>
+
+        <button class="retry-button" onclick="checkConnection()">
+            🔄 Retry Connection
+        </button>
+
+        <div class="status" id="status">
+            Checking connection status...
+        </div>
+
+        <div class="cached-notice">
+            <strong>💡 Tip:</strong>
+            Some pages may still be available from your cache. Try navigating to pages you've visited recently.
+        </div>
+    </div>
+
+    <script>
+        let isOnline = navigator.onLine;
+
+        function updateStatus() {
+            const status = document.getElementById('status');
+            if (navigator.onLine) {
+                status.textContent = '✅ Connection restored!';
+                status.className = 'status online';
+                setTimeout(() => {
+                    window.location.href = './index.php';
+                }, 1000);
+            } else {
+                status.textContent = '❌ Still offline. Please check your connection.';
+                status.className = 'status';
+            }
+        }
+
+        function checkConnection() {
+            const button = document.querySelector('.retry-button');
+            button.textContent = '⏳ Checking...';
+            button.disabled = true;
+
+            // Try to fetch a small resource
+            fetch('./manifest.json', {
+                method: 'HEAD',
+                cache: 'no-cache'
+            })
+                .then(() => {
+                    updateStatus();
+                })
+                .catch(() => {
+                    updateStatus();
+                    button.textContent = '🔄 Retry Connection';
+                    button.disabled = false;
+                });
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            updateStatus();
+        });
+
+        window.addEventListener('offline', () => {
+            updateStatus();
+        });
+
+        // Check status on load
+        updateStatus();
+
+        // Auto-check every 5 seconds
+        setInterval(() => {
+            if (!navigator.onLine) {
+                fetch('./manifest.json', {
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                })
+                    .then(() => {
+                        if (navigator.onLine) {
+                            updateStatus();
+                        }
+                    })
+                    .catch(() => { });
+            }
+        }, 5000);
+    </script>
+</body>
+
+</html>
