@@ -1,6 +1,5 @@
-✅ Table 'shift_reminder_preferences' EXISTS!cd /var/www/rota-app
-sudo git pull
-php check_custom_reminders_table.php<?php
+<?php
+
 ob_start();
 require_once '../includes/session_starter.php';
 require_once '../includes/error_handler.php';
