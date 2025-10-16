@@ -1643,16 +1643,84 @@ span {
   /* Ensure nothing causes horizontal scroll */
   body {
     overflow-x: hidden;
+    max-width: 100vw;
   }
 
   .container {
     max-width: 100vw;
     overflow-x: hidden;
+    padding: 10px;
+  }
+
+  /* Force grid items to not overflow */
+  .dashboard-card[style*="grid-column"] {
+    grid-column: 1 / -1 !important;
+    max-width: calc(100vw - 40px) !important;
   }
 }
 
 /* =======================================
-    12. SAFARI-SPECIFIC FIXES
+    12. IPHONE/IOS SAFARI SPECIFIC FIXES
+    ======================================= */
+@supports (-webkit-touch-callout: none) {
+  /* All iOS Safari devices */
+  body {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .dashboard-container {
+    max-width: 100vw;
+    overflow-x: hidden;
+    padding: 15px;
+  }
+
+  .dashboard-card {
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .upcoming-shifts-table {
+    min-width: 400px;
+  }
+
+  /* Fix for grid column spanning */
+  .dashboard-card[style*="grid-column"] {
+    max-width: 100%;
+  }
+
+  /* Next shift details specific fixes */
+  .next-shift-details {
+    max-width: 100%;
+    overflow: hidden;
+    word-wrap: break-word;
+  }
+
+  .next-shift-meta span {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Earnings section */
+  .earnings-stats {
+    max-width: 100%;
+  }
+
+  .earnings-stat-box {
+    overflow: hidden;
+    word-wrap: break-word;
+  }
+}
+
+/* =======================================
+    13. GENERAL SAFARI-SPECIFIC FIXES
     ======================================= */
 @supports (-webkit-touch-callout: none) {
   /* iOS Safari specific styles go here */

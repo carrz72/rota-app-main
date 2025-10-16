@@ -233,7 +233,7 @@ foreach ($ytd_shifts as $shift) {
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <link rel="icon" type="image/png" href="../images/icon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="stylesheet" href="../css/dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="../css/navigation.css?v=<?php echo time(); ?>">
     <link rel="manifest" href="../manifest.json">
@@ -267,7 +267,7 @@ foreach ($ytd_shifts as $shift) {
     <title>Dashboard - Open Rota</title>
 </head>
 
-<body>
+<body style="overflow-x: hidden; max-width: 100vw;">
     <!-- Header -->
     <?php
     // Retrieve the notification count from the database
@@ -343,8 +343,8 @@ foreach ($ytd_shifts as $shift) {
         </div>
     </header>
 
-    <div class="dashboard-container">
-        <!-- Welcome Banner -->
+    <div class="dashboard-container" style="max-width: 100vw; overflow-x: hidden; box-sizing: border-box;">
+        <!-- Welcome Card -->
         <div class="welcome-card">
             <div class="welcome-text">
                 <h1>Welcome,
@@ -657,7 +657,7 @@ foreach ($ytd_shifts as $shift) {
         </div>
 
         <!-- Upcoming Shifts Section -->
-        <div class="dashboard-card" style="grid-column: 1 / -1;">
+        <div class="dashboard-card" style="grid-column: 1 / -1; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
             <h3><i class="fas fa-calendar-alt"></i> Upcoming Shifts</h3>
 
             <?php if (!empty($next_shifts)): ?>
