@@ -744,7 +744,13 @@ function loadChannels() {
         // Toggle mobile sidebar
         function toggleSidebar() {
             const sidebar = document.getElementById('chatSidebar');
-            sidebar.classList.toggle('mobile-open');
+            console.log('toggleSidebar called', sidebar);
+            if (sidebar) {
+                sidebar.classList.toggle('mobile-open');
+                console.log('mobile-open class toggled. Now:', sidebar.classList);
+            } else {
+                console.warn('Sidebar element not found!');
+            }
         }
 
         // Close mobile sidebar
