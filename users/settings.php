@@ -15,10 +15,13 @@ $user_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
-// Retrieve current user details including branch info
+// Retrieve current user details including branch info and notification settings
 $stmt = $conn->prepare("
     SELECT u.username, u.email, u.email_verified, u.role, u.created_at, u.branch_id,
-           b.name as branch_name, b.code as branch_code
+           b.name as branch_name, b.code as branch_code,
+           u.push_notifications_enabled, u.notify_shift_assigned, u.notify_shift_updated,
+           u.notify_shift_deleted, u.notify_shift_invitation, u.notify_shift_swap,
+           u.shift_reminder_24h, u.shift_reminder_1h
     FROM users u 
     LEFT JOIN branches b ON u.branch_id = b.id 
     WHERE u.id = ?
@@ -117,6 +120,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    if (isset($_POST['update_push_preferences'])) {
+        // Update push notification preferences in users table
+        $push_enabled = isset($_POST['push_notifications_enabled']) ? 1 : 0;
+        $notify_assigned = isset($_POST['notify_shift_assigned']) ? 1 : 0;
+        $notify_updated = isset($_POST['notify_shift_updated']) ? 1 : 0;
+        $notify_deleted = isset($_POST['notify_shift_deleted']) ? 1 : 0;
+        $notify_invitation = isset($_POST['notify_shift_invitation']) ? 1 : 0;
+        $notify_swap = isset($_POST['notify_shift_swap']) ? 1 : 0;
+        $reminder_24h = isset($_POST['shift_reminder_24h']) ? 1 : 0;
+        $reminder_1h = isset($_POST['shift_reminder_1h']) ? 1 : 0;
+
+        try {
+            $stmt = $conn->prepare("
+                UPDATE users SET 
+                    push_notifications_enabled = ?,
+                    notify_shift_assigned = ?,
+                    notify_shift_updated = ?,
+                    notify_shift_deleted = ?,
+                    notify_shift_invitation = ?,
+                    notify_shift_swap = ?,
+                    shift_reminder_24h = ?,
+                    shift_reminder_1h = ?
+                WHERE id = ?
+            ");
+
+            if ($stmt->execute([$push_enabled, $notify_assigned, $notify_updated, $notify_deleted, 
+                               $notify_invitation, $notify_swap, $reminder_24h, $reminder_1h, $user_id])) {
+                // Update the user array for display
+                $user['push_notifications_enabled'] = $push_enabled;
+                $user['notify_shift_assigned'] = $notify_assigned;
+                $user['notify_shift_updated'] = $notify_updated;
+                $user['notify_shift_deleted'] = $notify_deleted;
+                $user['notify_shift_invitation'] = $notify_invitation;
+                $user['notify_shift_swap'] = $notify_swap;
+                $user['shift_reminder_24h'] = $reminder_24h;
+                $user['shift_reminder_1h'] = $reminder_1h;
+                
+                $success = "Push notification settings updated successfully!";
+            } else {
+                $error = "Failed to update push notification settings.";
+            }
+        } catch (Exception $e) {
+            $error = "Could not update settings: " . $e->getMessage();
+        }
+    }
+    
     if (isset($_POST['update_preferences'])) {
         $shift_reminders = isset($_POST['shift_reminders']) ? 1 : 0;
         $shift_invitations = isset($_POST['shift_invitations']) ? 1 : 0;
@@ -904,13 +953,109 @@ if ($user_id) {
                 </form>
             </div>
 
+            <!-- Push Notification Settings -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="card-title">Push Notifications</h3>
+                </div>
+
+                <form method="POST">
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="push_notifications_enabled" name="push_notifications_enabled" 
+                                   <?php echo ($user['push_notifications_enabled'] ?? 1) ? 'checked' : ''; ?>>
+                            <div class="checkbox-label">
+                                <div class="checkbox-title">Enable Push Notifications</div>
+                                <div class="checkbox-description">Master switch for all push notifications</div>
+                            </div>
+                        </div>
+
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="notify_shift_assigned" name="notify_shift_assigned" 
+                                   <?php echo ($user['notify_shift_assigned'] ?? 1) ? 'checked' : ''; ?>>
+                            <div class="checkbox-label">
+                                <div class="checkbox-title">New Shift Assigned</div>
+                                <div class="checkbox-description">Get notified when a new shift is assigned to you</div>
+                            </div>
+                        </div>
+
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="notify_shift_updated" name="notify_shift_updated" 
+                                   <?php echo ($user['notify_shift_updated'] ?? 1) ? 'checked' : ''; ?>>
+                            <div class="checkbox-label">
+                                <div class="checkbox-title">Shift Updated</div>
+                                <div class="checkbox-description">Notify me when my shifts are changed</div>
+                            </div>
+                        </div>
+
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="notify_shift_deleted" name="notify_shift_deleted" 
+                                   <?php echo ($user['notify_shift_deleted'] ?? 1) ? 'checked' : ''; ?>>
+                            <div class="checkbox-label">
+                                <div class="checkbox-title">Shift Deleted</div>
+                                <div class="checkbox-description">Notify me when my shifts are removed</div>
+                            </div>
+                        </div>
+
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="notify_shift_invitation" name="notify_shift_invitation" 
+                                   <?php echo ($user['notify_shift_invitation'] ?? 1) ? 'checked' : ''; ?>>
+                            <div class="checkbox-label">
+                                <div class="checkbox-title">Shift Invitations</div>
+                                <div class="checkbox-description">Receive notifications for shift invitations</div>
+                            </div>
+                        </div>
+
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="notify_shift_swap" name="notify_shift_swap" 
+                                   <?php echo ($user['notify_shift_swap'] ?? 1) ? 'checked' : ''; ?>>
+                            <div class="checkbox-label">
+                                <div class="checkbox-title">Shift Swaps</div>
+                                <div class="checkbox-description">Notify me about shift swap requests and approvals</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 30px; margin-bottom: 15px; font-size: 1.1rem; color: #333;">
+                        <i class="fas fa-clock"></i> Shift Reminders
+                    </h4>
+                    
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="shift_reminder_24h" name="shift_reminder_24h" 
+                                   <?php echo ($user['shift_reminder_24h'] ?? 1) ? 'checked' : ''; ?>>
+                            <div class="checkbox-label">
+                                <div class="checkbox-title">24 Hours Before Shift</div>
+                                <div class="checkbox-description">Get reminded one day before your shift starts</div>
+                            </div>
+                        </div>
+
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="shift_reminder_1h" name="shift_reminder_1h" 
+                                   <?php echo ($user['shift_reminder_1h'] ?? 0) ? 'checked' : ''; ?>>
+                            <div class="checkbox-label">
+                                <div class="checkbox-title">1 Hour Before Shift</div>
+                                <div class="checkbox-description">Get reminded one hour before your shift starts</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" name="update_push_preferences" class="btn btn-primary" style="margin-top: 20px;">
+                        <i class="fas fa-save"></i> Save Push Notification Settings
+                    </button>
+                </form>
+            </div>
+
             <!-- Notification Preferences -->
             <div class="settings-card">
                 <div class="card-header">
                     <div class="card-icon">
                         <i class="fas fa-bell"></i>
                     </div>
-                    <h3 class="card-title">Notification Preferences</h3>
+                    <h3 class="card-title">In-App Notification Preferences</h3>
                 </div>
 
                 <form method="POST">

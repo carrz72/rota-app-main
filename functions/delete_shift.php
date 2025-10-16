@@ -83,7 +83,7 @@ if ($stmt->execute($execute_params)) {
                     'url' => '/users/shifts.php'
                 ];
                 
-                sendPushNotification($affected_user_id, $title, $body, $data);
+                notifyShiftDeleted($affected_user_id, $title, $body, $data);
             } catch (Exception $e) {
                 error_log("Failed to send push notification: " . $e->getMessage());
             }

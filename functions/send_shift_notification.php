@@ -13,12 +13,35 @@ use Minishlink\WebPush\Subscription;
  * @param string $title Notification title
  * @param string $body Notification body
  * @param array $data Additional data (url, etc.)
+ * @param string $notification_type Type of notification (for preference checking)
  * @return bool Success status
  */
-function sendPushNotification($user_id, $title, $body, $data = []) {
+function sendPushNotification($user_id, $title, $body, $data = [], $notification_type = null) {
     global $conn;
     
     try {
+        // Check if user has push notifications enabled and this specific type enabled
+        $prefStmt = $conn->prepare("SELECT push_notifications_enabled, 
+                                            notify_shift_assigned, notify_shift_updated, notify_shift_deleted,
+                                            notify_shift_invitation, notify_shift_swap 
+                                     FROM users WHERE id = ?");
+        $prefStmt->execute([$user_id]);
+        $prefs = $prefStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$prefs || !$prefs['push_notifications_enabled']) {
+            error_log("Push notifications disabled for user $user_id");
+            return false;
+        }
+        
+        // Check specific notification type preference
+        if ($notification_type) {
+            $pref_key = "notify_" . $notification_type;
+            if (isset($prefs[$pref_key]) && !$prefs[$pref_key]) {
+                error_log("Notification type $notification_type disabled for user $user_id");
+                return false;
+            }
+        }
+        
         // Fetch all active subscriptions for this user
         $stmt = $conn->prepare("SELECT * FROM push_subscriptions WHERE user_id = ?");
         $stmt->execute([$user_id]);
@@ -129,7 +152,7 @@ function notifyShiftAssigned($user_id, $shift_details) {
         'shift_id' => $shift_details['shift_id'] ?? null
     ];
     
-    return sendPushNotification($user_id, $title, $body, $data);
+    return sendPushNotification($user_id, $title, $body, $data, 'shift_assigned');
 }
 
 /**
@@ -148,7 +171,7 @@ function notifyShiftInvitation($user_id, $shift_details) {
         'invitation_id' => $shift_details['invitation_id'] ?? null
     ];
     
-    return sendPushNotification($user_id, $title, $body, $data);
+    return sendPushNotification($user_id, $title, $body, $data, 'shift_invitation');
 }
 
 /**
@@ -168,7 +191,7 @@ function notifyShiftSwapRequest($user_id, $shift_details) {
         'swap_id' => $shift_details['swap_id'] ?? null
     ];
     
-    return sendPushNotification($user_id, $title, $body, $data);
+    return sendPushNotification($user_id, $title, $body, $data, 'shift_swap');
 }
 
 /**
@@ -186,5 +209,19 @@ function notifyCoverageApproved($user_id, $shift_details) {
         'url' => '/users/shifts.php'
     ];
     
-    return sendPushNotification($user_id, $title, $body, $data);
+    return sendPushNotification($user_id, $title, $body, $data, 'shift_swap');
+}
+
+/**
+ * Send notification for shift update
+ */
+function notifyShiftUpdated($user_id, $title, $body, $data = []) {
+    return sendPushNotification($user_id, $title, $body, $data, 'shift_updated');
+}
+
+/**
+ * Send notification for shift deletion
+ */
+function notifyShiftDeleted($user_id, $title, $body, $data = []) {
+    return sendPushNotification($user_id, $title, $body, $data, 'shift_deleted');
 }

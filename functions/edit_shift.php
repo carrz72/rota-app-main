@@ -129,7 +129,7 @@ try {
                     $title = "Shift Updated";
                     $body = "$admin_name updated your $role_name shift on $formatted_date";
                     $data = ['url' => '/users/shifts.php', 'shift_id' => $shift_id];
-                    sendPushNotification($edited_user_id, $title, $body, $data);
+                    notifyShiftUpdated($edited_user_id, $title, $body, $data);
                 }
             } catch (Exception $e) {
                 error_log("Failed to send push notification: " . $e->getMessage());
