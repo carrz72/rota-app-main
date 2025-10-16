@@ -12,12 +12,12 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Get user information
-$stmt = $pdo->prepare("SELECT username, role FROM users WHERE user_id = ?");
+$stmt = $conn->prepare("SELECT username, role FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Get unread notification count for header
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
+$stmt = $conn->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
 $stmt->execute([$user_id]);
 $unread_notifications = $stmt->fetchColumn();
 ?>
