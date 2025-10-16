@@ -61,7 +61,7 @@ try {
     $configContent .= "define('VAPID_SUBJECT', 'mailto:admin@openrota.com'); // Change this!\n";
 
     file_put_contents(__DIR__ . '/includes/push_config.php', $configContent);
-    
+
     echo "✅ Config file created at: includes/push_config.php\n";
     echo "   Edit the VAPID_SUBJECT to match your email/URL\n\n";
 

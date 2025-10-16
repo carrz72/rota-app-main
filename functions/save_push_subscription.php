@@ -18,7 +18,7 @@ if (!isset($_SESSION['user_id'])) {
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     if (!isset($input['endpoint']) || !isset($input['keys'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid subscription data']);
@@ -39,7 +39,7 @@ try {
             auth_token = VALUES(auth_token),
             updated_at = CURRENT_TIMESTAMP
     ");
-    
+
     $stmt->execute([$user_id, $endpoint, $p256dh, $auth]);
 
     echo json_encode([

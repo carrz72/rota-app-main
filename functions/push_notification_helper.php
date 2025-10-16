@@ -21,7 +21,8 @@ use Minishlink\WebPush\Subscription;
  * @param array $data Optional additional data
  * @return bool Success status
  */
-function sendPushNotification($user_id, $title, $body, $url = null, $data = []) {
+function sendPushNotification($user_id, $title, $body, $url = null, $data = [])
+{
     global $conn;
 
     try {
@@ -104,54 +105,59 @@ function sendPushNotification($user_id, $title, $body, $url = null, $data = []) 
 
 // Helper functions for specific notification types
 
-function notifyShiftAssignment($user_id, $shift_details) {
+function notifyShiftAssignment($user_id, $shift_details)
+{
     $title = "New Shift Assigned";
     $body = "You have a new shift on " . $shift_details['date'] . " at " . $shift_details['time'];
     $url = "/users/shifts.php";
-    
+
     return sendPushNotification($user_id, $title, $body, $url, [
         'type' => 'shift-assigned',
         'shift_id' => $shift_details['id']
     ]);
 }
 
-function notifyShiftSwapRequest($user_id, $requester_name, $request_id) {
+function notifyShiftSwapRequest($user_id, $requester_name, $request_id)
+{
     $title = "Shift Swap Request";
     $body = "$requester_name wants to swap shifts with you";
     $url = "/users/coverage_requests.php";
-    
+
     return sendPushNotification($user_id, $title, $body, $url, [
         'type' => 'shift-swap',
         'request_id' => $request_id
     ]);
 }
 
-function notifyShiftReminder($user_id, $hours_until, $shift_details) {
+function notifyShiftReminder($user_id, $hours_until, $shift_details)
+{
     $title = "Upcoming Shift Reminder";
     $body = "You have a shift starting in $hours_until hours";
     $url = "/users/shifts.php";
-    
+
     return sendPushNotification($user_id, $title, $body, $url, [
         'type' => 'shift-reminder',
         'shift_id' => $shift_details['id']
     ]);
 }
 
-function notifyScheduleChange($user_id, $change_details) {
+function notifyScheduleChange($user_id, $change_details)
+{
     $title = "Schedule Updated";
     $body = $change_details['message'];
     $url = "/users/rota.php";
-    
+
     return sendPushNotification($user_id, $title, $body, $url, [
         'type' => 'schedule-change'
     ]);
 }
 
-function notifyShiftInvitation($user_id, $shift_details) {
+function notifyShiftInvitation($user_id, $shift_details)
+{
     $title = "New Shift Invitation";
     $body = "You've been invited to a shift on " . $shift_details['date'];
     $url = "/functions/pending_shift_invitations.php";
-    
+
     return sendPushNotification($user_id, $title, $body, $url, [
         'type' => 'shift-invitation',
         'shift_id' => $shift_details['id']

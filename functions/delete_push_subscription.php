@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id'])) {
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     if (!isset($input['endpoint'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid request']);
@@ -32,7 +32,7 @@ try {
         DELETE FROM push_subscriptions 
         WHERE user_id = ? AND endpoint = ?
     ");
-    
+
     $stmt->execute([$user_id, $endpoint]);
 
     echo json_encode([

@@ -1,5 +1,5 @@
 // Push Notifications Manager
-(function() {
+(function () {
     'use strict';
 
     // IMPORTANT: Replace with your actual VAPID public key from push_config.php
@@ -23,9 +23,9 @@
 
     // Check if push notifications are supported
     function isPushSupported() {
-        return 'serviceWorker' in navigator && 
-               'PushManager' in window && 
-               'Notification' in window;
+        return 'serviceWorker' in navigator &&
+            'PushManager' in window &&
+            'Notification' in window;
     }
 
     // Request notification permission
@@ -48,10 +48,10 @@
     async function subscribeToPush() {
         try {
             const registration = await navigator.serviceWorker.ready;
-            
+
             // Check if already subscribed
             let subscription = await registration.pushManager.getSubscription();
-            
+
             if (!subscription) {
                 // Create new subscription
                 subscription = await registration.pushManager.subscribe({
@@ -62,7 +62,7 @@
 
             // Send subscription to server
             await saveSubscription(subscription);
-            
+
             return subscription;
         } catch (error) {
             console.error('Error subscribing to push:', error);
@@ -93,7 +93,7 @@
         try {
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
-            
+
             if (subscription) {
                 await subscription.unsubscribe();
                 await deleteSubscription(subscription);
@@ -162,7 +162,7 @@
             // Check if we should show prompt (not dismissed recently)
             const lastDismissed = localStorage.getItem('notification_prompt_dismissed');
             const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-            
+
             if (!lastDismissed || parseInt(lastDismissed) < sevenDaysAgo) {
                 // Show prompt after 30 seconds of browsing
                 setTimeout(showNotificationPrompt, 30000);
@@ -231,7 +231,7 @@
         toast.className = `notification-toast ${type}`;
         toast.textContent = message;
         document.body.appendChild(toast);
-        
+
         setTimeout(() => {
             toast.classList.add('show');
         }, 100);

@@ -22,9 +22,9 @@ try {
     $stmt = $conn->prepare("SELECT COUNT(*) as count FROM push_subscriptions WHERE user_id = ?");
     $stmt->execute([$user_id]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     echo "<p>Push Subscriptions: " . $result['count'] . "</p>";
-    
+
     if ($result['count'] == 0) {
         echo "<p style='color: orange;'>⚠️  No push subscriptions found. Please enable notifications in your browser first.</p>";
         echo "<p><a href='users/dashboard.php'>Go to Dashboard</a> and enable notifications when prompted.</p>";

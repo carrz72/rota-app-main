@@ -245,18 +245,18 @@ self.addEventListener('notificationclick', event => {
             type: 'window',
             includeUncontrolled: true
         })
-        .then(windowClients => {
-            // Check if there's already a window open with this URL
-            for (let client of windowClients) {
-                if (client.url === fullUrl && 'focus' in client) {
-                    return client.focus();
+            .then(windowClients => {
+                // Check if there's already a window open with this URL
+                for (let client of windowClients) {
+                    if (client.url === fullUrl && 'focus' in client) {
+                        return client.focus();
+                    }
                 }
-            }
-            // If not, open new window
-            if (clients.openWindow) {
-                return clients.openWindow(fullUrl);
-            }
-        })
+                // If not, open new window
+                if (clients.openWindow) {
+                    return clients.openWindow(fullUrl);
+                }
+            })
     );
 });
 

@@ -48,30 +48,24 @@ if ($user_id) {
 <body>
     <!-- Skip to main content link for accessibility -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
-    
+
     <header style="opacity: 0; transition: opacity 0.5s ease;" role="banner">
         <div class="logo"><img src="images/new logo.png" alt="Open Rota Logo" style="height: 60px;"></div>
         <div class="nav-group">
 
             <div class="notification-container">
                 <!-- Bell Icon -->
-                <button class="notification-icon" 
-                        id="notification-icon"
-                        aria-label="View notifications"
-                        aria-expanded="false"
-                        aria-haspopup="true"
-                        aria-controls="notification-dropdown">
+                <button class="notification-icon" id="notification-icon" aria-label="View notifications"
+                    aria-expanded="false" aria-haspopup="true" aria-controls="notification-dropdown">
                     <i class="fa fa-bell" aria-hidden="true"></i>
-                <?php if ($notificationCount > 0): ?>
-                    <span class="notification-badge" aria-label="<?php echo $notificationCount; ?> unread notifications"><?php echo $notificationCount; ?></span>
-                <?php endif; ?>
+                    <?php if ($notificationCount > 0): ?>
+                        <span class="notification-badge"
+                            aria-label="<?php echo $notificationCount; ?> unread notifications"><?php echo $notificationCount; ?></span>
+                    <?php endif; ?>
                 </button>
 
                 <!-- Notifications Dropdown -->
-                <div class="notification-dropdown" 
-                     id="notification-dropdown"
-                     role="menu"
-                     aria-label="Notifications">
+                <div class="notification-dropdown" id="notification-dropdown" role="menu" aria-label="Notifications">
                     <?php if ($notificationCount > 0): ?>
                         <?php foreach ($notifications as $notif): ?>
                             <?php if ($notif['type'] === 'shift-invite' && !empty($notif['related_id'])): ?>
@@ -104,11 +98,8 @@ if ($user_id) {
                 </div>
             </div>
 
-            <button class="menu-toggle" 
-                    id="menu-toggle"
-                    aria-label="Toggle navigation menu"
-                    aria-expanded="false"
-                    aria-controls="nav-links">
+            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false"
+                aria-controls="nav-links">
                 <span aria-hidden="true">☰</span>
             </button>
             <nav class="nav-links" id="nav-links" aria-label="Main navigation" role="navigation">
