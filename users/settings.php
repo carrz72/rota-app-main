@@ -962,6 +962,13 @@ if ($user_id) {
                     <h3 class="card-title">Push Notifications</h3>
                 </div>
 
+                <!-- Push Permission Status -->
+                <div id="pushPermissionStatus" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; display: none;"></div>
+                
+                <button type="button" id="enablePushBtn" class="btn btn-primary" style="margin-bottom: 20px; display: none;">
+                    <i class="fas fa-bell"></i> Enable Push Notifications
+                </button>
+
                 <form method="POST">
                     <div class="checkbox-group">
                         <div class="checkbox-item">
@@ -1335,6 +1342,78 @@ if ($user_id) {
                     }
                 });
             }
+        });
+    </script>
+
+    <!-- Push Notification Permission Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusDiv = document.getElementById('pushPermissionStatus');
+            const enableBtn = document.getElementById('enablePushBtn');
+            
+            // Check if push notifications are supported
+            if (!('Notification' in window)) {
+                statusDiv.innerHTML = '<div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 8px;"><strong>⚠️ Push notifications are not supported</strong><br>Your browser or device doesn\'t support push notifications.</div>';
+                statusDiv.style.display = 'block';
+                return;
+            }
+            
+            // Check current permission status
+            function updatePermissionStatus() {
+                const permission = Notification.permission;
+                
+                if (permission === 'granted') {
+                    statusDiv.innerHTML = '<div style="background: #e8f5e9; color: #2e7d32; padding: 15px; border-radius: 8px;"><strong>✅ Push notifications are enabled</strong><br>You will receive push notifications when shifts are updated.</div>';
+                    statusDiv.style.display = 'block';
+                    enableBtn.style.display = 'none';
+                } else if (permission === 'denied') {
+                    statusDiv.innerHTML = '<div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 8px;"><strong>❌ Push notifications are blocked</strong><br>Please enable notifications in your iPhone Settings → Open Rota → Notifications.</div>';
+                    statusDiv.style.display = 'block';
+                    enableBtn.style.display = 'none';
+                } else {
+                    statusDiv.innerHTML = '<div style="background: #fff3e0; color: #e65100; padding: 15px; border-radius: 8px;"><strong>🔔 Push notifications not enabled</strong><br>Click the button below to enable push notifications.</div>';
+                    statusDiv.style.display = 'block';
+                    enableBtn.style.display = 'block';
+                }
+            }
+            
+            // Handle enable button click
+            enableBtn.addEventListener('click', async function() {
+                try {
+                    const permission = await Notification.requestPermission();
+                    updatePermissionStatus();
+                    
+                    if (permission === 'granted') {
+                        // Register service worker and subscribe
+                        if ('serviceWorker' in navigator) {
+                            const registration = await navigator.serviceWorker.ready;
+                            
+                            // Subscribe to push notifications
+                            const publicKey = 'BLtlc-WTpjlQnicf80q-XLQ_H9tas0LMpL0IGKEd7Fk6-fBMX-ru1UOfeh-DxQkJ7ctez0Ro_Xs3UBR2YrGgtbg';
+                            const subscription = await registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: publicKey
+                            });
+                            
+                            // Send subscription to server
+                            await fetch('../functions/subscribe_push.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(subscription)
+                            });
+                            
+                            statusDiv.innerHTML = '<div style="background: #e8f5e9; color: #2e7d32; padding: 15px; border-radius: 8px;"><strong>✅ Push notifications enabled successfully!</strong><br>You will now receive push notifications.</div>';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error enabling push notifications:', error);
+                    statusDiv.innerHTML = '<div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 8px;"><strong>❌ Failed to enable notifications</strong><br>' + error.message + '</div>';
+                    statusDiv.style.display = 'block';
+                }
+            });
+            
+            // Initial check
+            updatePermissionStatus();
         });
     </script>
 
