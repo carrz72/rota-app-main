@@ -445,6 +445,7 @@ body {
 }
 
 .chat-header {
+  gap: 20px;
   padding: 24px 28px;
   background: linear-gradient(180deg, #ffffff 0%, #f5f7fb 100%);
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);

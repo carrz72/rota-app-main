@@ -109,7 +109,7 @@ try {
             }
 
             // Get messages
-            $stmt = $conn->prepare("
+            $sql = "
                 SELECT 
                     m.id,
                     m.user_id,
@@ -144,8 +144,12 @@ try {
                 WHERE m.channel_id = ? AND m.is_deleted = 0
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?
-            ");
-            $stmt->execute([$channel_id, $limit, $offset]);
+            ";
+            $stmt = $conn->prepare($sql);
+            $stmt->bindValue(1, $channel_id, PDO::PARAM_INT);
+            $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+            $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+            $stmt->execute();
             $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Process reactions
