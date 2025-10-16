@@ -22,6 +22,45 @@ $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 try {
     switch ($action) {
+        // ===== EDIT CHANNEL (Admin/Owner only) =====
+        case 'edit_channel':
+            $channel_id = (int) ($_POST['channel_id'] ?? 0);
+            $new_name = trim($_POST['name'] ?? '');
+            $new_description = trim($_POST['description'] ?? '');
+            if ($channel_id <= 0 || $new_name === '') {
+                throw new Exception('Invalid channel or name');
+            }
+            // Verify current user is admin or owner of the channel
+            $stmt = $conn->prepare("SELECT role FROM chat_members WHERE channel_id = ? AND user_id = ? AND left_at IS NULL");
+            $stmt->execute([$channel_id, $user_id]);
+            $member = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$member || !in_array($member['role'], ['admin', 'owner'])) {
+                throw new Exception('You do not have permission to edit this channel');
+            }
+            // Update channel name/description
+            $stmt = $conn->prepare("UPDATE chat_channels SET name = ?, description = ? WHERE id = ? AND is_active = 1");
+            $stmt->execute([$new_name, $new_description, $channel_id]);
+            echo json_encode(['success' => true, 'message' => 'Channel updated successfully']);
+            break;
+
+        // ===== DELETE CHANNEL (Admin/Owner only) =====
+        case 'delete_channel':
+            $channel_id = (int) ($_POST['channel_id'] ?? 0);
+            if ($channel_id <= 0) {
+                throw new Exception('Invalid channel ID');
+            }
+            // Verify current user is admin or owner of the channel
+            $stmt = $conn->prepare("SELECT role FROM chat_members WHERE channel_id = ? AND user_id = ? AND left_at IS NULL");
+            $stmt->execute([$channel_id, $user_id]);
+            $member = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$member || !in_array($member['role'], ['admin', 'owner'])) {
+                throw new Exception('You do not have permission to delete this channel');
+            }
+            // Soft delete channel (set is_active = 0)
+            $stmt = $conn->prepare("UPDATE chat_channels SET is_active = 0 WHERE id = ?");
+            $stmt->execute([$channel_id]);
+            echo json_encode(['success' => true, 'message' => 'Channel deleted successfully']);
+            break;
 
         // ===== CREATE CHANNEL =====
         case 'create_channel':

@@ -339,6 +339,14 @@ if (!$userInitial) {
         </div>
     </div>
 
+
+    <!-- Edit Channel Modal (Admin/Owner only) -->
+    <div class="modal-overlay" id="editChannelModal" style="display: none;">
+        <div class="modal-content" id="editChannelModalContent">
+            <!-- Content will be injected by JS -->
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script src="../js/chat.js?v=<?php echo time(); ?>"></script>
 
