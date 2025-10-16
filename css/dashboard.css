@@ -1649,13 +1649,24 @@ span {
   .container {
     max-width: 100vw;
     overflow-x: hidden;
-    padding: 10px;
+    padding: 10px 15px;
+  }
+
+  .dashboard-container {
+    padding: 10px 15px !important;
+  }
+
+  .dashboard-card {
+    padding: 12px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
   /* Force grid items to not overflow */
   .dashboard-card[style*="grid-column"] {
     grid-column: 1 / -1 !important;
-    max-width: calc(100vw - 40px) !important;
+    max-width: 100% !important;
+    width: 100% !important;
   }
 }
 
@@ -1683,6 +1694,8 @@ span {
     max-width: 100%;
     overflow-x: hidden;
     padding: 15px;
+    padding-right: max(15px, env(safe-area-inset-right));
+    padding-left: max(15px, env(safe-area-inset-left));
     box-sizing: border-box;
   }
 
@@ -1690,6 +1703,9 @@ span {
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    padding: 15px;
+    margin-left: 0;
+    margin-right: 0;
     box-sizing: border-box;
   }
 
@@ -1800,23 +1816,32 @@ span {
   }
 
   .dashboard-container {
-    width: calc(100% - 20px) !important;
+    width: 100% !important;
     max-width: 100% !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     padding: 10px !important;
+    padding-right: max(15px, env(safe-area-inset-right)) !important;
+    padding-left: max(15px, env(safe-area-inset-left)) !important;
     overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .dashboard-card {
     width: 100% !important;
     max-width: 100% !important;
     margin-bottom: 15px !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    padding: 15px !important;
     overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .table-wrapper {
     width: 100% !important;
     overflow-x: auto !important;
+    margin-right: -5px !important;
+    padding-right: 5px !important;
   }
 
   .next-shift-details,
@@ -1824,12 +1849,25 @@ span {
   .earnings-stats {
     width: 100% !important;
     max-width: 100% !important;
+    padding-right: 5px !important;
+    box-sizing: border-box !important;
+  }
+
+  .next-shift-details {
+    padding: 12px !important;
   }
 
   /* Force all children to respect boundaries */
   .dashboard-card * {
     max-width: 100% !important;
     box-sizing: border-box !important;
+  }
+
+  /* Ensure text doesn't get cut off */
+  .next-shift-meta span,
+  .earnings-stat-label,
+  .earnings-stat-value {
+    padding-right: 5px !important;
   }
 }
 
