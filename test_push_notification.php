@@ -19,6 +19,7 @@ $username = $_SESSION['username'] ?? 'User';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,13 +32,18 @@ $username = $_SESSION['username'] ?? 'User';
             padding: 20px;
             background: #f5f5f5;
         }
+
         .container {
             background: white;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        h1 { color: #333; }
+
+        h1 {
+            color: #333;
+        }
+
         .info {
             background: #e3f2fd;
             padding: 15px;
@@ -45,35 +51,41 @@ $username = $_SESSION['username'] ?? 'User';
             margin: 20px 0;
             border-left: 4px solid #2196F3;
         }
+
         .success {
             background: #e8f5e9;
             border-left-color: #4CAF50;
             color: #2e7d32;
         }
+
         .error {
             background: #ffebee;
             border-left-color: #f44336;
             color: #c62828;
         }
+
         .warning {
             background: #fff3e0;
             border-left-color: #ff9800;
             color: #e65100;
         }
+
         a {
             color: #2196F3;
             text-decoration: none;
         }
+
         a:hover {
             text-decoration: underline;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>🔔 Push Notification Test</h1>
         <p>Logged in as: <strong><?php echo htmlspecialchars($username); ?></strong> (ID: <?php echo $user_id; ?>)</p>
-        
+
         <div class="info">
             <strong>📱 Instructions for iPhone:</strong><br>
             1. Make sure the PWA is installed on your home screen<br>
@@ -87,7 +99,7 @@ $username = $_SESSION['username'] ?? 'User';
             $stmt = $conn->prepare("SELECT COUNT(*) as count FROM push_subscriptions WHERE user_id = ?");
             $stmt->execute([$user_id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             echo "<div class='info'>";
             echo "<strong>Subscriptions:</strong> " . $result['count'];
             echo "</div>";
@@ -105,15 +117,15 @@ $username = $_SESSION['username'] ?? 'User';
                 $prefStmt = $conn->prepare("SELECT push_notifications_enabled FROM users WHERE id = ?");
                 $prefStmt->execute([$user_id]);
                 $prefs = $prefStmt->fetch(PDO::FETCH_ASSOC);
-                
+
                 if ($prefs && $prefs['push_notifications_enabled']) {
                     echo "<div class='success'>";
                     echo "<strong>✅ Push notifications are ENABLED</strong>";
                     echo "</div>";
-                    
+
                     // Send test notification
                     echo "<h2>Sending Test Notification...</h2>";
-                    
+
                     $success = sendPushNotification(
                         $user_id,
                         "🎉 Test Notification",
@@ -154,4 +166,5 @@ $username = $_SESSION['username'] ?? 'User';
         </div>
     </div>
 </body>
+
 </html>
