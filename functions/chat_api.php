@@ -231,14 +231,28 @@ try {
             $sender_name = $senderRow['username'] ?? ($_SESSION['username'] ?? 'Someone');
             $message_preview = strlen($message) > 50 ? substr($message, 0, 50) . '...' : $message;
 
-            foreach ($members as $member) {
-                addNotification(
-                    $conn,
-                    $member['user_id'],
-                    "💬 {$sender_name} in {$channel['name']}: {$message_preview}",
-                    'chat'
-                );
-            }
+                // Send in-app notification and push notification to other members
+                require_once __DIR__ . '/push_notification_helper.php';
+                foreach ($members as $member) {
+                    addNotification(
+                        $conn,
+                        $member['user_id'],
+                        "\uD83D\uDCAC {$sender_name} in {$channel['name']}: {$message_preview}",
+                        'chat'
+                    );
+                    // Send push notification
+                    $pushTitle = "New Chat Message";
+                    $pushBody = "{$sender_name} in {$channel['name']}: {$message_preview}";
+                    $pushUrl = "/users/chat.php?channel_id={$channel_id}";
+                    $pushData = [
+                        'type' => 'chat',
+                        'channel_id' => $channel_id,
+                        'sender_id' => $user_id,
+                        'sender_name' => $sender_name,
+                        'message_preview' => $message_preview
+                    ];
+                    sendPushNotification($member['user_id'], $pushTitle, $pushBody, $pushUrl, $pushData);
+                }
 
             echo json_encode(['success' => true, 'message_id' => $message_id, 'message' => 'Message sent']);
             break;

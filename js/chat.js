@@ -416,13 +416,34 @@ function displayMessages(messages) {
             reactionSummary.forEach((count, emoji) => {
                 const users = reactionUsers.get(emoji) || [];
                 const tooltip = users.length > 0 ? `${users.join(', ')}` : `${count} reaction${count === 1 ? '' : 's'}`;
+                // If the current user has reacted, allow them to remove their reaction by clicking
+                const isOwnReaction = typeof CURRENT_USERNAME !== 'undefined' && users.includes(CURRENT_USERNAME);
                 reactionsHtml += `
-                    <span class="reaction-item" title="${escapeAttribute(tooltip)}">
+                    <span class="reaction-item${isOwnReaction ? ' own-reaction' : ''}" title="${escapeAttribute(tooltip)}" ${isOwnReaction ? `onclick=\"removeReaction(${message.id}, '${emoji}')\"` : ''}>
                         ${emoji} ${count}
                     </span>
                 `;
             });
             reactionsHtml += '</div>';
+// Remove reaction from message
+function removeReaction(messageId, emoji) {
+    fetch('../functions/chat_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=remove_reaction&message_id=${messageId}&emoji=${encodeURIComponent(emoji)}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadMessages();
+            } else {
+                console.error('Failed to remove reaction:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error removing reaction:', error);
+        });
+}
         }
 
         const messageHtml = escapeHtml(message.message || '').replace(/\n/g, '<br>');
