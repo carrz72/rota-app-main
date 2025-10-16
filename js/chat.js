@@ -1249,6 +1249,18 @@ function showReactionPicker(messageId) {
     });
     html += '</div>';
 
+    // Mobile: show delete button if user has reacted
+    if (window.innerWidth <= 600) {
+        // Find the user's reaction for this message
+        const messageObj = window.lastLoadedMessages?.find(m => m.id === messageId);
+        if (messageObj && Array.isArray(messageObj.reactions)) {
+            const userReaction = messageObj.reactions.find(r => r.username === CURRENT_USERNAME);
+            if (userReaction) {
+                html += `<button class="emoji-delete-btn" onclick="removeReaction(${messageId}, '${userReaction.emoji}')">Delete My Reaction</button>`;
+            }
+        }
+    }
+
     picker.innerHTML = html;
     document.body.appendChild(picker);
 

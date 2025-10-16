@@ -1,4 +1,24 @@
 @media (max-width: 600px) {
+  .emoji-delete-btn {
+    display: block;
+    width: 100%;
+    margin: 12px 0 0 0;
+    padding: 12px;
+    background: #fd2b2b;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(200, 35, 51, 0.12);
+    transition: background 0.2s;
+  }
+  .emoji-delete-btn:active {
+    background: #c82333;
+  }
+}
+@media (max-width: 600px) {
   .emoji-picker {
     left: 50% !important;
     top: 60% !important;
