@@ -184,6 +184,30 @@ try {
                     $shift_id = (int) $conn->query("SELECT IFNULL(MAX(id),0) FROM shifts")->fetchColumn();
                     error_log('Warning: lastInsertId returned 0; using MAX(id)=' . $shift_id);
                 }
+                
+                // Send push notification for new shift assignment (only if assigning to another user)
+                if ($user_id != $session_user_id) {
+                    try {
+                        require_once __DIR__ . '/send_shift_notification.php';
+                        
+                        // Get role name
+                        $roleStmt = $conn->prepare("SELECT name FROM roles WHERE id = ?");
+                        $roleStmt->execute([$role_id]);
+                        $roleRow = $roleStmt->fetch(PDO::FETCH_ASSOC);
+                        $role_name = $roleRow ? $roleRow['name'] : 'Shift';
+                        
+                        $shift_details = [
+                            'shift_id' => $shift_id,
+                            'shift_date' => $date,
+                            'start_time' => $start_time,
+                            'role_name' => $role_name
+                        ];
+                        
+                        notifyShiftAssigned($user_id, $shift_details);
+                    } catch (Exception $e) {
+                        error_log("Failed to send push notification: " . $e->getMessage());
+                    }
+                }
             }
         }
     }
