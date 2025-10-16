@@ -1591,9 +1591,8 @@ if ($user_id) {
                                     <!-- Actions -->
                                     <td>
                                         <div class="shift-actions">
-                                            <a href="shift_notes.php?shift_id=<?php echo $shift['id']; ?>" 
-                                               class="btn-notes" 
-                                               title="View shift notes and handover">
+                                            <a href="shift_notes.php?shift_id=<?php echo $shift['id']; ?>" class="btn-notes"
+                                                title="View shift notes and handover">
                                                 <i class="fa fa-sticky-note"></i> Notes
                                             </a>
                                             <button class="editBtn" data-id="<?php echo $shift['id']; ?>">

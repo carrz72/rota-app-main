@@ -410,13 +410,6 @@ foreach ($ytd_shifts as $shift) {
                     <h3>View Schedule</h3>
                     <p>See the full team rota</p>
                 </div>
-                <div class="quick-action-card" onclick="window.location.href='chat.php'">
-                    <div class="action-icon" style="background: linear-gradient(135deg, #7c3aed, #a78bfa);">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h3>Team Chat</h3>
-                    <p>Message your colleagues</p>
-                </div>
                 <div class="quick-action-card" onclick="window.location.href='settings.php?tab=support'">
                     <?php if ($pending_invitations_count > 0): ?>
                         <span class="action-badge pulse"><?php echo $pending_invitations_count; ?></span>

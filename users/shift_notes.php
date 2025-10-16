@@ -51,6 +51,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -58,7 +59,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
     <title>Shift Notes - Open Rota</title>
-    
+
     <link rel="icon" type="image/png" href="../images/icon.png">
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../images/icon.png">
@@ -67,6 +68,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/shift_notes.css">
 </head>
+
 <body>
     <header>
         <div class="top-bar">
@@ -105,13 +107,16 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
                     <h3><i class="fas fa-calendar-day"></i> <?php echo htmlspecialchars($shift_date_formatted); ?></h3>
                     <p class="shift-details">
                         <span><i class="fas fa-clock"></i> <?php echo htmlspecialchars($shift_time); ?></span>
-                        <span><i class="fas fa-briefcase"></i> <?php echo htmlspecialchars($shift['role_name']); ?></span>
+                        <span><i class="fas fa-briefcase"></i>
+                            <?php echo htmlspecialchars($shift['role_name']); ?></span>
                         <?php if ($shift['location']): ?>
-                            <span><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($shift['location']); ?></span>
+                            <span><i class="fas fa-map-marker-alt"></i>
+                                <?php echo htmlspecialchars($shift['location']); ?></span>
                         <?php endif; ?>
                     </p>
                     <p class="shift-employee">
-                        <i class="fas fa-user"></i> Assigned to: <strong><?php echo htmlspecialchars($shift['username']); ?></strong>
+                        <i class="fas fa-user"></i> Assigned to:
+                        <strong><?php echo htmlspecialchars($shift['username']); ?></strong>
                     </p>
                 </div>
             </div>
@@ -122,13 +127,9 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
             <h3><i class="fas fa-plus-circle"></i> Add New Note</h3>
             <form id="addNoteForm">
                 <div class="form-group">
-                    <textarea 
-                        id="noteText" 
+                    <textarea id="noteText"
                         placeholder="Enter handover notes, important information, or reminders for the next shift..."
-                        rows="4"
-                        maxlength="5000"
-                        required
-                    ></textarea>
+                        rows="4" maxlength="5000" required></textarea>
                     <div class="char-count">
                         <span id="charCount">0</span> / 5000 characters
                     </div>
@@ -158,7 +159,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
                     </button>
                 </div>
             </div>
-            
+
             <div id="notesList" class="notes-list">
                 <div class="loading-spinner">
                     <i class="fas fa-spinner fa-spin"></i> Loading notes...
@@ -175,26 +176,26 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
         let allNotes = [];
 
         // Load notes on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             loadNotes();
-            
+
             // Character counter
             const noteText = document.getElementById('noteText');
             const charCount = document.getElementById('charCount');
-            
-            noteText.addEventListener('input', function() {
+
+            noteText.addEventListener('input', function () {
                 charCount.textContent = this.value.length;
             });
-            
+
             // Add note form submission
-            document.getElementById('addNoteForm').addEventListener('submit', function(e) {
+            document.getElementById('addNoteForm').addEventListener('submit', function (e) {
                 e.preventDefault();
                 addNote();
             });
-            
+
             // Filter buttons
             document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentFilter = this.dataset.filter;
@@ -222,12 +223,12 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
 
         function displayNotes() {
             const notesList = document.getElementById('notesList');
-            
+
             let filteredNotes = allNotes;
             if (currentFilter === 'important') {
                 filteredNotes = allNotes.filter(note => note.is_important == 1);
             }
-            
+
             if (filteredNotes.length === 0) {
                 notesList.innerHTML = `
                     <div class="empty-state">
@@ -238,7 +239,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
                 `;
                 return;
             }
-            
+
             notesList.innerHTML = filteredNotes.map(note => {
                 const canDelete = isAdmin || note.created_by == userId;
                 const canToggle = isAdmin || note.created_by == userId;
@@ -250,7 +251,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                
+
                 return `
                     <div class="note-card ${isImportant ? 'important' : ''}" data-note-id="${note.id}">
                         <div class="note-header">
@@ -288,90 +289,90 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
         function addNote() {
             const noteText = document.getElementById('noteText').value.trim();
             const isImportant = document.getElementById('isImportant').checked ? 1 : 0;
-            
+
             if (!noteText) {
                 showError('Please enter a note');
                 return;
             }
-            
+
             const formData = new FormData();
             formData.append('action', 'add_note');
             formData.append('shift_id', shiftId);
             formData.append('note', noteText);
             formData.append('is_important', isImportant);
-            
+
             fetch('../functions/shift_notes_api.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showSuccess('Note added successfully!');
-                    document.getElementById('noteText').value = '';
-                    document.getElementById('isImportant').checked = false;
-                    document.getElementById('charCount').textContent = '0';
-                    loadNotes();
-                } else {
-                    showError(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Failed to add note');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('Note added successfully!');
+                        document.getElementById('noteText').value = '';
+                        document.getElementById('isImportant').checked = false;
+                        document.getElementById('charCount').textContent = '0';
+                        loadNotes();
+                    } else {
+                        showError(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Failed to add note');
+                });
         }
 
         function toggleImportant(noteId, isImportant) {
             const formData = new FormData();
             formData.append('action', 'toggle_important');
             formData.append('note_id', noteId);
-            
+
             fetch('../functions/shift_notes_api.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showSuccess(data.message);
-                    loadNotes();
-                } else {
-                    showError(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Failed to update note');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess(data.message);
+                        loadNotes();
+                    } else {
+                        showError(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Failed to update note');
+                });
         }
 
         function deleteNote(noteId) {
             if (!confirm('Are you sure you want to delete this note?')) {
                 return;
             }
-            
+
             const formData = new FormData();
             formData.append('action', 'delete_note');
             formData.append('note_id', noteId);
-            
+
             fetch('../functions/shift_notes_api.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showSuccess('Note deleted');
-                    loadNotes();
-                } else {
-                    showError(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Failed to delete note');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('Note deleted');
+                        loadNotes();
+                    } else {
+                        showError(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Failed to delete note');
+                });
         }
 
         function showSuccess(message) {
@@ -387,7 +388,7 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
             toast.className = `toast toast-${type}`;
             toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
             document.body.appendChild(toast);
-            
+
             setTimeout(() => toast.classList.add('show'), 100);
             setTimeout(() => {
                 toast.classList.remove('show');
@@ -402,9 +403,10 @@ $shift_time = date('g:i A', strtotime($shift['start_time'])) . ' - ' . date('g:i
         }
 
         // Mobile menu toggle
-        document.getElementById('menu-toggle').addEventListener('click', function() {
+        document.getElementById('menu-toggle').addEventListener('click', function () {
             document.getElementById('mobile-menu').classList.toggle('active');
         });
     </script>
 </body>
+
 </html>
