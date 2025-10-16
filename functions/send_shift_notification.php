@@ -69,7 +69,7 @@ function sendPushNotification($user_id, $title, $body, $data = [], $notification
             'topic' => 'shift-update'
         ];
 
-        $webPush = new WebPush($auth, $defaultOptions, 5); // 5 second timeout
+        $webPush = new WebPush($auth, $defaultOptions, 2); // 2 second timeout
 
         // Prepare notification payload
         $payload = json_encode([

@@ -278,9 +278,8 @@ try {
                 'shift_id' => $shift_id,
                 'message' => 'Shift added successfully'
             ]);
-            // Clean up
+            // Clean up statement only
             $stmt = null;
-            $conn = null;
             exit();
         }
         // Audit shift creation
@@ -305,9 +304,8 @@ try {
             'success' => false,
             'message' => $e->getMessage()
         ]);
-        // Clean up
+        // Clean up statement only
         $stmt = null;
-        $conn = null;
         exit();
     }
 
@@ -319,9 +317,8 @@ try {
     }
 }
 
-// Clean up and redirect
+// Clean up statement only (keep connection for shutdown functions if any)
 $stmt = null;
-$conn = null;
 
 header("Location: $redirect_url");
 exit();

@@ -120,9 +120,8 @@ if ($stmt->execute($execute_params)) {
     $_SESSION['error_message'] = "Error deleting shift: " . $errorInfo[2];
 }
 
-// Clean up and redirect
+// Clean up statement only (keep connection for shutdown functions if any)
 $stmt = null;
-$conn = null;
 
 header("Location: " . $redirect_url);
 exit();
