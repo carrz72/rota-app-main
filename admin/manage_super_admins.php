@@ -9,7 +9,7 @@ requireSuperAdmin();
 // Handle promotion/demotion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['user_id'])) {
     $action = $_POST['action'];
-    $userId = (int)$_POST['user_id'];
+    $userId = (int) $_POST['user_id'];
 
     if ($action === 'promote') {
         $stmt = $conn->prepare("UPDATE users SET role = 'super_admin' WHERE id = ?");
@@ -32,13 +32,14 @@ $users = $conn->query("SELECT id, username, email, role, branch_id FROM users OR
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Manage Super Admins</title>
+    <?php $PAGE_TITLE = 'Manage Super Admins';
+    require_once __DIR__ . '/admin_head.php'; ?>
     <link rel="stylesheet" href="../css/admin_dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
+
 <body>
     <div class="admin-container">
         <div class="admin-header">
@@ -51,7 +52,9 @@ $users = $conn->query("SELECT id, username, email, role, branch_id FROM users OR
         </div>
 
         <?php if (isset($_SESSION['success_message'])): ?>
-            <div class="success-message"><?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?></div>
+            <div class="success-message"><?php echo $_SESSION['success_message'];
+            unset($_SESSION['success_message']); ?>
+            </div>
         <?php endif; ?>
 
         <div class="admin-panel">
@@ -101,4 +104,5 @@ $users = $conn->query("SELECT id, username, email, role, branch_id FROM users OR
         </div>
     </div>
 </body>
+
 </html>

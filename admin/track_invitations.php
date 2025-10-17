@@ -36,12 +36,12 @@ function count_declines($conn, $invitation_id)
 {
     $s = $conn->prepare("SELECT COUNT(*) FROM decline_responses WHERE invitation_id = ?");
     $s->execute([$invitation_id]);
-    return (int)$s->fetchColumn();
+    return (int) $s->fetchColumn();
 }
 
 // Handle clearing (deleting) an invitation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_invitation'])) {
-    $inv_id = (int)($_POST['invitation_id'] ?? 0);
+    $inv_id = (int) ($_POST['invitation_id'] ?? 0);
 
     // fetch invitation and its admin branch for authorization
     $check = $conn->prepare("SELECT si.id, a.branch_id AS admin_branch FROM shift_invitations si JOIN users a ON si.admin_id = a.id WHERE si.id = ? LIMIT 1");
@@ -89,13 +89,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_invitation'])) 
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Track Shift Invitations</title>
+    <?php $PAGE_TITLE = 'Track Shift Invitations';
+    require_once __DIR__ . '/admin_head.php'; ?>
     <link rel="stylesheet" href="../css/admin_dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
+
 <body>
     <div class="admin-container">
         <div class="admin-header">
@@ -121,7 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_invitation'])) 
         <?php endif; ?>
 
         <div class="admin-panel">
-            <div class="admin-panel-header"><h2>Invitations</h2></div>
+            <div class="admin-panel-header">
+                <h2>Invitations</h2>
+            </div>
             <div class="admin-panel-body">
                 <table class="data-table" style="width:100%;border-collapse:collapse;">
                     <thead>
@@ -141,26 +144,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_invitation'])) 
                     <tbody>
                         <?php foreach ($invitations as $inv): ?>
                             <tr>
-                                <td><?php echo (int)$inv['id']; ?></td>
+                                <td><?php echo (int) $inv['id']; ?></td>
                                 <td><?php echo htmlspecialchars($inv['shift_date']); ?></td>
                                 <td><?php echo htmlspecialchars($inv['start_time'] . ' - ' . $inv['end_time']); ?></td>
                                 <td><?php echo htmlspecialchars($inv['role_name'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($inv['location']); ?></td>
                                 <td><?php echo htmlspecialchars($inv['admin_username']); ?></td>
-                                <td><?php echo $inv['user_id'] ? htmlspecialchars($inv['target_username']) : '<em>Everyone</em>'; ?></td>
+                                <td><?php echo $inv['user_id'] ? htmlspecialchars($inv['target_username']) : '<em>Everyone</em>'; ?>
+                                </td>
                                 <td><?php echo htmlspecialchars($inv['status']); ?></td>
                                 <td><?php echo $inv['user_id'] ? '-' : count_declines($conn, $inv['id']); ?></td>
                                 <td>
                                     <?php if (is_null($inv['user_id'])): ?>
-                                        <a href="view_invitation_declines.php?invitation_id=<?php echo (int)$inv['id']; ?>">View declines</a>
+                                        <a href="view_invitation_declines.php?invitation_id=<?php echo (int) $inv['id']; ?>">View
+                                            declines</a>
                                     <?php else: ?>
                                         &nbsp;
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <form method="POST" onsubmit="return confirm('Clear this invitation and remove associated responses/notifications?');" style="display:inline;">
-                                        <input type="hidden" name="invitation_id" value="<?php echo (int)$inv['id']; ?>">
-                                        <button type="submit" name="clear_invitation" class="admin-btn small danger">Clear</button>
+                                    <form method="POST"
+                                        onsubmit="return confirm('Clear this invitation and remove associated responses/notifications?');"
+                                        style="display:inline;">
+                                        <input type="hidden" name="invitation_id" value="<?php echo (int) $inv['id']; ?>">
+                                        <button type="submit" name="clear_invitation"
+                                            class="admin-btn small danger">Clear</button>
                                     </form>
                                 </td>
                             </tr>
@@ -171,4 +179,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_invitation'])) 
         </div>
     </div>
 </body>
+
 </html>

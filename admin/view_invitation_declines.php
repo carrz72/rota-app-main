@@ -3,7 +3,7 @@ require '../includes/auth.php';
 requireAdmin();
 require_once '../includes/db.php';
 
-$invitation_id = isset($_GET['invitation_id']) ? (int)$_GET['invitation_id'] : 0;
+$invitation_id = isset($_GET['invitation_id']) ? (int) $_GET['invitation_id'] : 0;
 if (!$invitation_id) {
     die('Invalid invitation id');
 }
@@ -40,17 +40,19 @@ $declines = $declStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Invitation Declines</title>
+    <?php $PAGE_TITLE = 'Invitation Declines';
+    require_once __DIR__ . '/admin_head.php'; ?>
     <link rel="stylesheet" href="../css/admin_dashboard.css?v=<?php echo time(); ?>">
 </head>
+
 <body>
     <div class="admin-container">
         <div class="admin-header">
             <div class="admin-title">
-                <h1><i class="fas fa-user-times"></i> Declined Responses for Invitation #<?php echo (int)$invitation_id; ?></h1>
+                <h1><i class="fas fa-user-times"></i> Declined Responses for Invitation
+                    #<?php echo (int) $invitation_id; ?></h1>
             </div>
             <div class="admin-actions">
                 <a href="track_invitations.php" class="admin-btn secondary"><i class="fas fa-arrow-left"></i> Back</a>
@@ -64,7 +66,11 @@ $declines = $declStmt->fetchAll(PDO::FETCH_ASSOC);
                 <?php else: ?>
                     <table class="data-table" style="width:100%;border-collapse:collapse;">
                         <thead>
-                            <tr><th>User</th><th>Email</th><th>Responded At</th></tr>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Responded At</th>
+                            </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($declines as $d): ?>
@@ -81,4 +87,5 @@ $declines = $declStmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 </body>
+
 </html>
