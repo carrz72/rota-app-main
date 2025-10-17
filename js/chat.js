@@ -1560,17 +1560,28 @@ if (menuToggle && navLinks) {
 // Mark notification as read
 function markNotificationAsRead(element) {
     const notificationId = element.getAttribute('data-id');
+    if (!notificationId) {
+        console.warn('markNotificationAsRead: missing data-id on element', element);
+        return;
+    }
 
     fetch('../functions/mark_notification.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'notification_id=' + notificationId
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: notificationId })
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                element.remove();
+            if (data && data.success) {
+                // remove the notification node and update badge
+                try {
+                    element.remove();
+                } catch (e) {
+                    // ignore
+                }
                 updateNotificationBadge();
+            } else {
+                console.error('Failed to mark notification as read', data);
             }
         })
         .catch(error => console.error('Error marking notification as read:', error));
