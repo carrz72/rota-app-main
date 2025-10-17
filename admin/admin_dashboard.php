@@ -505,6 +505,7 @@ try {
 
 <head>
     <meta charset="UTF-8">
+    <?php require_once __DIR__ . '/../includes/seo.php'; seo_render_head(['title' => seo_full_title('Admin Dashboard - Open Rota'), 'description' => 'Administration area for Open Rota.']); ?>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
@@ -512,7 +513,6 @@ try {
     <link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">
     <link rel="apple-touch-icon" href="/rota-app-main/images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <title>Admin Dashboard - Open Rota</title>
         <link rel="stylesheet" href="../css/admin_dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
