@@ -1982,9 +1982,9 @@ span {
 
 .quick-actions-panel {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-  width: 100%;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  width: 150%;
   max-width: 1000px;
   box-sizing: border-box;
 }
