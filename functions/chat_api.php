@@ -152,6 +152,22 @@ try {
             $stmt->execute();
             $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // Mark messages as delivered for this user (set delivered_at) for any messages returned
+            try {
+                $conn->beginTransaction();
+                $updateReceipt = $conn->prepare("INSERT INTO chat_message_receipts (message_id, user_id, delivered_at)
+                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                    ON DUPLICATE KEY UPDATE delivered_at = COALESCE(delivered_at, VALUES(delivered_at))");
+                foreach ($messages as $m) {
+                    $updateReceipt->execute([$m['id'], $user_id]);
+                }
+                $conn->commit();
+            } catch (Exception $e) {
+                if ($conn->inTransaction())
+                    $conn->rollBack();
+                // ignore receipt failures
+            }
+
             // Process reactions
             foreach ($messages as &$message) {
                 $reactionSummary = [];
@@ -176,6 +192,21 @@ try {
 
                 $message['reaction_summary'] = $reactionSummary;
                 unset($message['reactions_json']);
+
+                // Add delivery/read counts for UI
+                try {
+                    $stmtCounts = $conn->prepare("SELECT 
+                        SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END) as delivered_count,
+                        SUM(CASE WHEN read_at IS NOT NULL THEN 1 ELSE 0 END) as read_count
+                        FROM chat_message_receipts WHERE message_id = ?");
+                    $stmtCounts->execute([$message['id']]);
+                    $counts = $stmtCounts->fetch(PDO::FETCH_ASSOC);
+                    $message['delivered_count'] = (int) ($counts['delivered_count'] ?? 0);
+                    $message['read_count'] = (int) ($counts['read_count'] ?? 0);
+                } catch (Exception $e) {
+                    $message['delivered_count'] = 0;
+                    $message['read_count'] = 0;
+                }
             }
 
             echo json_encode(['success' => true, 'messages' => array_reverse($messages)]);
@@ -200,6 +231,29 @@ try {
             $stmt->execute([$channel_id, $user_id]);
             if (!$stmt->fetch()) {
                 throw new Exception('You are not a member of this channel');
+            }
+
+            // ===== RATE LIMITING (simple DB-backed sliding window) =====
+            // Configure limits here
+            $rateLimit = 10; // max messages
+            $rateWindowSec = 30; // per N seconds
+
+            // Count messages sent by this user in the recent window
+            $countSql = "SELECT COUNT(*) FROM chat_messages WHERE user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL {$rateWindowSec} SECOND)";
+            $stmtCount = $conn->prepare($countSql);
+            $stmtCount->execute([$user_id]);
+            $recentCount = (int) $stmtCount->fetchColumn();
+
+            if ($recentCount >= $rateLimit) {
+                // Inform client of rate limit (HTTP 429 and JSON body)
+                header('HTTP/1.1 429 Too Many Requests');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Rate limit exceeded. Please wait before sending more messages.',
+                    'rate_limited' => true,
+                    'retry_after' => $rateWindowSec
+                ]);
+                break;
             }
 
             // Insert message
@@ -330,6 +384,17 @@ try {
                 WHERE channel_id = ? AND user_id = ?
             ");
             $stmt->execute([$channel_id, $user_id]);
+
+            // Also mark receipts as read for messages in this channel for this user
+            try {
+                $stmtUpdate = $conn->prepare("UPDATE chat_message_receipts r
+                    JOIN chat_messages m ON r.message_id = m.id
+                    SET r.read_at = CURRENT_TIMESTAMP
+                    WHERE r.user_id = ? AND m.channel_id = ? AND m.is_deleted = 0 AND r.read_at IS NULL");
+                $stmtUpdate->execute([$user_id, $channel_id]);
+            } catch (Exception $e) {
+                // ignore
+            }
 
             echo json_encode(['success' => true, 'message' => 'Marked as read']);
             break;

@@ -26,6 +26,14 @@ document.addEventListener('DOMContentLoaded', function () {
         messageInput.addEventListener('input', function () {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
+            // Save draft for current channel (debounced lightly)
+            try {
+                if (typeof currentChannelId !== 'undefined' && currentChannelId) {
+                    saveDraft(currentChannelId, this.value);
+                }
+            } catch (e) {
+                console.warn('Failed to save draft', e);
+            }
         });
     }
 
@@ -295,6 +303,19 @@ function selectChannel(channelId, channelName, channelType, options = {}) {
     document.getElementById('sendBtn').disabled = false;
     document.getElementById('attachBtn').disabled = false;
 
+    // Load any saved draft for this channel
+    try {
+        const draft = loadDraft(channelId);
+        const input = document.getElementById('messageInput');
+        if (draft && input) {
+            input.value = draft;
+            input.style.height = 'auto';
+            input.style.height = (input.scrollHeight) + 'px';
+        }
+    } catch (e) {
+        console.warn('Failed to load draft', e);
+    }
+
     const muteBtn = document.getElementById('muteBtn');
     if (muteBtn) {
         const isMuted = Boolean(Number(cachedChannel.is_muted));
@@ -527,6 +548,7 @@ function displayMessages(messages) {
                                     <i class="fa fa-smile-o"></i>
                                 </button>
                             </div>
+                            <div class="message-status" title="Delivered / Read counts">Delivered: ${message.delivered_count || 0} • Read: ${message.read_count || 0}</div>
                         ` : `
                             <div class="message-actions">
                                 <button class="action-btn" onclick="showReactionPicker(${message.id}); event.stopPropagation();" title="React">
@@ -1151,6 +1173,44 @@ function getInitials(name) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+/* =======================================
+   DRAFTS (localStorage per-channel)
+   ======================================= */
+function draftKey(channelId) {
+    return `rota_chat_draft_${channelId}`;
+}
+
+function saveDraft(channelId, text) {
+    if (!channelId) return;
+    try {
+        // limit draft size to ~10KB to avoid abusing storage
+        const trimmed = typeof text === 'string' ? text.substring(0, 10240) : '';
+        localStorage.setItem(draftKey(channelId), trimmed);
+    } catch (e) {
+        // ignore localStorage errors (e.g., quota)
+        console.warn('saveDraft error', e);
+    }
+}
+
+function loadDraft(channelId) {
+    if (!channelId) return '';
+    try {
+        return localStorage.getItem(draftKey(channelId)) || '';
+    } catch (e) {
+        console.warn('loadDraft error', e);
+        return '';
+    }
+}
+
+function clearDraft(channelId) {
+    if (!channelId) return;
+    try {
+        localStorage.removeItem(draftKey(channelId));
+    } catch (e) {
+        console.warn('clearDraft error', e);
+    }
+}
+
 function formatRelativeTime(timestamp) {
     if (!timestamp) {
         return '';
@@ -1484,9 +1544,26 @@ function sendMessage() {
     }
 
     const isEditing = Boolean(editingMessageId);
-    const request = isEditing
+    const requestFn = () => isEditing
         ? submitEditedMessage(editingMessageId, messageText)
         : postNewMessage(messageText);
+
+    // If offline, enqueue the message locally
+    if (!navigator.onLine) {
+        // Save to IndexedDB outbox
+        offlineChatQueue.enqueue({ action: 'send_message', channel_id: currentChannelId, message: messageText })
+            .then(() => {
+                input.value = '';
+                input.style.height = 'auto';
+                showRateLimitWarning(5); // small banner to indicate queued status
+            }).catch(err => {
+                console.error('Failed to enqueue message for offline', err);
+                alert('You are offline and message could not be queued');
+            });
+        return;
+    }
+
+    const request = requestFn();
 
     request
         .then(() => {
@@ -1496,9 +1573,21 @@ function sendMessage() {
             } else {
                 input.value = '';
                 input.style.height = 'auto';
+                // clear draft for this channel after successful send
+                try { clearDraft(currentChannelId); } catch (e) { console.warn('clearDraft failed', e); }
             }
         })
         .catch(error => {
+            // Handle HTTP 429 rate limit responses which may not throw as JSON
+            if (error && error instanceof Response && error.status === 429) {
+                error.json().then(data => {
+                    const retry = data.retry_after || 30;
+                    showRateLimitWarning(retry);
+                }).catch(() => {
+                    showRateLimitWarning(30);
+                });
+                return;
+            }
             console.error('Error sending message:', error);
             alert(error.message || 'Error sending message');
         })
@@ -1510,6 +1599,121 @@ function sendMessage() {
             }
             input.focus();
         });
+}
+
+// Flush queued messages stored in IndexedDB
+async function flushQueuedMessages() {
+    if (!navigator.onLine) return;
+    try {
+        const items = await offlineChatQueue.getAll();
+        for (const item of items) {
+            if (item.action === 'send_message') {
+                try {
+                    const resp = await fetch('../functions/chat_api.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `action=send_message&channel_id=${encodeURIComponent(item.channel_id)}&message=${encodeURIComponent(item.message)}`
+                    });
+                    const data = await resp.json();
+                    if (data && data.success) {
+                        await offlineChatQueue.remove(item.id);
+                    } else if (resp.status === 429) {
+                        // Rate limited: stop processing and retry later
+                        const retryAfter = (data && data.retry_after) ? data.retry_after : 30;
+                        showRateLimitWarning(retryAfter);
+                        break;
+                    } else {
+                        // Keep item for later
+                        console.warn('Failed to send queued message, will retry later', data);
+                    }
+                } catch (e) {
+                    console.error('Network error while flushing queued messages', e);
+                    // Stop trying further when network fails
+                    break;
+                }
+            } else {
+                // unknown action, remove it
+                await offlineChatQueue.remove(item.id);
+            }
+        }
+    } catch (e) {
+        console.error('Failed to flush queued messages', e);
+    }
+}
+
+// Try flushing queued messages when coming online
+window.addEventListener('online', () => {
+    flushQueuedMessages();
+});
+
+// Attempt flush at startup
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => flushQueuedMessages(), 2000);
+});
+
+// Show a rate limit warning banner and disable sending for `seconds`
+let rateLimitTimer = null;
+function showRateLimitWarning(seconds) {
+    // Create banner if not exists
+    let banner = document.getElementById('rateLimitBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'rateLimitBanner';
+        banner.style.position = 'fixed';
+        banner.style.top = '0';
+        banner.style.left = '0';
+        banner.style.right = '0';
+        banner.style.background = '#ffc107';
+        banner.style.color = '#212529';
+        banner.style.padding = '10px 16px';
+        banner.style.zIndex = '2000';
+        banner.style.display = 'flex';
+        banner.style.justifyContent = 'space-between';
+        banner.style.alignItems = 'center';
+        banner.innerHTML = `<span id="rateLimitText">You're sending messages too quickly. Please wait ${seconds}s.</span><button id="rateLimitDismiss" style="margin-left:12px;background:transparent;border:0;font-weight:700;cursor:pointer">Dismiss</button>`;
+        document.body.appendChild(banner);
+        document.getElementById('rateLimitDismiss').addEventListener('click', () => {
+            hideRateLimitWarning();
+        });
+    } else {
+        document.getElementById('rateLimitText').textContent = `You're sending messages too quickly. Please wait ${seconds}s.`;
+        banner.style.display = 'flex';
+    }
+
+    // Disable send & input
+    const sendBtn = document.getElementById('sendBtn');
+    const input = document.getElementById('messageInput');
+    if (sendBtn) sendBtn.disabled = true;
+    if (input) input.disabled = true;
+
+    // Clear any existing timer
+    if (rateLimitTimer) clearInterval(rateLimitTimer);
+
+    let remaining = seconds;
+    rateLimitTimer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+            hideRateLimitWarning();
+            clearInterval(rateLimitTimer);
+            rateLimitTimer = null;
+            return;
+        }
+        const text = document.getElementById('rateLimitText');
+        if (text) text.textContent = `You're sending messages too quickly. Please wait ${remaining}s.`;
+    }, 1000);
+}
+
+function hideRateLimitWarning() {
+    const banner = document.getElementById('rateLimitBanner');
+    if (banner) banner.style.display = 'none';
+    const sendBtn = document.getElementById('sendBtn');
+    const input = document.getElementById('messageInput');
+    if (sendBtn) sendBtn.disabled = false;
+    if (input) input.disabled = false;
+    if (rateLimitTimer) {
+        clearInterval(rateLimitTimer);
+        rateLimitTimer = null;
+    }
 }
 
 // Cleanup on page unload

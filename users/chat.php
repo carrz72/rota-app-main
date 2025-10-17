@@ -291,7 +291,8 @@ if (!$userInitial) {
                             <button class="btn-icon" data-action="toggle-channel-info" title="Channel Info">
                                 <i class="fa fa-info-circle"></i>
                             </button>
-                            <button class="btn-icon" data-action="open-edit-channel" id="editChannelBtn" title="Edit Channel" style="display:none">
+                            <button class="btn-icon" data-action="open-edit-channel" id="editChannelBtn"
+                                title="Edit Channel" style="display:none">
                                 <i class="fa fa-edit"></i>
                             </button>
                             <button class="btn-icon" data-action="toggle-mute" title="Mute/Unmute" id="muteBtn">
@@ -383,6 +384,14 @@ if (!$userInitial) {
     </div>
 
     <!-- JavaScript -->
+    <script src="../js/offline_chat.js?v=<?php echo time(); ?>"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js').then(reg => {
+                console.log('ServiceWorker registered for chat:', reg.scope);
+            }).catch(err => console.warn('ServiceWorker registration failed:', err));
+        }
+    </script>
     <script src="../js/chat.js?v=<?php echo time(); ?>"></script>
 
     <!-- NOTE: Removed previous JS fallbacks now that chat.js loads correctly. If chat.js fails to load, menu items will briefly not work. -->

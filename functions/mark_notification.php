@@ -17,12 +17,29 @@ $markAll = false;
 // Handle both GET and POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle JSON POST request
-    $input = json_decode(file_get_contents('php://input'), true);
-    if (isset($input['id'])) {
+    // Try JSON body first (modern clients)
+    $raw = file_get_contents('php://input');
+    $input = json_decode($raw, true);
+    if (is_array($input) && isset($input['id'])) {
         if ($input['id'] === 'all') {
             $markAll = true;
         } elseif (is_numeric($input['id'])) {
             $notifId = (int) $input['id'];
+        }
+    } else {
+        // Fallback for form-encoded clients (legacy pages)
+        if (isset($_POST['notification_id'])) {
+            if ($_POST['notification_id'] === 'all') {
+                $markAll = true;
+            } elseif (is_numeric($_POST['notification_id'])) {
+                $notifId = (int) $_POST['notification_id'];
+            }
+        } elseif (isset($_POST['id'])) {
+            if ($_POST['id'] === 'all') {
+                $markAll = true;
+            } elseif (is_numeric($_POST['id'])) {
+                $notifId = (int) $_POST['id'];
+            }
         }
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {

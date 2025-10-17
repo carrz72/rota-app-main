@@ -85,6 +85,21 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     echo "<p>✅ Created chat_typing table</p>";
 
+    // 6. Message Receipts Table (per-user delivery/read receipts)
+    $conn->exec("CREATE TABLE IF NOT EXISTS chat_message_receipts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            message_id INT NOT NULL,
+            user_id INT NOT NULL,
+            delivered_at TIMESTAMP NULL,
+            read_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_message_user (message_id, user_id),
+            INDEX idx_message_delivered (message_id, delivered_at),
+            INDEX idx_message_read (message_id, read_at),
+            FOREIGN KEY (message_id) REFERENCES chat_messages(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    echo "<p>✅ Created chat_message_receipts table</p>";
     // Create General Channel
     $stmt = $conn->prepare("INSERT IGNORE INTO chat_channels (id, name, type, created_by, description) 
                            VALUES (1, 'General', 'general', ?, 'Main company-wide chat for all employees')");
