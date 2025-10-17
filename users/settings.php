@@ -289,7 +289,13 @@ if ($user_id) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <?php require_once __DIR__ . '/../includes/seo.php';
+    seo_render_head(['title' => seo_full_title('Settings - Open Rota'), 'description' => 'Manage your account preferences and notification settings for Open Rota.']);
+    ?>
+    <link rel="icon" type="image/png" href="../images/icon.png">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../images/icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Settings - Open Rota</title>
     <script>
         // Apply saved theme early to avoid flash-of-light; only if server didn't set it

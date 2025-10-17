@@ -30,75 +30,125 @@ try {
 
 $pages = max(1, ceil($total / $perPage));
 
-function h($s) { return htmlentities((string)$s); }
+function h($s)
+{
+    return htmlentities((string) $s);
+}
 
 ?>
 <!doctype html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Audit Log - Admin</title>
+    <?php $PAGE_TITLE = 'Audit Log - Admin';
+    require_once __DIR__ . '/admin_head.php'; ?>
     <link rel="stylesheet" href="../css/admin_dashboard.css">
     <style>
-        :root{ --gap:12px; --panel-bg:#fff; --muted:#666; }
-        .table-responsive { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-        table { width:100%; border-collapse:collapse; min-width:720px; }
-        th,td { padding:8px; border-bottom:1px solid #eee; text-align:left; font-size:13px; vertical-align:top; }
-        .pager { margin-top:12px; }
-        .muted { color:var(--muted); font-size:12px; }
-        .meta { font-family:monospace; white-space:pre-wrap; max-width:600px; font-size:13px; }
+        :root {
+            --gap: 12px;
+            --panel-bg: #fff;
+            --muted: #666;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        .pager {
+            margin-top: 12px;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .meta {
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-width: 600px;
+            font-size: 13px;
+        }
 
         /* Responsive tweaks */
         @media (max-width:800px) {
-            table { font-size:13px; }
-            .meta { font-size:12px; }
-            .admin-container h1 { font-size:20px; }
+            table {
+                font-size: 13px;
+            }
+
+            .meta {
+                font-size: 12px;
+            }
+
+            .admin-container h1 {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="admin-container">
         <h1>Audit Log</h1>
         <p class="muted">Showing recent audit events. Only super admins can access this page.</p>
 
         <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>User</th>
-                    <th>Action</th>
-                    <th>Meta</th>
-                    <th>IP</th>
-                    <th>Agent</th>
-                    <th>When</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($rows)): ?>
-                    <tr><td colspan="7">No audit events found.</td></tr>
-                <?php else: ?>
-                    <?php foreach ($rows as $r): ?>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Meta</th>
+                        <th>IP</th>
+                        <th>Agent</th>
+                        <th>When</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($rows)): ?>
                         <tr>
-                            <td><?php echo h($r['id']); ?></td>
-                            <td>
-                                <?php if (!empty($r['username'])): ?>
-                                    <?php echo h($r['username']); ?> <span class="muted">(<?php echo h($r['user_id']); ?>)</span>
-                                <?php else: ?>
-                                    <?php echo h($r['user_id']); ?>
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo h($r['action']); ?></td>
-                            <td class="meta"><?php echo h($r['meta']); ?></td>
-                            <td><?php echo h($r['ip_address']); ?></td>
-                            <td><?php echo h($r['user_agent']); ?></td>
-                            <td><?php echo h($r['created_at']); ?></td>
+                            <td colspan="7">No audit events found.</td>
                         </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                    <?php else: ?>
+                        <?php foreach ($rows as $r): ?>
+                            <tr>
+                                <td><?php echo h($r['id']); ?></td>
+                                <td>
+                                    <?php if (!empty($r['username'])): ?>
+                                        <?php echo h($r['username']); ?> <span
+                                            class="muted">(<?php echo h($r['user_id']); ?>)</span>
+                                    <?php else: ?>
+                                        <?php echo h($r['user_id']); ?>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo h($r['action']); ?></td>
+                                <td class="meta"><?php echo h($r['meta']); ?></td>
+                                <td><?php echo h($r['ip_address']); ?></td>
+                                <td><?php echo h($r['user_agent']); ?></td>
+                                <td><?php echo h($r['created_at']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
 
         <div class="pager">
@@ -115,4 +165,5 @@ function h($s) { return htmlentities((string)$s); }
         <p><a href="admin_dashboard.php" class="admin-btn">Back to Admin Dashboard</a></p>
     </div>
 </body>
+
 </html>
