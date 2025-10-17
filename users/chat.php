@@ -39,8 +39,12 @@ if (!$userInitial) {
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Chat - Open Rota</title>
+    <?php require_once __DIR__ . '/../includes/seo.php';
+    seo_render_head(['title' => seo_full_title('Team Chat - Open Rota'), 'description' => 'Team chat for Open Rota — coordinate shifts, share updates, and keep every branch aligned.']); ?>
+    <link rel="icon" type="image/png" href="../images/icon.png">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../images/icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 
     <!-- CSS Files -->
     <link rel="stylesheet" href="../css/dashboard.css?v=<?php echo time(); ?>">
