@@ -19,6 +19,9 @@ try {
     // Get current time
     $now = new DateTime();
 
+    // Cron interval in minutes - adjust if your cron runs more/less frequently
+    $CRON_INTERVAL_MINUTES = 15;
+
     // ===== 24 HOUR REMINDERS =====
     $in24hours = clone $now;
     $in24hours->modify('+24 hours');
@@ -164,22 +167,31 @@ try {
         switch ($pref['reminder_type']) {
             case 'minutes':
                 $targetTime->modify('+' . $pref['reminder_value'] . ' minutes');
-                $windowMinutes = 5; // 5 minute window for minute-based reminders
+                $windowMinutes = 5; // default 5 minute window for minute-based reminders
                 break;
             case 'hours':
                 $targetTime->modify('+' . $pref['reminder_value'] . ' hours');
-                $windowMinutes = 10; // 10 minute window for hour-based reminders
+                $windowMinutes = 10; // default 10 minute window for hour-based reminders
                 break;
             case 'days':
                 $targetTime->modify('+' . $pref['reminder_value'] . ' days');
-                $windowMinutes = 15; // 15 minute window for day-based reminders
+                $windowMinutes = 15; // default 15 minute window for day-based reminders
                 break;
+        }
+
+        // Make sure our window is at least as long as the cron interval to avoid missing reminders
+        if ($windowMinutes < $CRON_INTERVAL_MINUTES) {
+            $orig = $windowMinutes;
+            $windowMinutes = $CRON_INTERVAL_MINUTES;
         }
 
         $windowStartCustom = clone $targetTime;
         $windowStartCustom->modify('-' . $windowMinutes . ' minutes');
         $windowEndCustom = clone $targetTime;
         $windowEndCustom->modify('+' . $windowMinutes . ' minutes');
+
+        // Debug output: show calculation for this preference so we can trace why reminders aren't matching
+        echo "Custom pref #{$pref['id']} for user {$pref['user_id']}: type={$pref['reminder_type']} value={$pref['reminder_value']} -> looking for shifts between " . $windowStartCustom->format('Y-m-d H:i:s') . " and " . $windowEndCustom->format('Y-m-d H:i:s') . "\n";
 
         // Create a unique reminder type identifier
         $reminderTypeId = 'custom_' . $pref['id'];
@@ -209,6 +221,9 @@ try {
         ]);
 
         $customShifts = $customShiftsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Debug: report how many shifts matched for this pref
+        echo "  Found " . count($customShifts) . " matching shifts for pref #{$pref['id']} (user {$pref['user_id']})\n";
 
         foreach ($customShifts as $shift) {
             // Format the reminder text
