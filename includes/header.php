@@ -20,8 +20,8 @@ if ($user_id) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Open Rota">
-    <link rel="icon" type="image/png" href="../images/icon.jpg">
-    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" type="image/png" href="/rota-app-main/images/icon.png">
+    <link rel="manifest" href="/rota-app-main/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="../css/navigation.css">
     <link rel="stylesheet" href="../css/dark_mode.css">
@@ -41,7 +41,11 @@ if ($user_id) {
         }
     }
     ?>
-    <link rel="apple-touch-icon" href="../images/icon.png">
+    <!-- Apple touch icons (multiple sizes improve iOS Home Screen display) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/rota-app-main/images/icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/rota-app-main/images/icon.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/rota-app-main/images/icon.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/rota-app-main/images/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 </head>
 
@@ -191,6 +195,17 @@ if ($user_id) {
                 });
             }
         });
+    </script>
+
+    <script>
+        // Register service worker site-wide (helps iOS treat the site as an installable PWA)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/rota-app-main/service-worker.js').then(reg => {
+                console.log('ServiceWorker registered (header):', reg.scope);
+            }).catch(err => {
+                console.warn('ServiceWorker registration failed (header):', err);
+            });
+        }
     </script>
 
     <script>
