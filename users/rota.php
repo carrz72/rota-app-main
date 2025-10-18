@@ -222,7 +222,8 @@ function nav_url($overrides = []) {
             unset($q[$k]);
         }
     }
-    return '?' . http_build_query($q);
+    $path = $_SERVER['PHP_SELF'] ?? ($_SERVER['SCRIPT_NAME'] ?? '');
+    return $path . '?' . http_build_query($q);
 }
 ?>
 <!DOCTYPE html>

@@ -132,7 +132,8 @@ function nav_url_admin($overrides = [])
         if ($v === '' || $v === null)
             unset($q[$k]);
     }
-    return '?' . http_build_query($q);
+    $path = $_SERVER['PHP_SELF'] ?? ($_SERVER['SCRIPT_NAME'] ?? 'manage_shifts.php');
+    return $path . '?' . http_build_query($q);
 }
 ?>
 
