@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS shift_reminders_sent (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     shift_id INT NOT NULL,
-    reminder_type ENUM('24h', '1h') NOT NULL,
+    -- Use a varchar so we can store built identifiers like '24h', '1h' and 'custom_{id}'
+    reminder_type VARCHAR(64) NOT NULL,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_reminder (user_id, shift_id, reminder_type),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

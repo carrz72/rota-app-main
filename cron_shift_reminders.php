@@ -26,11 +26,15 @@ try {
     $in24hours = clone $now;
     $in24hours->modify('+24 hours');
 
-    // Find shifts starting in approximately 24 hours (give 15 min window)
+    // Find shifts starting in approximately 24 hours (give window; ensure it's at least cron interval)
+    $windowMinutes24h = 15;
+    if ($windowMinutes24h < $CRON_INTERVAL_MINUTES) {
+        $windowMinutes24h = $CRON_INTERVAL_MINUTES;
+    }
     $windowStart = clone $in24hours;
-    $windowStart->modify('-15 minutes');
+    $windowStart->modify('-' . $windowMinutes24h . ' minutes');
     $windowEnd = clone $in24hours;
-    $windowEnd->modify('+15 minutes');
+    $windowEnd->modify('+' . $windowMinutes24h . ' minutes');
 
     echo "Checking for 24h reminders between " . $windowStart->format('Y-m-d H:i:s') . " and " . $windowEnd->format('Y-m-d H:i:s') . "\n";
 
@@ -72,13 +76,18 @@ try {
         ];
 
         if (sendPushNotification($shift['user_id'], $title, $body, $data)) {
-            // Mark as sent
-            $markSent = $conn->prepare("
-                INSERT INTO shift_reminders_sent (user_id, shift_id, reminder_type)
-                VALUES (?, ?, '24h')
-            ");
-            $markSent->execute([$shift['user_id'], $shift['id']]);
-            echo "  ✓ Sent 24h reminder to {$shift['username']} for shift #{$shift['id']}\n";
+            // Mark as sent (don't let a DB insert error stop the whole run)
+            try {
+                $markSent = $conn->prepare("
+                    INSERT INTO shift_reminders_sent (user_id, shift_id, reminder_type)
+                    VALUES (?, ?, '24h')
+                ");
+                $markSent->execute([$shift['user_id'], $shift['id']]);
+                echo "  ✓ Sent 24h reminder to {$shift['username']} for shift #{$shift['id']}\n";
+            } catch (Exception $e) {
+                echo "  ⚠ Could not mark 24h reminder as sent for {$shift['username']} (shift #{$shift['id']}): " . $e->getMessage() . "\n";
+                error_log("Failed to insert shift_reminders_sent for 24h: " . $e->getMessage());
+            }
         } else {
             echo "  ✗ Failed to send 24h reminder to {$shift['username']}\n";
         }
@@ -88,11 +97,15 @@ try {
     $in1hour = clone $now;
     $in1hour->modify('+1 hour');
 
-    // Find shifts starting in approximately 1 hour (give 10 min window)
+    // Find shifts starting in approximately 1 hour (give window; ensure it's at least cron interval)
+    $windowMinutes1h = 10;
+    if ($windowMinutes1h < $CRON_INTERVAL_MINUTES) {
+        $windowMinutes1h = $CRON_INTERVAL_MINUTES;
+    }
     $windowStart1h = clone $in1hour;
-    $windowStart1h->modify('-10 minutes');
+    $windowStart1h->modify('-' . $windowMinutes1h . ' minutes');
     $windowEnd1h = clone $in1hour;
-    $windowEnd1h->modify('+10 minutes');
+    $windowEnd1h->modify('+' . $windowMinutes1h . ' minutes');
 
     echo "\nChecking for 1h reminders between " . $windowStart1h->format('Y-m-d H:i:s') . " and " . $windowEnd1h->format('Y-m-d H:i:s') . "\n";
 
@@ -135,13 +148,18 @@ try {
         ];
 
         if (sendPushNotification($shift['user_id'], $title, $body, $data)) {
-            // Mark as sent
-            $markSent = $conn->prepare("
-                INSERT INTO shift_reminders_sent (user_id, shift_id, reminder_type)
-                VALUES (?, ?, '1h')
-            ");
-            $markSent->execute([$shift['user_id'], $shift['id']]);
-            echo "  ✓ Sent 1h reminder to {$shift['username']} for shift #{$shift['id']}\n";
+            // Mark as sent (don't let a DB insert error stop the whole run)
+            try {
+                $markSent = $conn->prepare("
+                    INSERT INTO shift_reminders_sent (user_id, shift_id, reminder_type)
+                    VALUES (?, ?, '1h')
+                ");
+                $markSent->execute([$shift['user_id'], $shift['id']]);
+                echo "  ✓ Sent 1h reminder to {$shift['username']} for shift #{$shift['id']}\n";
+            } catch (Exception $e) {
+                echo "  ⚠ Could not mark 1h reminder as sent for {$shift['username']} (shift #{$shift['id']}): " . $e->getMessage() . "\n";
+                error_log("Failed to insert shift_reminders_sent for 1h: " . $e->getMessage());
+            }
         } else {
             echo "  ✗ Failed to send 1h reminder to {$shift['username']}\n";
         }
