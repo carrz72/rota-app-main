@@ -183,6 +183,18 @@ $nextWeekStart = date('Y-m-d', strtotime('+1 week', strtotime($currentWeekStart)
 $prevDay = date('Y-m-d', strtotime('-1 day', strtotime($currentDay)));
 $nextDay = date('Y-m-d', strtotime('+1 day', strtotime($currentDay)));
 
+// Helper to build navigation URLs while preserving existing GET filters
+function nav_url_admin($overrides = []) {
+    $q = $_GET;
+    foreach ($overrides as $k => $v) {
+        $q[$k] = $v;
+    }
+    foreach ($q as $k => $v) {
+        if ($v === '' || $v === null) unset($q[$k]);
+    }
+    return '?' . http_build_query($q);
+}
+
 // Shift search and filter parameters
 $shiftSearchQuery = $_GET['shift_search'] ?? '';
 $shiftUserFilter = $_GET['shift_user'] ?? 'all';
@@ -1312,11 +1324,11 @@ try {
                 <h2><i class="fas fa-calendar-week"></i> Shift Management</h2>
                 <div class="panel-actions">
                     <div class="view-toggle">
-                        <a href="?view=week&week_start=<?php echo $currentWeekStart; ?>&<?php echo http_build_query(array_filter(['shift_search' => $shiftSearchQuery, 'shift_user' => $shiftUserFilter != 'all' ? $shiftUserFilter : null, 'shift_role' => $shiftRoleFilter != 'all' ? $shiftRoleFilter : null])); ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url_admin(['view' => 'week', 'week_start' => $currentWeekStart])); ?>"
                             class="admin-btn <?php echo $viewType === 'week' ? 'active' : ''; ?>">
                             <i class="fas fa-calendar-week"></i> Week
                         </a>
-                        <a href="?view=day&day=<?php echo $currentDay; ?>&<?php echo http_build_query(array_filter(['shift_search' => $shiftSearchQuery, 'shift_user' => $shiftUserFilter != 'all' ? $shiftUserFilter : null, 'shift_role' => $shiftRoleFilter != 'all' ? $shiftRoleFilter : null])); ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url_admin(['view' => 'day', 'day' => $currentDay])); ?>"
                             class="admin-btn <?php echo $viewType === 'day' ? 'active' : ''; ?>">
                             <i class="fas fa-calendar-day"></i> Day
                         </a>
@@ -1425,24 +1437,24 @@ try {
                 <div class="view-controls">
                     <div class="period-nav-buttons">
                         <?php if ($viewType === 'week'): ?>
-                            <a href="?view=week&week_start=<?php echo $prevWeekStart; ?>" class="btn">
+                            <a href="<?php echo htmlspecialchars(nav_url_admin(['view' => 'week', 'week_start' => $prevWeekStart])); ?>" class="btn">
                                 <i class="fas fa-chevron-left"></i> Previous Week
                             </a>
-                            <a href="?view=week&week_start=<?php echo date('Y-m-d', strtotime('monday this week')); ?>"
+                            <a href="<?php echo htmlspecialchars(nav_url_admin(['view' => 'week', 'week_start' => date('Y-m-d', strtotime('monday this week'))])); ?>"
                                 class="btn current">
                                 Current Week
                             </a>
-                            <a href="?view=week&week_start=<?php echo $nextWeekStart; ?>" class="btn">
+                            <a href="<?php echo htmlspecialchars(nav_url_admin(['view' => 'week', 'week_start' => $nextWeekStart])); ?>" class="btn">
                                 Next Week <i class="fas fa-chevron-right"></i>
                             </a>
                         <?php else: ?>
-                            <a href="?view=day&day=<?php echo $prevDay; ?>" class="btn">
+                            <a href="<?php echo htmlspecialchars(nav_url_admin(['view' => 'day', 'day' => $prevDay])); ?>" class="btn">
                                 <i class="fas fa-chevron-left"></i> Previous Day
                             </a>
-                            <a href="?view=day&day=<?php echo date('Y-m-d'); ?>" class="btn current">
+                            <a href="<?php echo htmlspecialchars(nav_url_admin(['view' => 'day', 'day' => date('Y-m-d')])); ?>" class="btn current">
                                 Today
                             </a>
-                            <a href="?view=day&day=<?php echo $nextDay; ?>" class="btn">
+                            <a href="<?php echo htmlspecialchars(nav_url_admin(['view' => 'day', 'day' => $nextDay])); ?>" class="btn">
                                 Next Day <i class="fas fa-chevron-right"></i>
                             </a>
                         <?php endif; ?>

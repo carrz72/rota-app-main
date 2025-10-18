@@ -120,6 +120,20 @@ $prevMonth = $currentMonth > 1 ? $currentMonth - 1 : 12;
 $prevYear = $currentMonth > 1 ? $currentYear : $currentYear - 1;
 $nextMonth = $currentMonth < 12 ? $currentMonth + 1 : 1;
 $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
+
+// Helper to build navigation URLs while preserving existing GET filters
+function nav_url_admin($overrides = [])
+{
+    $q = $_GET;
+    foreach ($overrides as $k => $v) {
+        $q[$k] = $v;
+    }
+    foreach ($q as $k => $v) {
+        if ($v === '' || $v === null)
+            unset($q[$k]);
+    }
+    return '?' . http_build_query($q);
+}
 ?>
 
 <!DOCTYPE html>
@@ -246,28 +260,28 @@ $nextYear = $currentMonth < 12 ? $currentYear : $currentYear + 1;
                 <h2><i class="fas fa-calendar"></i> <?php echo htmlspecialchars($periodDesc); ?></h2>
                 <div class="view-toggle">
                     <?php if ($period === 'week'): ?>
-                        <a href="?period=week&week_start=<?php echo $prevWeekStart; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url_admin(['period' => 'week', 'week_start' => $prevWeekStart])); ?>"
                             class="admin-btn">
                             <i class="fas fa-chevron-left"></i> Previous Week
                         </a>
-                        <a href="?period=week&week_start=<?php echo date('Y-m-d', strtotime('monday this week')); ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url_admin(['period' => 'week', 'week_start' => date('Y-m-d', strtotime('monday this week'))])); ?>"
                             class="admin-btn">
                             Current Week
                         </a>
-                        <a href="?period=week&week_start=<?php echo $nextWeekStart; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url_admin(['period' => 'week', 'week_start' => $nextWeekStart])); ?>"
                             class="admin-btn">
                             Next Week <i class="fas fa-chevron-right"></i>
                         </a>
                     <?php elseif ($period === 'month'): ?>
-                        <a href="?period=month&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url_admin(['period' => 'month', 'month' => $prevMonth, 'year' => $prevYear])); ?>"
                             class="admin-btn">
                             <i class="fas fa-chevron-left"></i> Previous Month
                         </a>
-                        <a href="?period=month&month=<?php echo date('n'); ?>&year=<?php echo date('Y'); ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url_admin(['period' => 'month', 'month' => date('n'), 'year' => date('Y')])); ?>"
                             class="admin-btn">
                             Current Month
                         </a>
-                        <a href="?period=month&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?><?php echo $user_id ? "&user_id=$user_id" : ''; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url_admin(['period' => 'month', 'month' => $nextMonth, 'year' => $nextYear])); ?>"
                             class="admin-btn">
                             Next Month <i class="fas fa-chevron-right"></i>
                         </a>

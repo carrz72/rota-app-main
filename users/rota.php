@@ -210,6 +210,20 @@ if ($period === 'week') {
         $currentDate = date('Y-m-d', strtotime("$currentDate +1 day"));
     }
 }
+// Helper to build navigation URLs while preserving existing GET filters
+function nav_url($overrides = []) {
+    $q = $_GET;
+    foreach ($overrides as $k => $v) {
+        $q[$k] = $v;
+    }
+    // Remove empty values to keep URLs tidy
+    foreach ($q as $k => $v) {
+        if ($v === '' || $v === null) {
+            unset($q[$k]);
+        }
+    }
+    return '?' . http_build_query($q);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1153,11 +1167,11 @@ if ($period === 'week') {
                 <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; width: 100%;">
                     <div style="display: flex; flex-wrap: wrap; gap: 10px;">
                         <?php if ($period === 'week'): ?>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' -7 days')); ?>&role_filter=<?php echo $roleFilter; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url(['period' => 'week', 'weekStart' => date('Y-m-d', strtotime($weekStart . ' -7 days'))])); ?>"
                             class="btn">Previous Week</a>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d'); ?>&role_filter=<?php echo $roleFilter; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url(['period' => 'week', 'weekStart' => date('Y-m-d')])); ?>"
                             class="btn">Current Week</a>
-                        <a href="?period=week&weekStart=<?php echo date('Y-m-d', strtotime($weekStart . ' +7 days')); ?>&role_filter=<?php echo $roleFilter; ?>"
+                        <a href="<?php echo htmlspecialchars(nav_url(['period' => 'week', 'weekStart' => date('Y-m-d', strtotime($weekStart . ' +7 days'))])); ?>"
                             class="btn">Next Week</a>
                         <?php elseif ($period === 'month'): ?>
                         <a href="?period=month&month=<?php echo $month == 1 ? 12 : $month - 1; ?>&year=<?php echo $month == 1 ? $year - 1 : $year; ?>&role_filter=<?php echo $roleFilter; ?>"
