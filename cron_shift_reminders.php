@@ -26,15 +26,11 @@ try {
     $in24hours = clone $now;
     $in24hours->modify('+24 hours');
 
-    // Find shifts starting in approximately 24 hours (give window; ensure it's at least cron interval)
-    $windowMinutes24h = 15;
-    if ($windowMinutes24h < $CRON_INTERVAL_MINUTES) {
-        $windowMinutes24h = $CRON_INTERVAL_MINUTES;
-    }
+    // Find shifts starting in approximately 24 hours.
+    // Use a forward-looking window [target, target + cron interval] so we don't send earlier than 24h before a shift.
     $windowStart = clone $in24hours;
-    $windowStart->modify('-' . $windowMinutes24h . ' minutes');
     $windowEnd = clone $in24hours;
-    $windowEnd->modify('+' . $windowMinutes24h . ' minutes');
+    $windowEnd->modify('+' . $CRON_INTERVAL_MINUTES . ' minutes');
 
     echo "Checking for 24h reminders between " . $windowStart->format('Y-m-d H:i:s') . " and " . $windowEnd->format('Y-m-d H:i:s') . "\n";
 
@@ -97,15 +93,11 @@ try {
     $in1hour = clone $now;
     $in1hour->modify('+1 hour');
 
-    // Find shifts starting in approximately 1 hour (give window; ensure it's at least cron interval)
-    $windowMinutes1h = 10;
-    if ($windowMinutes1h < $CRON_INTERVAL_MINUTES) {
-        $windowMinutes1h = $CRON_INTERVAL_MINUTES;
-    }
+    // Find shifts starting in approximately 1 hour.
+    // Use a forward-looking window [target, target + cron interval] so we don't send earlier than 1 hour before a shift.
     $windowStart1h = clone $in1hour;
-    $windowStart1h->modify('-' . $windowMinutes1h . ' minutes');
     $windowEnd1h = clone $in1hour;
-    $windowEnd1h->modify('+' . $windowMinutes1h . ' minutes');
+    $windowEnd1h->modify('+' . $CRON_INTERVAL_MINUTES . ' minutes');
 
     echo "\nChecking for 1h reminders between " . $windowStart1h->format('Y-m-d H:i:s') . " and " . $windowEnd1h->format('Y-m-d H:i:s') . "\n";
 
@@ -185,28 +177,20 @@ try {
         switch ($pref['reminder_type']) {
             case 'minutes':
                 $targetTime->modify('+' . $pref['reminder_value'] . ' minutes');
-                $windowMinutes = 5; // default 5 minute window for minute-based reminders
                 break;
             case 'hours':
                 $targetTime->modify('+' . $pref['reminder_value'] . ' hours');
-                $windowMinutes = 10; // default 10 minute window for hour-based reminders
                 break;
             case 'days':
                 $targetTime->modify('+' . $pref['reminder_value'] . ' days');
-                $windowMinutes = 15; // default 15 minute window for day-based reminders
                 break;
         }
 
-        // Make sure our window is at least as long as the cron interval to avoid missing reminders
-        if ($windowMinutes < $CRON_INTERVAL_MINUTES) {
-            $orig = $windowMinutes;
-            $windowMinutes = $CRON_INTERVAL_MINUTES;
-        }
-
+        // Use a forward-looking window [targetTime, targetTime + cron interval].
+        // This guarantees we won't send the custom reminder earlier than the configured time.
         $windowStartCustom = clone $targetTime;
-        $windowStartCustom->modify('-' . $windowMinutes . ' minutes');
         $windowEndCustom = clone $targetTime;
-        $windowEndCustom->modify('+' . $windowMinutes . ' minutes');
+        $windowEndCustom->modify('+' . $CRON_INTERVAL_MINUTES . ' minutes');
 
         // Debug output: show calculation for this preference so we can trace why reminders aren't matching
         echo "Custom pref #{$pref['id']} for user {$pref['user_id']}: type={$pref['reminder_type']} value={$pref['reminder_value']} -> looking for shifts between " . $windowStartCustom->format('Y-m-d H:i:s') . " and " . $windowEndCustom->format('Y-m-d H:i:s') . "\n";
