@@ -33,7 +33,7 @@ if (!$existing) {
 
 $name = isset($data['name']) && $data['name'] !== '' ? trim($data['name']) : $existing['name'];
 $employment_type = isset($data['employment_type']) && $data['employment_type'] !== '' ? $data['employment_type'] : $existing['employment_type'];
-$has_night_pay = isset($data['has_night_pay']) ? (int)$data['has_night_pay'] : (int)$existing['has_night_pay'];
+$has_night_pay = isset($data['has_night_pay']) ? (int) $data['has_night_pay'] : (int) $existing['has_night_pay'];
 
 // Determine pay fields, prefer provided values, otherwise keep existing
 if ($employment_type === 'hourly') {
@@ -42,7 +42,7 @@ if ($employment_type === 'hourly') {
             header('Content-Type: application/json');
             die(json_encode(['error' => 'Invalid hourly rate']));
         }
-        $base_pay = (float)$data['base_pay'];
+        $base_pay = (float) $data['base_pay'];
     } else {
         $base_pay = $existing['base_pay'];
     }
@@ -54,7 +54,7 @@ if ($employment_type === 'hourly') {
             header('Content-Type: application/json');
             die(json_encode(['error' => 'Invalid monthly salary']));
         }
-        $monthly_salary = (float)$data['monthly_salary'];
+        $monthly_salary = (float) $data['monthly_salary'];
     } else {
         $monthly_salary = $existing['monthly_salary'];
     }
@@ -75,11 +75,19 @@ if ($ok) {
     $message = "Role updated successfully!";
     $status = 'success';
     // Audit: role updated
-    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $user_id ?? $_SESSION['user_id'] ?? null, 'edit_role', ['name' => $name], $id, 'role', session_id()); } catch (Exception $e) {}
+    try {
+        require_once __DIR__ . '/../includes/audit_log.php';
+        log_audit($conn, $user_id ?? $_SESSION['user_id'] ?? null, 'edit_role', ['name' => $name], $id, 'role', session_id());
+    } catch (Exception $e) {
+    }
 } else {
     $message = "Error updating role!";
     $status = 'error';
-    try { require_once __DIR__ . '/../includes/audit_log.php'; log_audit($conn, $user_id ?? $_SESSION['user_id'] ?? null, 'edit_role_error', [], $id, 'role', session_id()); } catch (Exception $e) {}
+    try {
+        require_once __DIR__ . '/../includes/audit_log.php';
+        log_audit($conn, $user_id ?? $_SESSION['user_id'] ?? null, 'edit_role_error', [], $id, 'role', session_id());
+    } catch (Exception $e) {
+    }
 }
 
 // Update night shift settings if applicable
