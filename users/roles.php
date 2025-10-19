@@ -193,14 +193,14 @@ if ($user_id) {
                             <?php if ($notification['type'] === 'shift-invite' && !empty($notification['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
                                     data-id="<?php echo $notification['id']; ?>"
-                                    href="../functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    href="/functions/pending_shift_invitations.php?invitation_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </a>
                             <?php elseif ($notification['type'] === 'shift-swap' && !empty($notification['related_id'])): ?>
                                 <a class="notification-item shit-invt notification-<?php echo $notification['type']; ?>"
                                     data-id="<?php echo $notification['id']; ?>"
-                                    href="../functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
+                                    href="/functions/pending_shift_swaps.php?swap_id=<?php echo $notification['related_id']; ?>&notif_id=<?php echo $notification['id']; ?>">
                                     <span class="close-btn" onclick="markAsRead(this.parentElement);">&times;</span>
                                     <p><?php echo htmlspecialchars($notification['message']); ?></p>
                                 </a>
@@ -331,7 +331,7 @@ if ($user_id) {
         <?php if ($permissions->canManageRoles()): ?>
             <section class="form-card">
                 <h2><i class="fa fa-plus-circle"></i> Add New Role</h2>
-                <form action="../functions/create_role.php" method="POST" id="roleForm">
+                <form action="/functions/create_role.php" method="POST" id="roleForm">
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="name">Role Name:</label>
@@ -479,7 +479,7 @@ if ($user_id) {
         // Notification functionality
         function markAsRead(element) {
             const notificationId = element.getAttribute('data-id');
-            fetch('../functions/mark_notification.php', {
+            fetch('/functions/mark_notification.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -647,8 +647,8 @@ if ($user_id) {
 
         // Edit role function
         function editRole(roleId) {
-            // Get role data from server
-            fetch(`../functions/get_role.php?id=${roleId}`)
+        // Get role data from server
+        fetch(`/functions/get_role.php?id=${roleId}`)
                 .then(response => response.json())
                 .then(role => {
                     // Populate the edit form
@@ -719,7 +719,7 @@ if ($user_id) {
             }
 
             // Send update to server
-            fetch('../functions/edit_role.php', {
+            fetch('/functions/edit_role.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -750,7 +750,7 @@ if ($user_id) {
         function confirmDelete(roleId, roleName) {
             if (!confirm(`Are you sure you want to delete the role "${roleName}"?`)) return;
 
-            fetch('../functions/delete_role.php', {
+            fetch('/functions/delete_role.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: roleId })
