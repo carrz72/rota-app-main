@@ -647,8 +647,8 @@ if ($user_id) {
 
         // Edit role function
         function editRole(roleId) {
-            // Get role data from server
-            fetch(`/functions/get_role.php?id=${roleId}`)
+            // Get role data from server (include credentials so cookies are sent in PWA/standalone)
+            fetch(`/functions/get_role.php?id=${roleId}`, { credentials: 'same-origin' })
                 .then(response => response.json())
                 .then(role => {
                     // Populate the edit form
@@ -721,6 +721,7 @@ if ($user_id) {
             // Send update to server
             fetch('/functions/edit_role.php', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -752,6 +753,7 @@ if ($user_id) {
 
             fetch('/functions/delete_role.php', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: roleId })
             })
