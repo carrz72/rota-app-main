@@ -103,6 +103,7 @@ addNotification($conn, $user_id, $message, $status);
 $_SESSION[$status] = $message;
 
 // Return success message
+header('Content-Type: application/json');
 echo json_encode(['message' => $message, 'status' => $status]);
 
 $stmt = null;

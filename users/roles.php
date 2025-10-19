@@ -727,10 +727,22 @@ if ($user_id) {
                 },
                 body: JSON.stringify(roleData),
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (!data) {
-                        throw new Error('Empty response from server');
+                .then(async response => {
+                    const text = await response.text();
+                    // Try to parse JSON even if content-type is wrong
+                    try {
+                        const data = JSON.parse(text);
+                        return { ok: response.ok, data };
+                    } catch (e) {
+                        console.error('Invalid JSON response from /functions/edit_role.php:', text);
+                        throw new Error('Invalid server response. See console for details.');
+                    }
+                })
+                .then(({ ok, data }) => {
+                    if (!ok) {
+                        console.error('Server returned non-OK status for edit_role:', data);
+                        alert('Error updating role: ' + (data.error || 'Server error'));
+                        return;
                     }
                     if (data.error) {
                         console.error('Server error:', data.error);
