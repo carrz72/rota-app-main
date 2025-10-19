@@ -647,8 +647,8 @@ if ($user_id) {
 
         // Edit role function
         function editRole(roleId) {
-        // Get role data from server
-        fetch(`/functions/get_role.php?id=${roleId}`)
+            // Get role data from server
+            fetch(`/functions/get_role.php?id=${roleId}`)
                 .then(response => response.json())
                 .then(role => {
                     // Populate the edit form
